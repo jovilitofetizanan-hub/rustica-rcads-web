@@ -30,7 +30,7 @@ button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;backg
 #ownerExact .avatar{width:58px;height:58px;border-radius:50%;background:#f0d8a7;color:#3c392f;display:grid;place-items:center;font-weight:900;font-size:20px;border:3px solid rgba(255,255,255,.75)}
 #ownerExact .greet{font-size:10px;opacity:.82}.name{font-size:18px;font-weight:900}.role{font-size:10px;opacity:.86;margin-top:4px}.chip{margin-top:8px;display:inline-block;font-size:9px;font-weight:900;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:5px 8px}
 #ownerExact .title{font-size:13px;font-weight:900;color:#2d352f;margin:18px 2px 9px;display:flex;justify-content:space-between}.title span{font-size:9px;color:#858d87}
-#ownerExact .overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat{background:#fff;border:1px solid #e4e7e3;border-radius:16px;padding:13px}.stat b{display:block;font-size:12px}.stat small{display:block;font-size:9px;line-height:1.35;color:#7b847e;margin-top:3px}
+#ownerExact .overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat{background:#fff;border:1px solid #e4e7e3;border-radius:16px;padding:13px;text-align:left;color:#252e28;margin:0}.stat b{display:block;font-size:12px}.stat small{display:block;font-size:9px;line-height:1.35;color:#7b847e;margin-top:3px}#ownerExact .owner-action{cursor:pointer}#ownerExact .owner-action.active{outline:2px solid #315f45;background:#eef5ef}
 #ownerExact .menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.menu button{margin:0;text-align:left;background:#fff;color:#252e28;border:1px solid #e2e6e2;border-radius:17px;padding:14px;min-height:92px;font-size:12px}.menu small{display:block;font-size:9px;line-height:1.35;color:#778079;margin-top:5px}
 #ownerExact .checking,.monitor{background:#fff;border:1px solid #e1e5e1;border-radius:16px;padding:12px;margin-top:12px}.checking label{display:block;margin-top:7px;font-size:10px;font-weight:800;color:#5c4a3b}.checking select{width:100%;margin-top:5px;padding:11px;border:1px solid #d8d1c8;border-radius:11px;background:#fff;font-size:13px}
 #ownerExact .close{width:100%;margin-top:14px;padding:13px;border:1px solid #d8ded9;border-radius:14px;background:#fff;color:#405047;font-size:11px;font-weight:900}
@@ -158,11 +158,18 @@ document.getElementById('returnGo')?.addEventListener('click',async()=>{
   <div class="content">
    <div class="profile"><div style="width:100%;text-align:center"><div class="greet" style="font-size:18px;font-weight:900;opacity:1">Welcome back!</div></div></div>
    <div class="title">Attendance Overview <span>ALL BRANCHES</span></div>
-   <div class="overview"><div class="stat"><b>👔 Managers</b><small>Restaurant Manager and Catering Manager attendance/status.</small></div><div class="stat"><b>✓ Approvers</b><small>Authorized Approvers currently active across branches.</small></div><div class="stat"><b>🛡 Guards</b><small>Guard 1 and Guard 2 duty status for every branch.</small></div><div class="stat"><b>⏱ Straight Duty</b><small>Highlights Guard duty extending beyond the locked baseline.</small></div></div>
+   <div class="overview">
+     <button class="stat owner-action" type="button" data-owner-view="MANAGERS"><b>👔 Managers</b><small>Restaurant Manager and Catering Manager attendance/status.</small></button>
+     <button class="stat owner-action" type="button" data-owner-view="APPROVERS"><b>✓ Approvers</b><small>Authorized Approvers currently active across branches.</small></button>
+     <button class="stat owner-action" type="button" data-owner-view="GUARDS"><b>🛡 Guards</b><small>Guard 1 and Guard 2 duty status for every branch.<br><strong>⏱ Straight Duty</strong> is included here.</small></button>
+   </div>
    <div class="title">Quick Access <span>ROLE VIEW</span></div>
-   <div class="menu"><button>👥 <b>My Team</b><small>Approvers, Managers and Guards across all branches.</small></button><button>▤ <b>Reports</b><small>Read-only monitoring information and attendance summaries.</small></button><button>✓ <b>Approvals</b><small>Monitor Approver activity without HR administrative control.</small></button><button>◉ <b>Announcements</b><small>Authorized RCADS notices and operational updates.</small></button><button>⚙ <b>Settings</b><small>Role-specific display only; HR controls stay protected.</small></button></div>
+   <div class="menu">
+     <button class="owner-action" type="button" data-owner-view="TEAM">👥 <b>My Team</b><small>Approvers, Managers and Guards across all branches.</small></button>
+     <button class="owner-action" type="button" data-owner-view="ANNOUNCEMENTS">◉ <b>Announcements</b><small>Authorized RCADS notices and operational updates.</small></button>
+   </div>
    <div class="checking"><b style="color:#4c2b17;font-size:12px">CURRENTLY CHECKING</b><label>BRANCH</label><select id="oeSelect"><option value="">-- Select branch being checked --</option><option>SAN RAFAEL</option><option>SAN JUAN</option><option>CABANATUAN</option><option>ANGELES</option></select></div>
-   <div class="monitor"><b>My Team • LIVE STATUS</b><div style="font-size:10px;color:#6d5845;margin-top:7px">Top Management monitoring view is ready. Live operational rows remain protected until their central read-only endpoint is connected.</div></div>
+   <div class="monitor" id="ownerMonitor"><b id="ownerMonitorTitle">My Team • LIVE STATUS</b><div id="ownerMonitorBody" style="font-size:10px;color:#6d5845;margin-top:7px">Top Management monitoring view is ready. Tap Managers, Approvers, Guards, My Team, or Announcements.</div></div>
    <button class="close" id="oeClose">CLOSE TOP MANAGEMENT VIEW</button>
   </div>
  </div>
@@ -180,5 +187,24 @@ function openExactOwner(row){
  document.querySelector('main').style.display='none';document.getElementById('ownerExact').style.display='block';window.scrollTo(0,0);
 }
 document.getElementById('oeSelect')?.addEventListener('change',function(){document.getElementById('oeBranch').textContent=this.value?this.value+' BRANCH':'ALL BRANCHES';});
+function ownerSetView(view){
+ const title=document.getElementById('ownerMonitorTitle');
+ const body=document.getElementById('ownerMonitorBody');
+ const branch=document.getElementById('oeSelect')?.value||'ALL BRANCHES';
+ const map={
+  MANAGERS:['Managers • LIVE STATUS','Restaurant Manager and Catering Manager monitoring for '+branch+'.'],
+  APPROVERS:['Approvers • LIVE STATUS','Authorized Approver monitoring for '+branch+'.'],
+  GUARDS:['Guards • LIVE STATUS','Guard 1 and Guard 2 duty monitoring for '+branch+'. Straight Duty status is included inside this Guard view.'],
+  TEAM:['My Team • LIVE STATUS','Managers, Approvers and Guards monitoring for '+branch+'.'],
+  ANNOUNCEMENTS:['Announcements','Authorized RCADS notices and operational updates for '+branch+'.']
+ };
+ const v=map[view]||map.TEAM;
+ if(title) title.textContent=v[0];
+ if(body) body.textContent=v[1];
+ document.querySelectorAll('#ownerExact .owner-action').forEach(b=>b.classList.toggle('active',b.dataset.ownerView===view));
+ document.getElementById('ownerMonitor')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+document.querySelectorAll('#ownerExact .owner-action').forEach(btn=>btn.addEventListener('click',()=>ownerSetView(btn.dataset.ownerView)));
+
 document.getElementById('oeClose')?.addEventListener('click',function(){sessionStorage.removeItem('rcads_mobile_verified');document.getElementById('ownerExact').style.display='none';document.querySelector('main').style.display='block';showReturningDevice();window.scrollTo(0,0);});
 </script></body></html>
