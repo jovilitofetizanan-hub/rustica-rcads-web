@@ -5,18 +5,47 @@
 <title>RCADS Private Access</title>
 <meta name="theme-color" content="#5b3a22">
 <style>
+*{box-sizing:border-box}
 body{font-family:Arial,sans-serif;background:#f5efe7;margin:0;color:#30251d}
-main{max-width:520px;margin:40px auto;padding:18px}
+main{max-width:720px;margin:28px auto;padding:18px}
 .card{background:white;border:1px solid #dbc7b0;border-radius:16px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
 h1{color:#5b3a22;margin-top:0}.lock{font-size:44px}
-input{width:100%;box-sizing:border-box;padding:13px;border:1px solid #c9b8a5;border-radius:10px;font-size:18px}
+input,select{width:100%;box-sizing:border-box;padding:13px;border:1px solid #c9b8a5;border-radius:10px;font-size:18px;background:#fff}
 button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;background:#5b3a22;color:#fff;font-weight:800;font-size:16px}
 .status{margin-top:14px;padding:11px;border-radius:9px;background:#faf5ee;font-weight:700}
 .small{font-size:12px;color:#725f50;margin-top:12px}
-.hidden{display:none}
+.hidden{display:none!important}
+
+/* Owner mobile RCADS screen */
+#ownerScreen{display:none}
+.owner-shell{background:#f7f3ed;min-height:100vh}
+.owner-topbar{background:linear-gradient(135deg,#223a2a,#6f4a2a);color:#fff;padding:18px;border-radius:18px 18px 0 0}
+.owner-brand{font-size:12px;letter-spacing:1.4px;font-weight:900;color:#ead6aa}
+.owner-name{font-size:26px;font-weight:900;margin-top:6px}
+.owner-role{font-size:13px;opacity:.92;margin-top:4px}
+.owner-live{margin-top:10px;display:inline-block;padding:6px 10px;border-radius:999px;background:#eaf6e8;color:#2f6b37;font-size:11px;font-weight:900}
+.owner-body{padding:14px}
+.owner-section{background:#fff;border:1px solid #ddd3c4;border-radius:14px;padding:14px;margin-top:12px;box-shadow:0 4px 14px rgba(0,0,0,.05)}
+.owner-section h3{margin:0 0 10px;font-size:13px;color:#5b3519}
+.owner-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.owner-tabs button{margin:0;background:#fff;color:#5b3519;border:1px solid #bca98d;padding:10px;font-size:13px}
+.owner-tabs button.active{background:linear-gradient(135deg,#2f6f3e,#6f4a2a);color:#fff}
+.branch-chip{padding:10px;border-left:4px solid #4f7d46;background:linear-gradient(90deg,#e9f3e7,#f1e5d6);border-radius:8px;font-weight:900;font-size:12px;margin-top:8px}
+.owner-row{padding:10px 0;border-bottom:1px solid #eee5d9;font-size:12px}
+.owner-row:last-child{border-bottom:0}
+.owner-note{font-size:11px;color:#6d5b46;line-height:1.4}
+.owner-logout{background:#7f2f2a}
+@media(max-width:520px){
+ main{margin:0 auto;padding:0;max-width:none}
+ .card{border-radius:0;min-height:100vh;box-shadow:none}
+ .owner-topbar{border-radius:0}
+ .owner-name{font-size:22px}
+}
 </style>
 </head>
-<body><main><div class="card">
+<body>
+<main>
+<div id="authCard" class="card">
 <div class="lock">🔒</div>
 <h1>RCADS Private Access</h1>
 <div id="missing">
@@ -31,7 +60,50 @@ button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;backg
 <div id="status" class="status">Waiting for PIN verification.</div>
 </div>
 <p class="small">Rustica Restaurant & Catering • Private RCADS gateway</p>
-</div></main>
+</div>
+
+<div id="ownerScreen" class="owner-shell">
+  <div class="owner-topbar">
+    <div class="owner-brand">RUSTICA CENTRAL ATTENDANCE & PAYROLL SYSTEM</div>
+    <div class="owner-name" id="ownerName">Ms. Vangie Balingit</div>
+    <div class="owner-role" id="ownerRole">CEO & GENERAL MANAGER • TOP MANAGEMENT</div>
+    <div class="owner-live">PRIVATE ACCESS VERIFIED</div>
+  </div>
+  <div class="owner-body">
+    <div class="owner-section">
+      <h3>CURRENTLY CHECKING</h3>
+      <select id="ownerBranch">
+        <option value="ALL">ALL BRANCHES</option>
+        <option value="SAN_RAFAEL">SAN RAFAEL</option>
+        <option value="SAN_JUAN">SAN JUAN</option>
+        <option value="CABANATUAN">CABANATUAN</option>
+        <option value="ANGELES">ANGELES</option>
+      </select>
+      <div class="owner-note" style="margin-top:8px">Read-only Top Management monitoring view.</div>
+    </div>
+
+    <div class="owner-section">
+      <h3>ATTENDANCE MONITORING</h3>
+      <div class="owner-tabs">
+        <button id="tabApprovers" class="active" type="button">APPROVERS</button>
+        <button id="tabEmployees" type="button">EMPLOYEES</button>
+      </div>
+      <div id="ownerMonitor">
+        <div class="branch-chip">ALL BRANCHES</div>
+        <div class="owner-row"><strong>Top Management private mobile screen is open.</strong><br><span class="owner-note">Live attendance rows will be connected to the central read-only data service next.</span></div>
+      </div>
+    </div>
+
+    <div class="owner-section">
+      <h3>RCADS ACCESS</h3>
+      <div class="owner-row">Account: <strong id="ownerAccount">topManagementOwner1</strong></div>
+      <div class="owner-row">Access: <strong>READ ONLY • ALL BRANCH</strong></div>
+      <div class="owner-row">Attendance: <strong>NO OWNER TIME IN / TIME OUT</strong></div>
+      <button id="logoutBtn" class="owner-logout" type="button">LOG OUT</button>
+    </div>
+  </div>
+</div>
+</main>
 <script>
 const SUPABASE_URL='https://funxupvftbjixcuvyljy.supabase.co';
 const PUBLISHABLE_KEY='sb_publishable_aiYs01c-P3H7g-dA3a31_A_Aruw7UHH';
@@ -39,7 +111,10 @@ const qs=new URLSearchParams(location.search);
 const token=qs.get('t')||'';
 const missing=document.getElementById('missing');
 const gate=document.getElementById('gate');
+const authCard=document.getElementById('authCard');
+const ownerScreen=document.getElementById('ownerScreen');
 if(token){missing.classList.add('hidden');gate.classList.remove('hidden');}
+
 async function rpc(name,body){
  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+name,{
   method:'POST',
@@ -49,6 +124,23 @@ async function rpc(name,body){
  const txt=await r.text(); let data=null; try{data=txt?JSON.parse(txt):null}catch(e){data=txt}
  if(!r.ok) throw new Error((data&&data.message)||txt||('HTTP '+r.status));
  return data;
+}
+function ownerDisplayName(key){
+ const map={topManagementOwner1:'Ms. Vangie Balingit',topManagementOwner2:'Mr. Lito Miranda',topManagementOwner3:'Mr. Jhon Miranda',topManagementOwner4:'Mr. Jim Miranda'};
+ return map[key]||'Top Management';
+}
+function ownerTitle(key,role){
+ const map={topManagementOwner1:'CEO & GENERAL MANAGER',topManagementOwner2:'Executive Chef',topManagementOwner3:'Assistant Executive Chef',topManagementOwner4:'Front of the House (FH) Manager'};
+ return map[key]||role||'Top Management';
+}
+function openOwnerScreen(row){
+ const key=row.account_key||'topManagementOwner1';
+ document.getElementById('ownerName').textContent=ownerDisplayName(key);
+ document.getElementById('ownerRole').textContent=ownerTitle(key,row.account_role)+' • TOP MANAGEMENT';
+ document.getElementById('ownerAccount').textContent=key;
+ authCard.style.display='none';
+ ownerScreen.style.display='block';
+ window.scrollTo(0,0);
 }
 document.getElementById('go')?.addEventListener('click',async()=>{
  const st=document.getElementById('status');
@@ -62,8 +154,24 @@ document.getElementById('go')?.addEventListener('click',async()=>{
   sessionStorage.setItem('rcads_mobile_verified',JSON.stringify({
    branch:row.branch_code,accountKey:row.account_key,role:row.account_role,identity:row.account_identity,verifiedAt:Date.now()
   }));
-  st.textContent='ACCESS GRANTED — secure personal RCADS screen routing is ready.';
-  // Exact role-screen mount will replace this status after the private mobile screen bundle is connected.
+  openOwnerScreen(row);
  }catch(e){st.textContent='PRIVATE ACCESS NOT READY: '+(e.message||e);}
 });
-</script></body></html>
+document.getElementById('logoutBtn')?.addEventListener('click',()=>{
+ sessionStorage.removeItem('rcads_mobile_verified');
+ ownerScreen.style.display='none';
+ authCard.style.display='block';
+ document.getElementById('pin').value='';
+ document.getElementById('status').textContent='Logged out. Generate a new HR QR/link for a new secure session.';
+});
+function setTab(which){
+ const a=document.getElementById('tabApprovers'),e=document.getElementById('tabEmployees');
+ a.classList.toggle('active',which==='APPROVERS');e.classList.toggle('active',which==='EMPLOYEES');
+ document.getElementById('ownerMonitor').innerHTML='<div class="branch-chip">'+document.getElementById('ownerBranch').selectedOptions[0].textContent+'</div><div class="owner-row"><strong>'+which+'</strong><br><span class="owner-note">Private Owner monitoring screen active. Live central rows are the next data connection step.</span></div>';
+}
+document.getElementById('tabApprovers')?.addEventListener('click',()=>setTab('APPROVERS'));
+document.getElementById('tabEmployees')?.addEventListener('click',()=>setTab('EMPLOYEES'));
+document.getElementById('ownerBranch')?.addEventListener('change',()=>setTab(document.getElementById('tabEmployees').classList.contains('active')?'EMPLOYEES':'APPROVERS'));
+</script>
+</body>
+</html>
