@@ -39,8 +39,16 @@ button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;backg
 <div class="lock">🔒</div>
 <h1>RCADS Private Access</h1>
 <div id="missing">
-<p>This page does not contain employee data, PINs, or RCADS private configuration.</p>
-<p class="status">Open this page only through an HR-generated RCADS personal link or QR.</p>
+<p id="deviceIntro">This phone is not yet enrolled for RCADS private access.</p>
+<p class="status" id="deviceStatus">For first-time setup, use the HR-generated personal QR/link. After enrollment, this phone will need only the Owner PIN.</p>
+</div>
+<div id="returnGate" class="hidden">
+<p><strong>RCADS Registered Device</strong></p>
+<p id="returnIdentity">This phone is enrolled for private RCADS access.</p>
+<label for="returnPin"><strong>Enter your RCADS PIN</strong></label>
+<input id="returnPin" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="12">
+<button id="returnGo">OPEN MY RCADS SCREEN</button>
+<div id="returnStatus" class="status">Registered phone • PIN required.</div>
 </div>
 <div id="gate" class="hidden">
 <p>Personal RCADS access link received.</p>
@@ -54,11 +62,36 @@ button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;backg
 <script>
 const SUPABASE_URL='https://funxupvftbjixcuvyljy.supabase.co';
 const PUBLISHABLE_KEY='sb_publishable_aiYs01c-P3H7g-dA3a31_A_Aruw7UHH';
+const DEVICE_TOKEN_KEY='rcads_mobile_device_token_v1';
+const DEVICE_META_KEY='rcads_mobile_device_meta_v1';
 const qs=new URLSearchParams(location.search);
 const token=qs.get('t')||'';
 const missing=document.getElementById('missing');
 const gate=document.getElementById('gate');
-if(token){missing.classList.add('hidden');gate.classList.remove('hidden');}
+const returnGate=document.getElementById('returnGate');
+
+function hex(bytes){return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');}
+function ensureDeviceToken(){
+ let t=localStorage.getItem(DEVICE_TOKEN_KEY)||'';
+ if(!t){
+   const bytes=new Uint8Array(32); crypto.getRandomValues(bytes); t=hex(bytes);
+ }
+ return t;
+}
+function showReturningDevice(){
+ const deviceToken=localStorage.getItem(DEVICE_TOKEN_KEY)||'';
+ const meta=JSON.parse(localStorage.getItem(DEVICE_META_KEY)||'null');
+ if(token){
+   missing?.classList.add('hidden'); returnGate?.classList.add('hidden'); gate?.classList.remove('hidden'); return;
+ }
+ if(deviceToken && meta?.accountKey){
+   missing?.classList.add('hidden'); gate?.classList.add('hidden'); returnGate?.classList.remove('hidden');
+   const id=document.getElementById('returnIdentity');
+   if(id) id.textContent=(meta.name||'Authorized RCADS user')+' • '+(meta.role||'Private access');
+ }else{
+   missing?.classList.remove('hidden'); gate?.classList.add('hidden'); returnGate?.classList.add('hidden');
+ }
+}
 async function rpc(name,body){
  const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+name,{
   method:'POST',
@@ -69,21 +102,55 @@ async function rpc(name,body){
  if(!r.ok) throw new Error((data&&data.message)||txt||('HTTP '+r.status));
  return data;
 }
+function ownerNameFor(key){
+ const map={topManagementOwner1:'Ms. Vangie Balingit',topManagementOwner2:'Mr. Lito Miranda',topManagementOwner3:'Mr. Jhon Miranda',topManagementOwner4:'Mr. Jim Miranda'};
+ return map[key]||'Authorized RCADS User';
+}
+function saveEnrollment(row,deviceToken){
+ localStorage.setItem(DEVICE_TOKEN_KEY,deviceToken);
+ localStorage.setItem(DEVICE_META_KEY,JSON.stringify({
+   branch:row.branch_code,accountKey:row.account_key,role:row.account_role,identity:row.account_identity,
+   name:ownerNameFor(row.account_key),enrolledAt:Date.now()
+ }));
+}
+showReturningDevice();
+
 document.getElementById('go')?.addEventListener('click',async()=>{
  const st=document.getElementById('status');
  const pin=document.getElementById('pin').value.trim();
  if(!pin){st.textContent='Enter your RCADS PIN.';return;}
- st.textContent='VERIFYING PRIVATE ACCESS…';
+ st.textContent='VERIFYING & ENROLLING THIS PHONE…';
  try{
-  const rows=await rpc('rustica_consume_mobile_access_session',{p_token:token,p_pin:pin});
+  const deviceToken=ensureDeviceToken();
+  const rows=await rpc('rustica_consume_mobile_access_session',{p_token:token,p_pin:pin,p_device_token:deviceToken});
+  const row=Array.isArray(rows)?rows[0]:rows;
+  if(!row||row.valid!==true){st.textContent=(row&&row.message)||'ACCESS DENIED';return;}
+  saveEnrollment(row,deviceToken);
+  sessionStorage.setItem('rcads_mobile_verified',JSON.stringify({
+   branch:row.branch_code,accountKey:row.account_key,role:row.account_role,identity:row.account_identity,verifiedAt:Date.now(),device:true
+  }));
+  st.textContent='PHONE ENROLLED • ACCESS GRANTED';
+  openExactOwner(row);
+ }catch(e){st.textContent='PRIVATE ACCESS NOT READY: '+(e.message||e);}
+});
+
+document.getElementById('returnGo')?.addEventListener('click',async()=>{
+ const st=document.getElementById('returnStatus');
+ const pin=document.getElementById('returnPin').value.trim();
+ const deviceToken=localStorage.getItem(DEVICE_TOKEN_KEY)||'';
+ if(!pin){st.textContent='Enter your RCADS PIN.';return;}
+ if(!deviceToken){localStorage.removeItem(DEVICE_META_KEY);showReturningDevice();return;}
+ st.textContent='VERIFYING REGISTERED PHONE…';
+ try{
+  const rows=await rpc('rustica_verify_mobile_device',{p_device_token:deviceToken,p_pin:pin});
   const row=Array.isArray(rows)?rows[0]:rows;
   if(!row||row.valid!==true){st.textContent=(row&&row.message)||'ACCESS DENIED';return;}
   sessionStorage.setItem('rcads_mobile_verified',JSON.stringify({
-   branch:row.branch_code,accountKey:row.account_key,role:row.account_role,identity:row.account_identity,verifiedAt:Date.now()
+   branch:row.branch_code,accountKey:row.account_key,role:row.account_role,identity:row.account_identity,verifiedAt:Date.now(),device:true
   }));
   st.textContent='ACCESS GRANTED';
   openExactOwner(row);
- }catch(e){st.textContent='PRIVATE ACCESS NOT READY: '+(e.message||e);}
+ }catch(e){st.textContent='REGISTERED DEVICE LOGIN NOT READY: '+(e.message||e);}
 });
 </script><div id="ownerExact">
  <div class="app">
@@ -113,5 +180,5 @@ function openExactOwner(row){
  document.querySelector('main').style.display='none';document.getElementById('ownerExact').style.display='block';window.scrollTo(0,0);
 }
 document.getElementById('oeSelect')?.addEventListener('change',function(){document.getElementById('oeBranch').textContent=this.value?this.value+' BRANCH':'ALL BRANCHES';});
-document.getElementById('oeClose')?.addEventListener('click',function(){sessionStorage.removeItem('rcads_mobile_verified');location.href=location.pathname});
+document.getElementById('oeClose')?.addEventListener('click',function(){sessionStorage.removeItem('rcads_mobile_verified');document.getElementById('ownerExact').style.display='none';document.querySelector('main').style.display='block';showReturningDevice();window.scrollTo(0,0);});
 </script></body></html>
