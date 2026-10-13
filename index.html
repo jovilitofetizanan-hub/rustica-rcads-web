@@ -175,7 +175,8 @@ function openExactOwner(row){
   topManagementOwner4:['Mr. Jim Miranda','Front of the House (FH) Manager','JM']
  };
  const m=meta[row.account_key]||['Top Management',row.account_role||'Top Management','TM'];
- document.getElementById('oeName').textContent=m[0];\n document.getElementById('oeTitle').textContent=m[1];
+ document.getElementById('oeName').textContent=m[0];
+ document.getElementById('oeTitle').textContent=m[1];
  document.querySelector('main').style.display='none';document.getElementById('ownerExact').style.display='block';window.scrollTo(0,0);
 }
 document.getElementById('oeSelect')?.addEventListener('change',function(){document.getElementById('oeBranch').textContent=this.value?this.value+' BRANCH':'ALL BRANCHES';});
