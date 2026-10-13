@@ -15,7 +15,26 @@ button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;backg
 .small{font-size:12px;color:#725f50;margin-top:12px}
 .hidden{display:none}
 </style>
-</head>
+<style id="rcadsExactOwnerR153">
+#ownerExact{display:none;min-height:100vh;background:#efebe5;padding:16px 0 24px;font-family:Arial,Helvetica,sans-serif;color:#252a27}
+#ownerExact .app{width:min(430px,calc(100vw - 24px));margin:0 auto;background:#f8f5ef;border:1px solid #e8ddcf;border-radius:24px;overflow:hidden;box-shadow:0 18px 48px rgba(54,34,18,.16)}
+#ownerExact .hero{background:linear-gradient(180deg,#241109 0%,#3a1d10 100%);color:#f4dfb5;text-align:center;border-bottom:2px solid #d7ad63;padding:12px 16px 14px}
+#ownerExact .brandline{display:flex;align-items:center;justify-content:center;gap:10px}
+#ownerExact .rustica{font-family:Georgia,'Times New Roman',serif;font-size:27px;font-weight:600;letter-spacing:2px;color:#d9b875;line-height:1;text-transform:lowercase}
+#ownerExact .system{font-family:Georgia,'Times New Roman',serif;font-size:12px;font-weight:700;letter-spacing:2.4px;margin-top:5px;color:#f6e8c8;line-height:1.25}
+#ownerExact .branch{margin-top:10px;font-size:18px;color:#fff6e5}
+#ownerExact .ownername{margin-top:9px;font-size:14px;font-weight:900;color:#ffd38a}
+#ownerExact .ownertitle{font-size:11px;font-weight:700;margin-top:2px;color:#f2e4c8}
+#ownerExact .content{padding:14px 14px 20px}
+#ownerExact .profile{background:linear-gradient(145deg,#315f45,#223a2c);border-radius:20px;padding:18px;color:#fff;box-shadow:0 10px 28px rgba(35,58,44,.20);display:flex;align-items:center;gap:13px}
+#ownerExact .avatar{width:58px;height:58px;border-radius:50%;background:#f0d8a7;color:#3c392f;display:grid;place-items:center;font-weight:900;font-size:20px;border:3px solid rgba(255,255,255,.75)}
+#ownerExact .greet{font-size:10px;opacity:.82}.name{font-size:18px;font-weight:900}.role{font-size:10px;opacity:.86;margin-top:4px}.chip{margin-top:8px;display:inline-block;font-size:9px;font-weight:900;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:5px 8px}
+#ownerExact .title{font-size:13px;font-weight:900;color:#2d352f;margin:18px 2px 9px;display:flex;justify-content:space-between}.title span{font-size:9px;color:#858d87}
+#ownerExact .overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stat{background:#fff;border:1px solid #e4e7e3;border-radius:16px;padding:13px}.stat b{display:block;font-size:12px}.stat small{display:block;font-size:9px;line-height:1.35;color:#7b847e;margin-top:3px}
+#ownerExact .menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.menu button{margin:0;text-align:left;background:#fff;color:#252e28;border:1px solid #e2e6e2;border-radius:17px;padding:14px;min-height:92px;font-size:12px}.menu small{display:block;font-size:9px;line-height:1.35;color:#778079;margin-top:5px}
+#ownerExact .checking,.monitor{background:#fff;border:1px solid #e1e5e1;border-radius:16px;padding:12px;margin-top:12px}.checking label{display:block;margin-top:7px;font-size:10px;font-weight:800;color:#5c4a3b}.checking select{width:100%;margin-top:5px;padding:11px;border:1px solid #d8d1c8;border-radius:11px;background:#fff;font-size:13px}
+#ownerExact .close{width:100%;margin-top:14px;padding:13px;border:1px solid #d8ded9;border-radius:14px;background:#fff;color:#405047;font-size:11px;font-weight:900}
+</style></head>
 <body><main><div class="card">
 <div class="lock">🔒</div>
 <h1>RCADS Private Access</h1>
@@ -62,8 +81,37 @@ document.getElementById('go')?.addEventListener('click',async()=>{
   sessionStorage.setItem('rcads_mobile_verified',JSON.stringify({
    branch:row.branch_code,accountKey:row.account_key,role:row.account_role,identity:row.account_identity,verifiedAt:Date.now()
   }));
-  st.textContent='ACCESS GRANTED — secure personal RCADS screen routing is ready.';
-  // Exact role-screen mount will replace this status after the private mobile screen bundle is connected.
+  st.textContent='ACCESS GRANTED';
+  openExactOwner(row);
  }catch(e){st.textContent='PRIVATE ACCESS NOT READY: '+(e.message||e);}
 });
+</script><div id="ownerExact">
+ <div class="app">
+  <div class="hero"><div class="brandline"><div><div class="rustica">rustica</div><div class="system">RUSTICA CENTRAL ATTENDANCE SYSTEM (RCADS)</div></div></div><div class="branch" id="oeBranch">ALL BRANCHES</div><div class="ownername" id="oeName">Ms. Vangie Balingit</div><div class="ownertitle" id="oeTitle">CEO & GENERAL MANAGER</div></div>
+  <div class="content">
+   <div class="profile"><div class="avatar" id="oeAvatar">VB</div><div><div class="greet">Welcome back</div><div class="name" id="oeName2">Ms. Vangie Balingit</div><div class="role" id="oeRole">CEO & GENERAL MANAGER • All Branches</div><div class="chip">MONITORING ONLY</div></div></div>
+   <div class="title">Attendance Overview <span>ALL BRANCHES</span></div>
+   <div class="overview"><div class="stat"><b>👔 Managers</b><small>Restaurant Manager and Catering Manager attendance/status.</small></div><div class="stat"><b>✓ Approvers</b><small>Authorized Approvers currently active across branches.</small></div><div class="stat"><b>🛡 Guards</b><small>Guard 1 and Guard 2 duty status for every branch.</small></div><div class="stat"><b>⏱ Straight Duty</b><small>Highlights Guard duty extending beyond the locked baseline.</small></div></div>
+   <div class="title">Quick Access <span>ROLE VIEW</span></div>
+   <div class="menu"><button>👥 <b>My Team</b><small>Approvers, Managers and Guards across all branches.</small></button><button>▤ <b>Reports</b><small>Read-only monitoring information and attendance summaries.</small></button><button>✓ <b>Approvals</b><small>Monitor Approver activity without HR administrative control.</small></button><button>◉ <b>Announcements</b><small>Authorized RCADS notices and operational updates.</small></button><button>⚙ <b>Settings</b><small>Role-specific display only; HR controls stay protected.</small></button></div>
+   <div class="checking"><b style="color:#4c2b17;font-size:12px">CURRENTLY CHECKING</b><label>BRANCH</label><select id="oeSelect"><option value="">-- Select branch being checked --</option><option>SAN RAFAEL</option><option>SAN JUAN</option><option>CABANATUAN</option><option>ANGELES</option></select></div>
+   <div class="monitor"><b>My Team • LIVE STATUS</b><div style="font-size:10px;color:#6d5845;margin-top:7px">Top Management monitoring view is ready. Live operational rows remain protected until their central read-only endpoint is connected.</div></div>
+   <button class="close" id="oeClose">CLOSE TOP MANAGEMENT VIEW</button>
+  </div>
+ </div>
+</div><script id="ownerExactLogic">
+function openExactOwner(row){
+ const meta={
+  topManagementOwner1:['Ms. Vangie Balingit','CEO & GENERAL MANAGER','VB'],
+  topManagementOwner2:['Mr. Lito Miranda','Executive Chef','LM'],
+  topManagementOwner3:['Mr. Jhon Miranda','Assistant Executive Chef','JM'],
+  topManagementOwner4:['Mr. Jim Miranda','Front of the House (FH) Manager','JM']
+ };
+ const m=meta[row.account_key]||['Top Management',row.account_role||'Top Management','TM'];
+ document.getElementById('oeName').textContent=m[0];document.getElementById('oeName2').textContent=m[0];
+ document.getElementById('oeTitle').textContent=m[1];document.getElementById('oeRole').textContent=m[1]+' • All Branches';document.getElementById('oeAvatar').textContent=m[2];
+ document.querySelector('main').style.display='none';document.getElementById('ownerExact').style.display='block';window.scrollTo(0,0);
+}
+document.getElementById('oeSelect')?.addEventListener('change',function(){document.getElementById('oeBranch').textContent=this.value?this.value+' BRANCH':'ALL BRANCHES';document.getElementById('oeRole').textContent=document.getElementById('oeTitle').textContent+' • '+(this.value||'All Branches')});
+document.getElementById('oeClose')?.addEventListener('click',function(){sessionStorage.removeItem('rcads_mobile_verified');location.href=location.pathname});
 </script></body></html>
