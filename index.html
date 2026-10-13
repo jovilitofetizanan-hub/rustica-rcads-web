@@ -1,104 +1,69 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rustica RCADS QR Test</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RCADS Private Access</title>
 <meta name="theme-color" content="#5b3a22">
 <style>
-body{font-family:Arial,sans-serif;background:#f6efe5;margin:0;color:#2d2118}
-main{max-width:760px;margin:32px auto;padding:20px}
-.card{background:#fff;border:1px solid #dbc8b1;border-radius:16px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
-h1{margin:0 0 8px;color:#5b3a22}
-label{display:block;font-weight:700;margin:14px 0 6px}
-input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #c9b9a6;border-radius:9px}
-button{padding:11px 14px;border:0;border-radius:9px;font-weight:800;cursor:pointer}
-.primary{background:#6e4a2c;color:white}.secondary{background:#1f6b4f;color:white}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-#qr{margin-top:18px;display:flex;justify-content:center;min-height:220px;align-items:center;border:1px dashed #cbb89f;border-radius:12px;background:#fffaf3}
-.code{font-size:12px;word-break:break-all;background:#faf6ef;padding:10px;border-radius:8px;margin-top:10px}
-.note{font-size:13px;color:#6f5b49;margin-top:10px}
+body{font-family:Arial,sans-serif;background:#f5efe7;margin:0;color:#30251d}
+main{max-width:520px;margin:40px auto;padding:18px}
+.card{background:white;border:1px solid #dbc7b0;border-radius:16px;padding:24px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+h1{color:#5b3a22;margin-top:0}.lock{font-size:44px}
+input{width:100%;box-sizing:border-box;padding:13px;border:1px solid #c9b8a5;border-radius:10px;font-size:18px}
+button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;background:#5b3a22;color:#fff;font-weight:800;font-size:16px}
+.status{margin-top:14px;padding:11px;border-radius:9px;background:#faf5ee;font-weight:700}
+.small{font-size:12px;color:#725f50;margin-top:12px}
+.hidden{display:none}
 </style>
 </head>
-<body>
-<main>
-<div class="card">
-<h1>RCADS QR + Personal Link Test</h1>
-<p>This test uses the permanent HTTPS RCADS web address. QR and personal link open the same target.</p>
-
-<label>Person / Role</label>
-<input id="person" value="OWNER 1 - MS. VANGIE BALINGIT">
-
-<label>RCADS Code</label>
-<input id="code" value="OWNER1">
-
-<div class="row">
-<button class="primary" id="make">CREATE QR + LINK</button>
-<button class="secondary" id="copy">COPY LINK</button>
-<button class="secondary" id="open">OPEN LINK</button>
+<body><main><div class="card">
+<div class="lock">🔒</div>
+<h1>RCADS Private Access</h1>
+<div id="missing">
+<p>This page does not contain employee data, PINs, or RCADS private configuration.</p>
+<p class="status">Open this page only through an HR-generated RCADS personal link or QR.</p>
 </div>
-
-<div id="qr">Create the QR first.</div>
-<div class="code" id="linkBox"></div>
-<div class="note">If QR scanning fails, use COPY LINK and send the same personal link to the phone.</div>
+<div id="gate" class="hidden">
+<p>Personal RCADS access link received.</p>
+<label for="pin"><strong>Enter your RCADS PIN</strong></label>
+<input id="pin" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="12">
+<button id="go">OPEN MY RCADS SCREEN</button>
+<div id="status" class="status">Waiting for PIN verification.</div>
 </div>
-</main>
-
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<p class="small">Rustica Restaurant & Catering • Private RCADS gateway</p>
+</div></main>
 <script>
-const base = location.origin + location.pathname;
-let currentLink = "";
-
-function token(){
-  const a = new Uint8Array(16);
-  crypto.getRandomValues(a);
-  return Array.from(a).map(x=>x.toString(16).padStart(2,'0')).join('');
+const SUPABASE_URL='https://funxupvftbjixcuvyljy.supabase.co';
+const PUBLISHABLE_KEY='sb_publishable_aiYs01c-P3H7g-dA3a31_A_Aruw7UHH';
+const qs=new URLSearchParams(location.search);
+const token=qs.get('t')||'';
+const missing=document.getElementById('missing');
+const gate=document.getElementById('gate');
+if(token){missing.classList.add('hidden');gate.classList.remove('hidden');}
+async function rpc(name,body){
+ const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+name,{
+  method:'POST',
+  headers:{apikey:PUBLISHABLE_KEY,Authorization:'Bearer '+PUBLISHABLE_KEY,'Content-Type':'application/json'},
+  body:JSON.stringify(body)
+ });
+ const txt=await r.text(); let data=null; try{data=txt?JSON.parse(txt):null}catch(e){data=txt}
+ if(!r.ok) throw new Error((data&&data.message)||txt||('HTTP '+r.status));
+ return data;
 }
-
-function build(){
-  const person = document.getElementById('person').value.trim();
-  const code = document.getElementById('code').value.trim();
-  const expires = Date.now() + 2*60*1000;
-  const t = token();
-  const u = new URL(base);
-  u.searchParams.set('rcadsAccess', t);
-  u.searchParams.set('role', 'OWNER');
-  u.searchParams.set('code', code);
-  u.searchParams.set('name', person);
-  u.searchParams.set('exp', String(expires));
-  currentLink = u.toString();
-
-  const q = document.getElementById('qr');
-  q.innerHTML = '';
-  new QRCode(q, {
-    text: currentLink,
-    width: 220,
-    height: 220,
-    correctLevel: QRCode.CorrectLevel.M
-  });
-  document.getElementById('linkBox').textContent = currentLink;
-}
-
-document.getElementById('make').onclick = build;
-document.getElementById('copy').onclick = async()=>{
-  if(!currentLink) build();
-  try { await navigator.clipboard.writeText(currentLink); alert('Personal RCADS link copied.'); }
-  catch(e){ prompt('Copy this RCADS link:', currentLink); }
-};
-document.getElementById('open').onclick = ()=>{
-  if(!currentLink) build();
-  window.open(currentLink,'_blank','noopener');
-};
-
-const p = new URLSearchParams(location.search);
-if(p.has('rcadsAccess')){
-  document.querySelector('.card').innerHTML =
-    '<h1>RCADS ACCESS RECEIVED</h1>' +
-    '<p><strong>'+ (p.get('name')||'Selected user') +'</strong></p>' +
-    '<p>Role: '+(p.get('role')||'')+'</p>' +
-    '<p>Code: '+(p.get('code')||'')+'</p>' +
-    '<p class="note">HTTPS personal-link routing is working. Next step is connecting this route to the real locked RCADS personal screen and PIN verification.</p>';
-}
-</script>
-</body>
-</html>
+document.getElementById('go')?.addEventListener('click',async()=>{
+ const st=document.getElementById('status');
+ const pin=document.getElementById('pin').value.trim();
+ if(!pin){st.textContent='Enter your RCADS PIN.';return;}
+ st.textContent='VERIFYING PRIVATE ACCESS…';
+ try{
+  const rows=await rpc('rustica_consume_mobile_access_session',{p_token:token,p_pin:pin});
+  const row=Array.isArray(rows)?rows[0]:rows;
+  if(!row||row.valid!==true){st.textContent=(row&&row.message)||'ACCESS DENIED';return;}
+  sessionStorage.setItem('rcads_mobile_verified',JSON.stringify({
+   branch:row.branch_code,accountKey:row.account_key,role:row.account_role,identity:row.account_identity,verifiedAt:Date.now()
+  }));
+  st.textContent='ACCESS GRANTED — secure personal RCADS screen routing is ready.';
+  // Exact role-screen mount will replace this status after the private mobile screen bundle is connected.
+ }catch(e){st.textContent='PRIVATE ACCESS NOT READY: '+(e.message||e);}
+});
+</script></body></html>
