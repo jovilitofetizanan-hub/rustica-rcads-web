@@ -1,4 +1,4 @@
-<!-- R203 STAFF ACCESS FIX: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
+<!-- R204 AUTO PIN SYNC: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
 <!-- R157 SECURITY FIX: HR PIN no longer stored or shown in plain text; HR can change it. All other R156 behavior unchanged. -->
 <!-- R156 trial: transparent enrollment readiness; no backend enrollment or access grant. Based directly on R155. -->
 <!--
@@ -144,7 +144,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R203 STAFF ACCESS FIX</title>
+<title>Rustica RCADS App — R204 AUTO PIN SYNC</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21850,7 +21850,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
 <style id="rcadsR160Css">
 #r160Gate{position:fixed;inset:0;z-index:2147483300;background:linear-gradient(160deg,#3d2615,#6b3f1d);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:28px 16px}
 html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
@@ -22137,6 +22137,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   }
   // R174: current PINs of all employees (only while HR has opened SHOW PINS on the HR-KEY device). null = no PIN / disabled.
   window.rcadsR160UnlockVault=unlockVault;
+  window.rcadsR160VaultTry=async function(pass){if(hrPriv)return true;try{if(!hasCrypto()||!vaultHas()||!hrPinOk(pass))return false;hrPriv=await vaultOpen(String(pass).trim());vaultPass=String(pass).trim();return true}catch(e){return false}};
   window.rcadsR160KnownPins=async function(){if(!hrPriv)return null;await refreshPinCache();const out={};for(const [c,r] of Object.entries(read().people||{}))out[c]=r.status==='ACTIVE'?((pinCache[c]||{}).pin||''):null;return out};
   window.rcadsR160ChangeMyPin=function(){try{if(currentEmployee)employeeChangePin(currentEmployee.code)}catch(e){}};
   // "CHANGE MY PIN" button on the employee personal app (only for enrolled ordinary employees).
@@ -22864,7 +22865,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
 <style id="rcadsR167Css">
 .r167-card{position:relative;overflow:hidden;background:#fff;border-radius:3.2mm;font-family:Arial,Helvetica,sans-serif;color:#3d2615;box-shadow:0 2px 10px rgba(0,0,0,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact;flex:0 0 auto}
 .r167-card.port{width:54mm;height:85.6mm}.r167-card.land{width:85.6mm;height:54mm}
@@ -23359,7 +23360,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
 <style id="rcadsR170Css">
 #r170Blocked{position:fixed;inset:0;z-index:2147483400;background:linear-gradient(160deg,#3d2615,#1c0f07);display:flex;align-items:center;justify-content:center;padding:18px}
 .r170-card{max-width:380px;width:100%;background:#fffaf2;border-radius:16px;padding:22px 18px;text-align:center;color:#3d2615;border-top:6px solid #a1281f}
@@ -23765,7 +23766,7 @@ body.r162-has-nav{padding-bottom:78px!important}
     catch(e){throw new Error('No connection to Supabase. Open RCADS in Edge/Chrome and check the internet.')}
     const txt=await r.text();let data=null;try{data=txt?JSON.parse(txt):null}catch(e){}
     if(!r.ok){const m=(data&&(data.message||data.hint))||txt||('HTTP '+r.status);if(/could not find the function|PGRST202/i.test(m))throw new Error('201 Files is not set up in Supabase yet. Run RCADS_201_FILES_SUPABASE_SETUP.sql first.');throw new Error(m)}
-    if(data&&data.ok===false)throw new Error(String(data.error||'Request failed').replace(/^[A-Z_]+:\s*/,''));
+    if(data&&data.ok===false){const em=String(data.error||'Request failed');if(/^NOT_READY/.test(em))throw new Error('Your PIN is being activated for 201 / Payroll. It turns on automatically while HR has RCADS 201 Files open — try again in a few minutes.');throw new Error(em.replace(/^[A-Z_]+:\s*/,''))}
     return data;
   }
   window.rcads201Put=async function(code,type,name,mime,b64){if(!PASS)throw new Error('Open 🗂 201 Files first and enter the 201 password, then press ACCEPT again.');const f=findEmp(code);await rpc('rustica_201_put',{p_pass:PASS,p_emp_code:U(code),p_rustica_id:rustId(code)||null,p_emp_name:f?f.emp.name:null,p_doc_type:type,p_file_name:name,p_mime:mime,p_data_b64:b64});await refreshAll();return true};
@@ -23902,6 +23903,9 @@ body.r162-has-nav{padding-bottom:78px!important}
     try{say('Syncing…');const r=await rpc('rustica_201_set_emp_pins',{p_pass:PASS,p_pins:pins});say('✓ '+r.saved+' PIN synced'+(r.removed?' • '+r.removed+' removed':''),'ok');try{USAGE=await rpc('rustica_201_usage',{p_pass:PASS});renderUsage();renderSettings();const m2=document.getElementById('r174SyncMsg');if(m2){m2.className='r173-msg ok';m2.textContent='✓ '+r.saved+' PIN synced'}}catch(e){}}
     catch(e){say(e.message,'bad')}
   }
+  // R204: automatic sync of new / changed PINs while 201 is unlocked (no SYNC button needed)
+  let LASTPINS=null,autoBusy=false;
+  setInterval(async()=>{if(!PASS||autoBusy||typeof window.rcadsR160KnownPins!=='function')return;autoBusy=true;try{try{if(typeof rcadsCloudReady==='function'&&rcadsCloudReady())await rcadsCloudPullMerge()}catch(e){}const p=await window.rcadsR160KnownPins();if(p){if(!LASTPINS){LASTPINS={};await syncPins(true);for(const c in p)LASTPINS[c]=p[c]}else{const ch={};for(const c of Object.keys(p)){if(p[c]===''||p[c]===LASTPINS[c])continue;ch[c]=p[c]}if(Object.keys(ch).length){await syncPins(true,ch);Object.assign(LASTPINS,ch)}}}}catch(e){console.warn('R204 auto sync',e)}autoBusy=false},30000);
   window.addEventListener('rcads:pin-set',ev=>{const d=ev.detail||{};if(PASS&&d.code)syncPins(true,{[d.code]:d.pin||null})});
   function renderList(){
     const el=document.getElementById('r173List');if(!el)return;const b=document.getElementById('r173Branch').value,flt=document.getElementById('r173Filter').value;
@@ -24201,9 +24205,9 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
 <style id="rcadsR177Css">
-/* ===== R203 STAFF ACCESS FIX ===== */
+/* ===== R204 AUTO PIN SYNC ===== */
 #simpleHrAdminModal#simpleHrAdminModal#simpleHrAdminModal .rcads-hr-main.r177-paged > *:not(.r177-on){display:none!important}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main{background:linear-gradient(180deg,#f6efe4 0%,#f3eadc 100%)}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.r177-hr #simpleHrAdminModal .rcads-hr-main > .r160-hr{border-radius:16px!important;box-shadow:0 4px 18px rgba(60,30,10,.08)!important;border:1px solid #e6d3bb!important}
@@ -24598,7 +24602,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
 <style id="rcadsR181Css">
 /* ===== R181 attendance handshake ===== */
 .r181-card{background:#fffaf3;border:2px solid #c8862a;border-radius:16px;padding:12px;margin:10px 0;color:#3d2412;font-family:Arial,Helvetica,sans-serif;box-shadow:0 3px 12px rgba(91,53,25,.12)}
@@ -24959,7 +24963,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
 <style id="rcadsR182Css">
 .r182-panel{background:#fff!important}
 .r182-h{font-weight:900;font-size:14px;color:#3d2412;margin-bottom:8px}
@@ -25085,7 +25089,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX — button visible again (HIDE & CLOSE panel + HR Database page) -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC — button visible again (HIDE & CLOSE panel + HR Database page) -->
 <style id="rcadsR183Css">
 #r183BranchCard{margin:10px 0;padding:12px 14px;border:1px solid #d7c29f;border-radius:12px;background:#fffaf2;font-family:inherit}
 #r183BranchCard .r183-t{font-size:14px;font-weight:900;color:#4c2b17;letter-spacing:.3px}
@@ -25134,7 +25138,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
 <style id="rcadsR184Css">
 #r184PayrollCard{margin:8px 0 10px;padding:10px;border:1px solid #c9a77a;border-radius:11px;background:#fff8ec}
 #r184SendPayroll{width:100%;padding:13px;border:0;border-radius:10px;background:linear-gradient(135deg,#7a4a1f,#3a2210);color:#fff;font-weight:900;font-size:14px;letter-spacing:.3px;cursor:pointer}
@@ -25187,7 +25191,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
 <style id="rcadsR185Css">
 .r185-hr .r185-h{font-size:18px;font-weight:900;color:#4c2b17;display:flex;align-items:center;gap:8px}
 .r185-hr .r185-h em{font-style:normal;background:#b3261e;color:#fff;border-radius:999px;padding:2px 9px;font-size:11px}
@@ -25430,7 +25434,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
 <script id="rcadsR190Script">
 /* R190 — POSITIONS FROM RCPS.
    • RCPS → Employee Master → "Send positions to RCADS" makes an .xlsx with EMPCODE, name, dept and position (NO salary).
@@ -25764,7 +25768,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
 <style id="rcadsR193Css">
 .r193-head{margin:12px 0;padding:12px;border-radius:14px;background:#fffaf2;border:1px solid #e6d3b8;color:#3d2615;font-size:12px;text-align:left}.r193-hh{font-weight:900;font-size:13px;color:#4c2b17}.r193-hn{font-size:11px;color:#6d5845;margin:6px 0;line-height:1.45}.r193-hf{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.r193-hf input,.r193-hf select{padding:8px;border:1px solid #cdbb9f;border-radius:8px;font-size:12.5px;width:100%;box-sizing:border-box}.r193-hf label{font-size:11px;font-weight:800;color:#6b4a2f;display:flex;flex-direction:column;gap:3px}.r193-hf label.r193-ck{grid-column:1/-1;flex-direction:row;align-items:center;font-weight:700;font-size:12px}.r193-hf input[type=checkbox],.r193-ha input[type=checkbox]{width:auto;padding:0;margin:0}.r193-hf select{height:36px}.r193-hf button{grid-column:1/-1;padding:11px;border:0;border-radius:10px;background:linear-gradient(135deg,#6f4a2a,#3d2414);color:#fff;font-weight:900}.r193-hr2{border-top:1px solid #eadbc6;padding:8px 0}.r193-ha{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}.r193-ha button{border:0;border-radius:7px;padding:6px 9px;background:#5b3519;color:#fff;font-weight:800;font-size:10.5px}.r193-ha button.ghost{background:#fff;color:#8f3028;border:1px solid #d9a199}
 .r193-ck{display:flex;gap:6px;align-items:center;font-size:11.5px;margin:2px 0}
@@ -25970,7 +25974,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
 <style id="rcadsR194Css">
 .r194-emp{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r194-h{font-weight:900;font-size:13.5px;color:#7a3d00;margin-bottom:8px}.r194-h.ok{color:#2d6a36;margin:0}
@@ -26881,7 +26885,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R203 STAFF ACCESS FIX (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
+<!-- RCADS PATCH: R204 AUTO PIN SYNC (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
 <style id="rcadsR202Css">
 .r202-hr .r202-up{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;background:#fffaf2;border:1px solid #e6d3bb;border-radius:12px;padding:12px;margin:10px 0}
 .r202-hr .r202-up label{display:flex;flex-direction:column;font-size:11px;font-weight:800;color:#5b3519;gap:4px}.r202-hr .r202-up label.w{grid-column:1/-1}
@@ -27026,5 +27030,23 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 #r174Set .r175-sadd select#r175SRole{flex:1 1 220px!important;width:auto!important;min-width:0!important}
 #r174Set .r175-sadd #r175SAdd{flex:0 0 auto!important;width:auto!important}
 </style>
+
+<!-- RCADS PATCH: R204 HR KEY opens with the HR login + automatic 201 PIN sync -->
+<script id="rcadsR204Script">
+/* R204 — NO EXTRA HR PIN + AUTOMATIC 201 PIN SYNC
+   • When HR logs in with the HR PIN, the HR KEY (to read employees' PINs) opens at the same time — no second HR PIN prompt.
+   • While 🗂 201 Files is unlocked, every new / changed employee PIN is sent to the 201 server automatically (every 30 s).
+     No more SYNC button needed: the employee's MY 201 / STAFF 201 / PAYROLL FILES work right after he/she makes the PIN. */
+(function(){
+  'use strict';
+  const o=window.rcadsConfirmHrPin;if(typeof o!=='function')return;
+  window.rcadsConfirmHrPin=async function(){
+    const p=String((document.getElementById('rcadsHrPinInput')||{}).value||'').trim();
+    const r=await o.apply(this,arguments);
+    if(p){setTimeout(async()=>{try{const m=document.getElementById('simpleHrAdminModal');if(m&&getComputedStyle(m).display!=='none'&&typeof window.rcadsR160VaultTry==='function')await window.rcadsR160VaultTry(p)}catch(e){}},300)}
+    return r;
+  };
+})();
+</script>
 </body>
 </html>
