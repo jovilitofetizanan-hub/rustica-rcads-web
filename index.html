@@ -1,4 +1,4 @@
-<!-- R220 OWNER QR: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
+<!-- R224 BLOCK STAFF APP: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
 <!-- R157 SECURITY FIX: HR PIN no longer stored or shown in plain text; HR can change it. All other R156 behavior unchanged. -->
 <!-- R156 trial: transparent enrollment readiness; no backend enrollment or access grant. Based directly on R155. -->
 <!--
@@ -96,6 +96,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <html lang="en">
 <head>
+<script>function rcadsIsGuardLabel(l){return /^Guard \d+$/.test(String(l||""))}</script>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <meta name="googlebot" content="noindex, nofollow">
 
@@ -144,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R220 OWNER QR</title>
+<title>Rustica RCADS App — R224 BLOCK STAFF APP</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -4552,7 +4553,7 @@ function authorizedHeadTimeIn(){
     alert("Select Guard 1 or Guard 2.");
     return;
   }
-  if(operator!=="Guard 1" && operator!=="Guard 2"){
+  if(!rcadsIsGuardLabel(operator)){
     alert("Manual attendance is GUARD ONLY.");
     return;
   }
@@ -4641,12 +4642,12 @@ function rcadsRepairPendingGuardAuthorizers(list){
   let activeGuard="";
   try{
     const op=window.rcadsAttendanceOperator;
-    if(op==="Guard 1" || op==="Guard 2") activeGuard=op;
+    if(rcadsIsGuardLabel(op)) activeGuard=op;
   }catch(e){}
   if(!activeGuard){
     try{
       const g=(typeof getLoggedGuardLabel==="function") ? getLoggedGuardLabel() : null;
-      if(g==="Guard 1" || g==="Guard 2") activeGuard=g;
+      if(rcadsIsGuardLabel(g)) activeGuard=g;
     }catch(e){}
   }
 
@@ -4670,12 +4671,12 @@ function getCurrentAttendanceAuthorizer(){
   // MANUAL RCADS ATTENDANCE IS GUARD-ONLY.
   try{
     const op=window.rcadsAttendanceOperator;
-    if(op==="Guard 1" || op==="Guard 2") return op;
+    if(rcadsIsGuardLabel(op)) return op;
   }catch(e){}
 
   try{
     const loggedGuard=(typeof getLoggedGuardLabel==="function") ? getLoggedGuardLabel() : null;
-    if(loggedGuard==="Guard 1" || loggedGuard==="Guard 2") return loggedGuard;
+    if(rcadsIsGuardLabel(loggedGuard)) return loggedGuard;
   }catch(e){}
 
   try{
@@ -4690,7 +4691,7 @@ function getCurrentAttendanceAuthorizer(){
 
 function rcadsRequireGuardForManualAttendance(){
   const guard=getCurrentAttendanceAuthorizer();
-  if(guard==="Guard 1" || guard==="Guard 2") return guard;
+  if(rcadsIsGuardLabel(guard)) return guard;
 
   alert(
     "MANUAL ATTENDANCE IS GUARD ONLY.\\n\\n"+
@@ -8218,10 +8219,10 @@ function saveGuardDutyLogs(logs){
 }
 function getLoggedGuardLabel(){
   // Guard session identity must survive the move from Guard Home to Employee Attendance.
-  if(window.currentGuardAccount==="Guard 1" || window.currentGuardAccount==="Guard 2") return window.currentGuardAccount;
+  if(rcadsIsGuardLabel(window.currentGuardAccount)) return window.currentGuardAccount;
   try{
     const saved=sessionStorage.getItem("rcads_active_guard_session");
-    if(saved==="Guard 1" || saved==="Guard 2") return saved;
+    if(rcadsIsGuardLabel(saved)) return saved;
   }catch(e){}
   if(typeof currentEmployee!=="undefined" && currentEmployee){
     const nm=String(currentEmployee.name||"");
@@ -8310,7 +8311,7 @@ function rcadsResetGuardsToNormalScreenOnce(){
 }
 
 function rcadsAutoGuardHandoverOnLogin(activeGuard){
-  if(activeGuard!=="Guard 1" && activeGuard!=="Guard 2") return;
+  if(!rcadsIsGuardLabel(activeGuard)) return;
   const other=rcadsOtherGuard(activeGuard);
 
   // Always close any stale/open duty record first so the new login gets a fresh IN timestamp.
@@ -8331,7 +8332,7 @@ function rcadsAutoGuardHandoverOnLogin(activeGuard){
 }
 
 function rcadsAutoReliefOnGuardLogout(outgoingGuard){
-  if(outgoingGuard!=="Guard 1" && outgoingGuard!=="Guard 2") return;
+  if(!rcadsIsGuardLabel(outgoingGuard)) return;
   const relief=rcadsOtherGuard(outgoingGuard);
 
   // Close outgoing Guard.
@@ -8651,7 +8652,7 @@ function rcadsGuardDutyDisplayState(label){
   const open=getCurrentGuardOpenDuty(label);
   const last=typeof getLatestGuardDutyEvent==="function" ? getLatestGuardDutyEvent(label) : null;
   const fullName=rcadsGuardFullNameForLabel(label);
-  const emCode=rcadsGuardEmCode(label==="Guard 2"?"guard02":"guard01",fullName);
+  const emCode=rcadsGuardEmCode("guard"+String(parseInt(String(label).replace(/\D/g,""),10)||1).padStart(2,"0"),fullName);
   if(open){
     const straight=rcadsGuardIsStraightDuty(open);
     return {
@@ -9525,7 +9526,7 @@ function refreshGuardHome(){
   const outBtn=document.getElementById("guardHomeOutBtn");
   if(ident){
     const fullName=typeof rcadsGuardFullNameForLabel==="function" ? rcadsGuardFullNameForLabel(guard) : guard;
-    const emCode=typeof rcadsGuardEmCode==="function" ? rcadsGuardEmCode(guard==="Guard 2"?"guard02":"guard01",fullName) : "";
+    const emCode=typeof rcadsGuardEmCode==="function" ? rcadsGuardEmCode("guard"+String(parseInt(String(guard).replace(/\D/g,""),10)||1).padStart(2,"0"),fullName) : "";
     ident.innerHTML=`<b>${guard}</b>${fullName&&fullName!==guard?`<br><span style="font-size:11px">${fullName}</span>`:""}${emCode?`<br><span style="font-size:10px">EMCODE: ${emCode}</span>`:""}`;
   }
 
@@ -9603,9 +9604,9 @@ function guardLogout(){
 document.addEventListener("DOMContentLoaded",()=>{
   try{
     const saved=sessionStorage.getItem("rcads_active_guard_session");
-    window.currentGuardAccount=(saved==="Guard 1" || saved==="Guard 2") ? saved : null;
+    window.currentGuardAccount=(rcadsIsGuardLabel(saved)) ? saved : null;
     const op=sessionStorage.getItem("rcads_attendance_operator");
-    window.rcadsAttendanceOperator=(op==="Guard 1" || op==="Guard 2") ? op : "";
+    window.rcadsAttendanceOperator=(rcadsIsGuardLabel(op)) ? op : "";
   }catch(e){ window.currentGuardAccount=null; window.rcadsAttendanceOperator=""; }
   updateGuardSessionBanner();
 });
@@ -16161,9 +16162,9 @@ HR live reviewer panel, and ordinary-user daily-only DTR visibility.
     let logs=[];try{logs=JSON.parse(localStorage.getItem(`rustica_guard_duty_logs_${branchCode}`)||'[]')}catch(e){}
     try{if(!logs.length && typeof rusticaGetCurrentBranchCode==='function' && rusticaGetCurrentBranchCode()===branchCode)logs=getGuardDutyLogs()||[]}catch(e){}
     const openFor=(label)=>{for(let i=logs.length-1;i>=0;i--){const r=logs[i];if(r.guard===label&&r.type==='IN'){if(!logs.slice(i+1).some(x=>x.guard===label&&x.type==='OUT'))return r}}return null};
-    const nameFor=(label)=>{const slot=label==='Guard 2'?'guard02':'guard01';try{const raw=localStorage.getItem(`rcads_guard_full_names_v1_${branchCode}`);const d=raw?JSON.parse(raw):{};return d?.[slot]||label}catch(e){return label}};
+    const nameFor=(label)=>{const slot='guard'+String(parseInt(String(label).replace(/\D/g,''),10)||1).padStart(2,'0');try{const raw=localStorage.getItem(`rcads_guard_full_names_v1_${branchCode}`);const d=raw?JSON.parse(raw):{};return d?.[slot]||label}catch(e){return label}};
     const one=(label)=>{const o=openFor(label),nm=nameFor(label);let dur='';let straight=false;if(o){const ms=Date.now()-new Date(o.timestamp||o.localTime||0).getTime();const min=Math.max(0,Math.floor(ms/60000));straight=min>720;dur=`${Math.floor(min/60)}h ${min%60}m`}return `<div class="rcads-r80-guard-item${straight?' straight':''}"><div class="name">${esc(label)} — ${esc(nm)}</div><div class="state">${o?(straight?`STRAIGHT DUTY • ${dur}`:`ON DUTY • ${dur}`):'OFF DUTY'}</div>${o?`<div style="font-size:9px;color:#776958">IN: ${esc(o.localTime||o.timestamp||'—')}</div>`:''}</div>`};
-    return `<div class="rcads-r80-guard-monitor"><div class="rcads-r80-guard-title">GUARDS • ${esc(branchName(branchCode))}</div><div class="rcads-r80-guard-grid">${one('Guard 1')}${one('Guard 2')}</div></div>`;
+    return `<div class="rcads-r80-guard-monitor"><div class="rcads-r80-guard-title">GUARDS • ${esc(branchName(branchCode))}</div><div class="rcads-r80-guard-grid">${(window.rcadsGuardLabelsLive?window.rcadsGuardLabelsLive(branchCode,logs):['Guard 1','Guard 2']).map(one).join('')}</div></div>`;
   }
 
   function r97RenderTopOnlyApprovers(){
@@ -17128,9 +17129,9 @@ body.rcads-r107-top-shell #topManagementHomeScreen .r100-note{text-align:center!
       let logs=[];try{logs=JSON.parse(localStorage.getItem('rustica_guard_duty_logs_'+b.code)||'[]')}catch(e){}
       try{if(!logs.length && typeof window.rusticaGetCurrentBranchCode==='function' && window.rusticaGetCurrentBranchCode()===b.code)logs=window.getGuardDutyLogs?.()||[]}catch(e){}
       const openFor=label=>{for(let i=logs.length-1;i>=0;i--){const r=logs[i];if(r.guard===label&&r.type==='IN'&&!logs.slice(i+1).some(x=>x.guard===label&&x.type==='OUT'))return r}return null};
-      const guardName=label=>{const slot=label==='Guard 2'?'guard02':'guard01';try{const raw=localStorage.getItem('rcads_guard_full_names_v1_'+b.code);const d=raw?JSON.parse(raw):{};return d?.[slot]||label}catch(e){return label}};
+      const guardName=label=>{const slot='guard'+String(parseInt(String(label).replace(/\D/g,''),10)||1).padStart(2,'0');try{const raw=localStorage.getItem('rcads_guard_full_names_v1_'+b.code);const d=raw?JSON.parse(raw):{};return d?.[slot]||label}catch(e){return label}};
       html+='<div class="r111-branch"><div class="r111-branch-title">'+esc(b.name)+' — GUARDS</div>';
-      for(const label of ['Guard 1','Guard 2']){const o=openFor(label);html+='<div class="r111-row"><b>'+esc(label)+' — '+esc(guardName(label))+'</b><br>'+(o?'ON DUTY • IN '+esc(o.localTime||o.timestamp||'—'):'OFF DUTY')+'</div>'}
+      for(const label of (window.rcadsGuardLabelsLive?window.rcadsGuardLabelsLive(b.code,logs):['Guard 1','Guard 2'])){const o=openFor(label);html+='<div class="r111-row"><b>'+esc(label)+' — '+esc(guardName(label))+'</b><br>'+(o?'ON DUTY • IN '+esc(o.localTime||o.timestamp||'—'):'OFF DUTY')+'</div>'}
       html+='</div>';
     }
     return html||'<div class="r111-row">No Guard duty data loaded.</div>';
@@ -21850,7 +21851,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
 <style id="rcadsR160Css">
 #r160Gate{position:fixed;inset:0;z-index:2147483300;background:linear-gradient(160deg,#3d2615,#6b3f1d);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:28px 16px}
 html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
@@ -22186,7 +22187,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
         }
         verifiedFor='';return appr?runOriginalAsApprover():runOriginalAs1234();
       }
-      if(r&&r.status==='DISABLED'){alert('Your access has been DISABLED by HR. Please contact HR.');pin='';renderPin();return}
+      if(r&&r.status==='DISABLED'){alert(r.blocked?'⛔ Your RCADS app is BLOCKED ('+(r.blockReason||'')+'). Please see HR.':'Your access has been DISABLED by HR. Please contact HR.');pin='';renderPin();return}
       if(appr)return origSubmit.apply(this,arguments); // approver without personal PIN yet: old Approver PIN
       if(read().requireAll){alert('A PERSONAL PIN is now required. See HR to get a SETUP CODE and create your own PIN.');pin='';renderPin();return}
       return origSubmit.apply(this,arguments); // not enrolled yet: legacy demo PIN during transition
@@ -22283,7 +22284,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
       return;
     }
     if(!r||r.status!=='ACTIVE'||!r.pinHash){
-      gateShell(p,'<div class="r160-info bad">'+(r&&r.status==='DISABLED'?'Your access was DISABLED by HR.':'You do not have a personal PIN yet. See HR to get a SETUP CODE, then you create your own PIN.')+'</div><button type="button" class="r160-btn" id="r160Retry">TRY AGAIN</button>');
+      gateShell(p,'<div class="r160-info bad">'+(r&&r.status==='DISABLED'?(r.blocked?'⛔ Your RCADS app is BLOCKED ('+esc(r.blockReason||'')+'). Please see HR.':'Your access was DISABLED by HR.'):'You do not have a personal PIN yet. See HR to get a SETUP CODE, then you create your own PIN.')+'</div><button type="button" class="r160-btn" id="r160Retry">TRY AGAIN</button>');
       document.getElementById('r160Retry').onclick=()=>openGate(p);return;
     }
     gateShell(p,'<label>MY 4-DIGIT PIN</label><input id="r160Pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" autofocus><button type="button" class="r160-btn" id="r160Login">LOG IN</button><div class="r160-hint">Forgot your PIN? See HR. You can change your PIN after logging in (CHANGE MY PIN).</div>');
@@ -22316,7 +22317,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     const r=rec(emp.code);if(!r)return approverKey(emp)?{t:'APPROVER PIN (old)',c:'appr'}:{t:'NO PIN YET',c:'none'};
     if(r.status==='SETUP')return setupExpired(r)?{t:'SETUP CODE EXPIRED',c:'bad'}:{t:'SETUP CODE ISSUED — waiting',c:'pend'};
     if(r.status==='ACTIVE'&&r.pinHash)return locked(r)?{t:'LOCKED',c:'bad'}:{t:'PIN ASSIGNED ✓',c:'ok'};
-    if(r.status==='DISABLED')return {t:'DISABLED',c:'bad'};
+    if(r.status==='DISABLED')return {t:r.blocked?'⛔ BLOCKED':'DISABLED',c:'bad'};
     return {t:'NO PIN YET',c:'none'};
   }
   function panelHtml(){
@@ -22919,6 +22920,150 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   function bootOwnerGate(){const p=oPayload();if(p){openOwnerGate(p);return}if(payloadFromHash()||gPayload()||deviceOwner()||gDevice())return;const d=oDevice();if(d&&d.o&&!window.rcadsTopManagementSession)openOwnerGate({o:d.o})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(bootOwnerGate,500));else setTimeout(bootOwnerGate,500);
   window.addEventListener('hashchange',()=>{const p=oPayload();if(p)openOwnerGate(p)});
+  /* ================= R222: GUARD ROSTER — GUARD 1, 2, 3 … (permanent number per person) =================
+     • Every guard keeps his own number (GUARD 7 stays GUARD 7 if he comes back).
+     • A NEW guard gets the next number + his own QR → own PIN → own Guard App.
+     • The guard he REPLACES is set INACTIVE automatically (app cannot be used) — REACTIVATE when he comes back.
+     • BLOCK = he will not come back (only HR can unblock).
+     • Can do this: HR, Managers, Asst. Managers, Dining Head 1, Captain Waiter (and the guard on duty can add his reliever). */
+  function gNum(s){return parseInt(String(s||'').replace(/\D/g,''),10)||0}
+  function gSlotOf(n){return 'guard'+String(n).padStart(2,'0')}
+  function gSlotLbl(s){return 'GUARD '+gNum(s)}
+  function gLabelOf(s){return 'Guard '+gNum(s)}
+  function gSlotFromLabel(l){const n=gNum(l);return n?gSlotOf(n):''}
+  function rosterSlots(b){b=U(b);const set=new Set(['guard01','guard02']);
+    try{const n=JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+b)||'{}')||{};Object.keys(n).forEach(k=>{if(/^guard\d{2}$/.test(k))set.add(k)})}catch(e){}
+    Object.keys(read().guards||{}).forEach(k=>{const p=k.split('|');if(p[1]===b&&/^guard\d{2}$/.test(p[2]))set.add(p[2])});
+    return [...set].sort((a,c)=>gNum(a)-gNum(c))}
+  function gStatus(b,s){const r=gRec(gKey(b,s));if(!r)return gName(b,s)?'NO APP':'EMPTY';if(r.status==='SETUP')return 'SETUP';if(r.status==='BLOCKED')return 'BLOCKED';if(r.status==='INACTIVE'||r.status==='DISABLED')return 'INACTIVE';return r.pinHash?'ACTIVE':'NO APP'}
+  function roster(b){return rosterSlots(b).map(s=>({slot:s,num:gNum(s),label:gLabelOf(s),name:gName(b,s),em:(()=>{try{const n=JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+U(b))||'{}')||{};return n[s+'EmCode']||''}catch(e){return ''}})(),status:gStatus(b,s),rec:gRec(gKey(b,s))}))}
+  function nextSlot(b){const used=rosterSlots(b).filter(s=>gName(b,s)||gRec(gKey(b,s)));let n=used.length?Math.max(...used.map(gNum))+1:1;return gSlotOf(n)}
+  const GPFX={SAN_RAFAEL:'SRF',SAN_JUAN:'SJ',CABANATUAN:'CAB',ANGELES:'ANG',SAN_FERNANDO:'SFD'};
+  function gEmAuto(b,s,name){let sur='GUARD';try{sur=rcadsGuardSurnameForCode(name)}catch(e){}return (GPFX[U(b)]||U(b).slice(0,3))+'-SG.'+sur+String(gNum(s)).padStart(2,'0')}
+  function gSaveName(b,s,name,em,by){const k='rcads_guard_full_names_v1_'+U(b);let n={};try{n=JSON.parse(localStorage.getItem(k)||'{}')||{}}catch(e){}n[s]=name;n[s+'EmCode']=em||gEmAuto(b,s,name);n.updatedAt=new Date().toISOString();n.updatedBy=by||'';try{localStorage.setItem(k,JSON.stringify(n));rcadsCloudFlushQueue()}catch(e){}}
+  function gLog(ev){const k='rcads_r222_guard_roster_log_v1';let a=[];try{a=JSON.parse(localStorage.getItem(k)||'[]')||[]}catch(e){}a.push(Object.assign({at:new Date().toISOString()},ev));try{localStorage.setItem(k,JSON.stringify(a.slice(-500)));rcadsCloudFlushQueue()}catch(e){}}
+  function gSetStatus(b,s,status,by){const db=read();db.guards=db.guards||{};const k=gKey(b,s);const r=db.guards[k]||{key:k,branch:U(b),slot:s,name:gName(b,s)};r.status=status;r.statusBy=by||'';r.statusAt=new Date().toISOString();if(status==='ACTIVE'&&!r.pinHash)return {ok:false,msg:'He has no PIN yet — make a QR.'};db.guards[k]=r;if(!save(db))return {ok:false,msg:'Could not save.'};gLog({t:status,branch:U(b),slot:s,name:gName(b,s),by});return {ok:true}}
+  async function gSetupFree(b,s,name,by){const st=await setupFields();st.f.setupExpires=new Date(Date.now()+3*864e5).toISOString();const k=gKey(b,s);const db=read();db.guards=db.guards||{};const old=db.guards[k]||{};
+    db.guards[k]=Object.assign({key:k,branch:U(b),slot:s,name:name||gName(b,s)||'',history:old.history||[],lastLoginAt:old.lastLoginAt||'',issuedBy:by||''},st.f);if(!save(db))return null;pinCache['GUARD:'+k]={k:'x',pin:'',setup:st.code};return st.code}
+  async function gTicket(label,b,s){let tk='',err='';b=U(b);try{const R=window.rcadsR182;const same=!R||!R.branch||U(R.branch())===b;if(R&&R.canIssue()&&same)tk=await R.issueTicket(label,'GUARD-'+b+'-'+s);else if(R&&R.guardTicket2)tk=await R.guardTicket2(label,b);else if(R&&R.guardTicket)tk=await R.guardTicket(label);else err='update RCADS'}catch(e){err=e.message}return {tk,err}}
+  function gQrBox(b,s,name,code,tk,err,note){
+    let o=document.getElementById('r179Qr');if(!o){o=document.createElement('div');o.id='r179Qr';document.documentElement.appendChild(o)}
+    o.innerHTML='<div class="r179-box"><div class="r179-h">🛡 '+esc(gSlotLbl(s))+' — SCAN WITH YOUR OWN PHONE</div><div class="r179-who"><b>'+esc(name||gSlotLbl(s))+'</b><span>'+esc(gSlotLbl(s))+' • '+esc(bName(U(b)))+'</span></div>'
+      +'<div class="r179-qr">'+qrSvg(gLink(U(b),s,name,code,tk))+'</div><div class="r179-note">SETUP CODE (if asked): <b style="font-size:18px;letter-spacing:4px">'+esc(code)+'</b></div>'
+      +'<ol class="r179-steps"><li>Open the phone <b>camera</b> and scan.</li><li>Create your own <b>4-digit PIN</b> (2 times) and <b>install</b> the app.</li><li><b>OPEN THE GUARD SCREEN</b> = TIME IN.</li></ol>'
+      +(tk?'':'<div class="r179-note">⚠ No device key ('+esc(err||'offline')+'). The app will work but will not sync until HR fixes it.</div>')+(note?'<div class="r179-note">'+esc(note)+'</div>':'')
+      +'<div class="r179-note">For this guard only • valid 3 days • one time.</div><div class="r179-btns"><button type="button" class="r160-btn" id="r222Close">✕ CLOSE</button></div></div>';
+    o.classList.add('show');o.querySelector('#r222Close').onclick=()=>{o.classList.remove('show');o.innerHTML='';try{renderGuardsHr()}catch(e){}}}
+  async function gNewGuard(b,name,replaces,by){
+    b=U(b);name=U(name).replace(/\s+/g,' ').trim();if(name.length<4)return {ok:false,msg:'Type the full name.'};if(!read().hrPub)return {ok:false,msg:'HR has not set up PIN control (HR KEY) yet.'};
+    const s=nextSlot(b);gSaveName(b,s,name,'',by);const code=await gSetupFree(b,s,name,by);if(!code)return {ok:false,msg:'Could not save.'};
+    let note='';if(replaces&&replaces!==s){const rr=gSetStatus(b,replaces,'INACTIVE',by+' (replaced by '+gSlotLbl(s)+')');if(rr.ok||!gRec(gKey(b,replaces))){note=gSlotLbl(replaces)+' ('+(gName(b,replaces)||'—')+') is now INACTIVE.'}}
+    gLog({t:'NEW',branch:b,slot:s,name,replaces:replaces||'',by});const t=await gTicket(name+' • '+gSlotLbl(s)+' • '+bName(b),b,s);gQrBox(b,s,name,code,t.tk,t.err,note);return {ok:true,slot:s,code}}
+  async function gQrFor(b,s,by){b=U(b);const r=gRec(gKey(b,s));if(r&&r.status==='BLOCKED')return {ok:false,msg:'BLOCKED — only HR can unblock.'};
+    if(r&&r.pinHash&&r.status!=='SETUP'&&!confirm(gSlotLbl(s)+' already has an app.\n\nA NEW QR = he creates a NEW PIN (old PIN stops). Continue?'))return {ok:false,msg:''};
+    const code=await gSetupFree(b,s,gName(b,s),by);if(!code)return {ok:false,msg:'Could not save.'};gLog({t:'QR',branch:b,slot:s,name:gName(b,s),by});const t=await gTicket((gName(b,s)||gSlotLbl(s))+' • '+gSlotLbl(s)+' • '+bName(b),b,s);gQrBox(b,s,gName(b,s),code,t.tk,t.err,'');return {ok:true}}
+  function gNewForm(b,by,opts){opts=opts||{};b=U(b);
+    let o=document.getElementById('r179Qr');if(!o){o=document.createElement('div');o.id='r179Qr';document.documentElement.appendChild(o)}
+    const R=roster(b);const act=R.filter(x=>x.status!=='BLOCKED'&&x.status!=='EMPTY'&&x.slot!==opts.me);
+    const noApp=R.filter(x=>(x.status==='NO APP'||x.status==='SETUP')&&x.name&&x.slot!==opts.me);
+    const who=opts.me?'<label class="r222-l">WHO IS THE RELIEVER?<select id="r222NWho">'+noApp.map(x=>'<option value="'+x.slot+'">'+esc(gSlotLbl(x.slot))+' • '+esc(x.name)+' (no app yet)</option>').join('')+'<option value="NEW"'+(noApp.length?'':' selected')+'>➕ NEW GUARD → '+esc(gSlotLbl(nextSlot(b)))+'</option></select></label>':'';
+    const rep=opts.me?'':'<label class="r222-l">HE REPLACES<select id="r222NRep"><option value="">— nobody (additional guard) —</option>'+act.map(x=>'<option value="'+x.slot+'">'+esc(gSlotLbl(x.slot))+' • '+esc(x.name||'no name')+'</option>').join('')+'</select></label><div class="r179-note">The guard he replaces becomes ⏸ INACTIVE (his app cannot be used). If he comes back: ▶ REACTIVATE.</div>';
+    o.innerHTML='<div class="r179-box"><div class="r179-h">'+(opts.me?'🔁 RELIEVER':'🛡 NEW GUARD')+' • '+esc(bName(b))+'</div>'+(opts.me?'':'<div class="r179-note">He will be <b>'+esc(gSlotLbl(nextSlot(b)))+'</b> (the next number) and gets his own Guard App.</div>')
+      +who+'<label class="r222-l" id="r222NNameL">FULL NAME (SURNAME, FIRST NAME)<input id="r222NName" placeholder="DELA CRUZ, JUAN" autocomplete="off"></label>'+rep
+      +'<div class="r160-msg" id="r222NMsg"></div><div class="r179-btns"><button type="button" class="r160-btn" id="r222NGo">📲 MAKE HIS QR</button><button type="button" class="r160-mini light" id="r222NX">CANCEL</button></div></div>';
+    o.classList.add('show');o.querySelector('#r222NX').onclick=()=>{o.classList.remove('show');o.innerHTML=''};
+    const W=o.querySelector('#r222NWho');const sync=()=>{const L=o.querySelector('#r222NNameL');if(L)L.style.display=(W&&W.value!=='NEW')?'none':''};if(W){W.onchange=sync;sync()}
+    o.querySelector('#r222NGo').onclick=async()=>{const m=o.querySelector('#r222NMsg');const btn=o.querySelector('#r222NGo');btn.disabled=true;let res;
+      try{if(W&&W.value!=='NEW')res=await gQrFor(b,W.value,by);else res=await gNewGuard(b,o.querySelector('#r222NName').value,(o.querySelector('#r222NRep')||{}).value||'',by)}catch(e){res={ok:false,msg:e.message}}
+      if(!res.ok){btn.disabled=false;if(m){m.textContent=res.msg||'';m.className='r160-msg bad'}}};
+    setTimeout(()=>{const i=document.getElementById('r222NName');if(i&&(!W||W.value==='NEW'))i.focus()},50)}
+  // guard on duty: RELIEVER = a guard of the roster with no app yet, or a NEW guard (next number). A guard cannot disable / block anybody.
+  async function relieverQr(){const me=curGuardSlot();if(!me){alert('Log in as Guard first.');return}if(!read().hrPub){alert('HR has not set up PIN control (HR KEY) yet. Call HR.');return}
+    const b=(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'SAN_RAFAEL');gNewForm(b,gSlotLbl(me)+' ('+(gName(b,me)||'guard')+')',{me})}
+  function curGuardSlot(){const l=String(window.currentGuardAccount||sessionStorage.getItem('rcads_active_guard_session')||'');return gSlotFromLabel(l)}
+  // statuses on login
+  async function verifyGuardPin(k,p){const r=gRec(k);if(!r)return {ok:false,msg:'No personal Guard PIN.'};
+    if(r.status==='BLOCKED')return {ok:false,msg:'⛔ This Guard App is BLOCKED. See HR.'};if(r.status==='INACTIVE'||r.status==='DISABLED')return {ok:false,msg:'⏸ This Guard App is INACTIVE (replaced). Ask the Dining Head 1 / Manager / HR to REACTIVATE it.'};
+    if(r.status!=='ACTIVE'||!r.pinHash)return {ok:false,msg:'No personal Guard PIN.'};if(locked(r))return {ok:false,msg:'Locked for '+LOCK_MIN+' minutes because of a wrong PIN. Call HR.'};
+    let ok=false;try{ok=(await pbkdf2(String(p||'').trim(),r.pinSalt))===r.pinHash}catch(e){}guardNote(k,ok);return ok?{ok:true}:{ok:false,msg:'Wrong PIN.'}}
+  // open the Guard screen directly for any guard number
+  function gSession(label){
+    window.currentGuardAccount=label;window.rcadsAttendanceOperator=label;try{sessionStorage.setItem('rcads_active_guard_session',label);sessionStorage.setItem('rcads_attendance_operator',label)}catch(e){}
+    try{currentEmployee=null}catch(e){}document.body.classList.add('guard-session-active');
+    ['guardLoginScreen','selectScreen','pinScreen','homeScreen'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));const gh=document.getElementById('guardHomeScreen');if(gh){gh.classList.remove('hidden');gh.style.display='block'}
+    try{rcadsAutoGuardHandoverOnLogin(label)}catch(e){console.warn('handover',e)}try{refreshGuardHome()}catch(e){}try{updateGuardSessionBanner()}catch(e){}try{updateQrRoleVisibility()}catch(e){}try{updateShiftQrPanel()}catch(e){}
+    setTimeout(()=>{try{['guardLoginScreen','selectScreen','pinScreen','homeScreen'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));const g2=document.getElementById('guardHomeScreen');if(g2){g2.classList.remove('hidden');g2.style.display='block'}document.body.classList.add('guard-session-active');refreshGuardHome()}catch(e){}},100)}
+  async function startGuard(p,pinv){setBranch(p.b);closeGate();gSession(gLabelOf(p.g))}
+  async function openGuardGate(p){
+    if(!p||!p.b||!p.g)return;gShell(p,'<div class="r160-wait">Connecting to RCADS…</div>');await cloudPull();
+    p.n=gName(p.b,p.g)||p.n||'';const k=gKey(p.b,p.g);const r=gRec(k);
+    if(r&&r.status==='SETUP'){const fromQr=!!p.s;
+      gShell(p,'<div class="r160-info">FIRST TIME — CREATE YOUR OWN GUARD PIN'+(fromQr?'<br><small>✓ QR scanned</small>':'')+'</div>'+(fromQr?'<input id="r206Code" type="hidden" value="'+esc(p.s)+'">':'<label>SETUP CODE (6 digits)</label><input id="r206Code" type="password" inputmode="numeric" maxlength="6">')
+        +'<label>YOUR OWN 4-DIGIT PIN</label><input id="r206P1" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"><label>REPEAT THE PIN</label><input id="r206P2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"><button type="button" class="r160-btn" id="r206Save">SAVE MY PIN</button><div class="r160-hint">You create your own PIN. Do not share it. For account control, HR can see it.</div>');
+      const save1=async()=>{const c=document.getElementById('r206Code').value,a=document.getElementById('r206P1').value,b2=document.getElementById('r206P2').value;if(!c){msg('Enter the SETUP CODE.');return}if(a!==b2){msg('The PINs do not match.');return}
+        const res=await completeGuardSetup(k,c,a);if(!res.ok){msg(res.msg);return}try{if(gPayload())history.replaceState(null,'',location.pathname+location.search)}catch(e){}gRemember(p);
+        gShell(p,'<div class="r160-info ok">✓ YOUR OWN GUARD PIN IS SAVED</div>'+installHtml()+'<button type="button" class="r160-btn" id="r206Go">OPEN THE GUARD SCREEN →</button>');bindInstall();document.getElementById('r206Go').onclick=()=>startGuard(p,a)};
+      document.getElementById('r206Save').onclick=save1;return}
+    if(r&&(r.status==='BLOCKED'||r.status==='INACTIVE'||r.status==='DISABLED')){gShell(p,'<div class="r160-info bad">'+(r.status==='BLOCKED'?'⛔ This Guard App is BLOCKED. See HR.':'⏸ This Guard App is INACTIVE (you were replaced). If you are back on duty, ask the Dining Head 1 / Manager / HR to REACTIVATE it.')+'</div><button type="button" class="r160-btn" id="r206Retry">TRY AGAIN</button>');document.getElementById('r206Retry').onclick=()=>openGuardGate(p);return}
+    if(!r||!r.pinHash){gShell(p,'<div class="r160-info bad">No Guard PIN yet for this phone. Ask for a GUARD QR.</div><button type="button" class="r160-btn" id="r206Retry">TRY AGAIN</button>');document.getElementById('r206Retry').onclick=()=>openGuardGate(p);return}
+    gShell(p,'<label>MY GUARD PIN</label><input id="r206Pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" autofocus><button type="button" class="r160-btn" id="r206Login">🛡 GUARD ON DUTY</button><div class="r160-hint">Forgot your PIN? Ask for a new GUARD QR.</div>');
+    const go=async()=>{const v=document.getElementById('r206Pin').value;const res=await verifyGuardPin(k,v);if(!res.ok){msg(res.msg);document.getElementById('r206Pin').value='';return}gRemember(p);startGuard(p,v)};
+    document.getElementById('r206Login').onclick=go;document.getElementById('r206Pin').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+  }
+  // HR list (inside 🔐 Employee Personal QR)
+  function guardsHrHtml(){
+    const ST={ACTIVE:'<em class="r160-st ok">ACTIVE</em>',SETUP:'<em class="r160-st pend">SETUP</em>',INACTIVE:'<em class="r160-st none">⏸ INACTIVE</em>',BLOCKED:'<em class="r160-st bad">⛔ BLOCKED</em>','NO APP':'<em class="r160-st none">NO APP</em>',EMPTY:'<em class="r160-st none">EMPTY</em>'};
+    const rows=branchList().map(br=>'<div class="r222-bh">'+esc(br.name)+' <button type="button" class="r160-mini" data-r222-new="'+esc(br.code)+'">+ NEW GUARD</button></div>'+roster(br.code).filter(x=>x.status!=='EMPTY'||x.num<=2).map(x=>{const c=pinCache['GUARD:'+gKey(br.code,x.slot)]||{};
+      return '<div class="r163-orow"><div><b>'+esc(gSlotLbl(x.slot))+' • '+esc(x.name||'no name')+'</b><small>'+esc(x.em||'')+(x.rec&&x.rec.issuedBy?' • set up by '+esc(x.rec.issuedBy):'')+(x.rec&&x.rec.statusBy?' • '+esc(x.status)+' by '+esc(x.rec.statusBy):'')+(hrPriv&&c.pin?' • PIN '+esc(c.pin):'')+(hrPriv&&c.setup?' • SETUP '+esc(c.setup):'')+'</small></div>'+(ST[x.status]||'')
+        +(x.status==='BLOCKED'?'':'<button type="button" class="r160-mini" data-r222-qr="'+esc(br.code)+'|'+x.slot+'">📲 QR</button>')
+        +(x.status==='ACTIVE'||x.status==='SETUP'?'<button type="button" class="r160-mini light" data-r222-st="'+esc(br.code)+'|'+x.slot+'|INACTIVE">⏸ DISABLE</button>':'')
+        +(x.status==='INACTIVE'?'<button type="button" class="r160-mini" data-r222-st="'+esc(br.code)+'|'+x.slot+'|ACTIVE">▶ REACTIVATE</button>':'')
+        +(x.status!=='BLOCKED'?'<button type="button" class="r160-mini red" data-r222-st="'+esc(br.code)+'|'+x.slot+'|BLOCKED">⛔ BLOCK</button>':'<button type="button" class="r160-mini" data-r222-st="'+esc(br.code)+'|'+x.slot+'|INACTIVE">UNBLOCK</button>')+'</div>'}).join('')).join('');
+    return '<div class="r163-owners r206-guards"><div class="r160-hr-title">🛡 GUARDS — GUARD 1, 2, 3 … (own app each)</div><div class="r160-hr-note">Each guard keeps his number. NEW GUARD = next number + his own QR; the guard he replaces becomes INACTIVE. REACTIVATE when he comes back. BLOCK = not coming back (only HR can unblock). Dining Head 1, Captain Waiter, Managers and Asst. Managers can do the same in their app (except UNBLOCK).</div>'+rows+'</div>'}
+  async function gStatusAction(b,s,st,by){if(st==='BLOCKED'&&!confirm('BLOCK '+gSlotLbl(s)+' ('+(gName(b,s)||'—')+')? He will not be able to use the Guard App. Only HR can unblock.'))return;
+    if(st==='INACTIVE'&&gStatus(b,s)==='BLOCKED'&&!confirm('UNBLOCK '+gSlotLbl(s)+'? He stays INACTIVE until REACTIVATED.'))return;
+    const r=gSetStatus(b,s,st,by);if(!r.ok&&r.msg)alert(r.msg)}
+  document.addEventListener('click',async e=>{const t=e.target;if(!t.closest||!t.closest('#r206GuardsBox'))return;
+    if((t.closest('[data-r222-new]')||t.closest('[data-r222-qr]'))&&!read().hrPub&&!(await unlockVault()))return;
+    const n=t.closest('[data-r222-new]');if(n){gNewForm(n.getAttribute('data-r222-new'),'HR');return}
+    const q=t.closest('[data-r222-qr]');if(q){const [b,s]=q.getAttribute('data-r222-qr').split('|');const r=await gQrFor(b,s,'HR');if(!r.ok&&r.msg)alert(r.msg);return}
+    const st=t.closest('[data-r222-st]');if(st){const [b,s,v]=st.getAttribute('data-r222-st').split('|');await gStatusAction(b,s,v,'HR');renderGuardsHr();return}});
+  // HOME search: every guard of the roster
+  function homeSearch(q){q=U(q);const out=[];if(q.length<2)return out;
+    branchList().forEach(b=>{let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b.code)||[]).slice()}catch(e){}if(b.code==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}
+      l.forEach(e=>{if(!e||!e.code||isSepCode(e.code))return;const s=U(e.code)+' '+U(e.name)+' '+U(rustId(e.code));if(s.includes(q))out.push({t:'E',code:U(e.code),name:e.name||e.code,branch:b.code,pos:e.position||''})});
+      roster(b.code).filter(x=>x.status!=='BLOCKED'&&(x.status!=='EMPTY'||x.num<=2)).forEach(x=>{if((x.name&&U(x.name).includes(q))||(q.length>=3&&'GUARD'.startsWith(q))||U(gSlotLbl(x.slot))===q)out.push({t:'G',slot:x.slot,name:x.name||gSlotLbl(x.slot),branch:b.code,pos:gSlotLbl(x.slot)})})});
+    OWNER_KEYS.forEach(k=>{const n=ownerName(k);let role='';try{role=simpleHrAccounts[k].role||''}catch(e){}if(U(n).includes(q)||U(role).includes(q)||(q.length>=3&&('OWNER'.startsWith(q)||'BOSS'.startsWith(q)||'TOP MANAGEMENT'.startsWith(q))))out.unshift({t:'O',k,name:n,branch:'',pos:role||'Owner'})});
+    return out.slice(0,14)}
+  // a guard whose app was set INACTIVE / BLOCKED while he is still logged in → logged out at once (no TIME OUT entry is invented)
+  setInterval(()=>{try{const s=curGuardSlot();if(!s)return;const b=(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'SAN_RAFAEL');const r=gRec(gKey(b,s));
+    if(!r||(r.status!=='INACTIVE'&&r.status!=='BLOCKED'&&r.status!=='DISABLED'))return;
+    window.currentGuardAccount=null;window.rcadsAttendanceOperator='';try{sessionStorage.removeItem('rcads_active_guard_session');sessionStorage.removeItem('rcads_attendance_operator')}catch(e){}
+    document.body.classList.remove('guard-session-active');document.getElementById('guardHomeScreen')?.classList.add('hidden');document.getElementById('selectScreen')?.classList.remove('hidden');try{updateGuardSessionBanner()}catch(e){}
+    const d=gDevice();openGuardGate(d&&d.b?d:{v:1,b,g:s,n:gName(b,s)})}catch(e){}},4000);
+  // globals used by other modules
+  window.rcadsGuardLabels=function(b){b=U(b||(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'SAN_RAFAEL'));return rosterSlots(b).map(gLabelOf)};
+  window.rcadsGuardRosterNameForLabel=function(b,label){return gName(U(b),gSlotFromLabel(label))};
+  window.rcadsR222={roster,nextSlot,newForm:gNewForm,qrFor:gQrFor,setStatus:gStatusAction,saveName:gSaveName,emAuto:gEmAuto,label:gSlotLbl};
+
+  /* ================= R224: ⛔ BLOCK THE RCADS APP OF AN EMPLOYEE WHO LEFT =================
+     HR, Managers, Asst. Managers, Dining Head 1 (Dining Supervisor) and Captain Waiter can BLOCK the app of an employee
+     who resigned / went AWOL / was terminated. The app stops at once (also if he is logged in). Only HR can open it again
+     (new QR). HR gets a 🟡 flag to process the separation (201 / payroll). */
+  function empBlock(code,reason,by,note){code=U(code);if(!code)return {ok:false,msg:'No employee.'};
+    const db=read();const old=db.people[code]||{};
+    db.people[code]=Object.assign({},old,{status:'DISABLED',pinHash:'',pinSalt:'',pinEnc:'',setupHash:'',setupSalt:'',setupEnc:'',blocked:true,blockedBy:by||'',blockedAt:new Date().toISOString(),blockReason:reason||'',blockNote:note||'',prevStatus:old.status||''});
+    if(!save(db))return {ok:false,msg:'Could not save.'};delete pinCache[code];
+    try{window.dispatchEvent(new CustomEvent('rcads:pin-set',{detail:{code,pin:null}}))}catch(e){}
+    const k='rcads_r224_app_block_log_v1';let a=[];try{a=JSON.parse(localStorage.getItem(k)||'[]')||[]}catch(e){}a.push({at:new Date().toISOString(),code,reason,note:note||'',by:by||''});try{localStorage.setItem(k,JSON.stringify(a.slice(-500)));rcadsCloudFlushQueue()}catch(e){}
+    return {ok:true}}
+  function empAppStatus(code){const r=rec(code);if(!r)return 'NO APP';if(r.status==='DISABLED')return r.blocked?'BLOCKED':'DISABLED';if(r.status==='SETUP')return 'SETUP';return r.pinHash?'ACTIVE':'NO APP'}
+  function empBlocks(){return Object.entries(read().people||{}).filter(([c,r])=>r&&r.blocked&&r.status==='DISABLED').map(([c,r])=>({code:c,by:r.blockedBy,at:r.blockedAt,reason:r.blockReason,note:r.blockNote}))}
+  // logged-in employee whose app was blocked → out at once
+  setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e||!e.code)return;const r=rec(e.code);if(!r||r.status!=='DISABLED'||!r.blocked)return;
+    try{currentEmployee=null}catch(_){}alert('⛔ Your RCADS app is BLOCKED ('+(r.blockReason||'')+'). Please see HR.');location.reload()}catch(e){}},5000);
+  window.rcadsR224={block:empBlock,status:empAppStatus,blocks:empBlocks};
+
   window.rcadsR206={gKey,gRec,issueGuardSetup,completeGuardSetup,verifyGuardPin,gLink,openGuardGate};
   window.rcadsR160={assignPin,read,personalLink,openGate,setOwnerPin,issueSetup,issueOwnerSetup,completeSetup,showSetupQr};
 
@@ -23158,7 +23303,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
 <style id="rcadsR167Css">
 .r167-card{position:relative;overflow:hidden;background:#fff;border-radius:3.2mm;font-family:Arial,Helvetica,sans-serif;color:#3d2615;box-shadow:0 2px 10px rgba(0,0,0,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact;flex:0 0 auto}
 .r167-card.port{width:54mm;height:85.6mm}.r167-card.land{width:85.6mm;height:54mm}
@@ -23653,7 +23798,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
 <style id="rcadsR170Css">
 #r170Blocked{position:fixed;inset:0;z-index:2147483400;background:linear-gradient(160deg,#3d2615,#1c0f07);display:flex;align-items:center;justify-content:center;padding:18px}
 .r170-card{max-width:380px;width:100%;background:#fffaf2;border-radius:16px;padding:22px 18px;text-align:center;color:#3d2615;border-top:6px solid #a1281f}
@@ -24499,9 +24644,9 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
 <style id="rcadsR177Css">
-/* ===== R220 OWNER QR ===== */
+/* ===== R224 BLOCK STAFF APP ===== */
 #simpleHrAdminModal#simpleHrAdminModal#simpleHrAdminModal .rcads-hr-main.r177-paged > *:not(.r177-on){display:none!important}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main{background:linear-gradient(180deg,#f6efe4 0%,#f3eadc 100%)}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.r177-hr #simpleHrAdminModal .rcads-hr-main > .r160-hr{border-radius:16px!important;box-shadow:0 4px 18px rgba(60,30,10,.08)!important;border:1px solid #e6d3bb!important}
@@ -24896,7 +25041,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
 <style id="rcadsR181Css">
 /* ===== R181 attendance handshake ===== */
 .r181-card{background:#fffaf3;border:2px solid #c8862a;border-radius:16px;padding:12px;margin:10px 0;color:#3d2412;font-family:Arial,Helvetica,sans-serif;box-shadow:0 3px 12px rgba(91,53,25,.12)}
@@ -25038,7 +25183,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(Math.abs(nowSlot-slot)>1)return {ok:false,msg:'The Guard’s QR is old. Wait for the new QR and scan again.'};
     /* R185: tanggapin ang Guard QR ng kahit anong branch (hiram / lipat) — ang guard pa rin ang magve-verify na sa kanya na-scan */
     const cands=[(p&&p.branch)||'',curBranch()].concat(branches().map(b=>b.code)).filter((x,i,a)=>x&&a.indexOf(x)===i);let label='';
-    for(const br of cands){label=['Guard 1','Guard 2'].find(l=>l.replace(/\s+/g,'').toUpperCase()===m[1]&&guardTokenFor(l,br,slot)===tok)||'';if(label){branch=br;break}}
+    for(const br of cands){label=(window.rcadsGuardLabels?window.rcadsGuardLabels(br):['Guard 1','Guard 2']).find(l=>l.replace(/\s+/g,'').toUpperCase()===m[1]&&guardTokenFor(l,br,slot)===tok)||'';if(label){branch=br;break}}
     if(!label)return {ok:false,msg:'Not a genuine Guard QR (RED FLAG).'};
     return {ok:true,token:tok,label,branch};
   }
@@ -25289,7 +25434,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
 <style id="rcadsR182Css">
 .r182-panel{background:#fff!important}
 .r182-h{font-weight:900;font-size:14px;color:#3d2412;margin-bottom:8px}
@@ -25338,7 +25483,9 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   async function issueTicket(label,emp){if(role()!=='HR'||!key())throw new Error('This device is not enrolled as HR');const d=await rpc('rustica_rcads_issue_ticket',{p_branch_code:branch(),p_key:key(),p_label:label||'',p_emp_code:emp||'',p_hours:168});return d.ticket}
   async function redeem(t){const d=await rpc('rustica_rcads_redeem_ticket',{p_ticket:t,p_label:devLabel()});setKey(d.key,'DEVICE',(d.label||'')+' • '+devLabel());return d}
   async function guardTicket(label){if(!key())throw new Error('This phone has no device key');const d=await rpc('rustica_rcads_guard_ticket',{p_branch_code:branch(),p_key:key(),p_label:label||''});return d.ticket}
-  window.rcadsR182={key,role,canIssue:()=>role()==='HR'&&!!key(),issueTicket,enrollHr,redeem,setKey,guardTicket};
+  async function guardTicket2(label,target){if(!key())throw new Error('This phone has no device key');try{const d=await rpc('rustica_rcads_guard_ticket2',{p_branch_code:branch(),p_key:key(),p_label:label||'',p_target:target||branch()});return d.ticket}catch(e){if(/not set up|could not find/i.test(e.message)&&(!target||target===branch()))return guardTicket(label);throw e}}
+  async function setGuardIssuers(codes){const d=await rpc('rustica_rcads_set_guard_issuers',{p_branch_code:branch(),p_key:key(),p_codes:codes||[]});return d}
+  window.rcadsR182={key,role,branch,canIssue:()=>role()==='HR'&&!!key(),issueTicket,enrollHr,redeem,setKey,guardTicket,guardTicket2,setGuardIssuers};
 
   /* ---------- redeem a ticket from the QR BEFORE anything syncs ---------- */
   function hashTicket(){
@@ -25416,7 +25563,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR — button visible again (HIDE & CLOSE panel + HR Database page) -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP — button visible again (HIDE & CLOSE panel + HR Database page) -->
 <style id="rcadsR183Css">
 #r183BranchCard{margin:10px 0;padding:12px 14px;border:1px solid #d7c29f;border-radius:12px;background:#fffaf2;font-family:inherit}
 #r183BranchCard .r183-t{font-size:14px;font-weight:900;color:#4c2b17;letter-spacing:.3px}
@@ -25465,7 +25612,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
 <style id="rcadsR184Css">
 #r184PayrollCard{margin:8px 0 10px;padding:10px;border:1px solid #c9a77a;border-radius:11px;background:#fff8ec}
 #r184SendPayroll{width:100%;padding:13px;border:0;border-radius:10px;background:linear-gradient(135deg,#7a4a1f,#3a2210);color:#fff;font-weight:900;font-size:14px;letter-spacing:.3px;cursor:pointer}
@@ -25518,7 +25665,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
 <style id="rcadsR185Css">
 .r185-hr .r185-h{font-size:18px;font-weight:900;color:#4c2b17;display:flex;align-items:center;gap:8px}
 .r185-hr .r185-h em{font-style:normal;background:#b3261e;color:#fff;border-radius:999px;padding:2px 9px;font-size:11px}
@@ -25761,7 +25908,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
 <script id="rcadsR190Script">
 /* R190 — POSITIONS FROM RCPS.
    • RCPS → Employee Master → "Send positions to RCADS" makes an .xlsx with EMPCODE, name, dept and position (NO salary).
@@ -26095,7 +26242,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
 <style id="rcadsR193Css">
 .r193-head{margin:12px 0;padding:12px;border-radius:14px;background:#fffaf2;border:1px solid #e6d3b8;color:#3d2615;font-size:12px;text-align:left}.r193-hh{font-weight:900;font-size:13px;color:#4c2b17}.r193-hn{font-size:11px;color:#6d5845;margin:6px 0;line-height:1.45}.r193-hf{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.r193-hf input,.r193-hf select{padding:8px;border:1px solid #cdbb9f;border-radius:8px;font-size:12.5px;width:100%;box-sizing:border-box}.r193-hf label{font-size:11px;font-weight:800;color:#6b4a2f;display:flex;flex-direction:column;gap:3px}.r193-hf label.r193-ck{grid-column:1/-1;flex-direction:row;align-items:center;font-weight:700;font-size:12px}.r193-hf input[type=checkbox],.r193-ha input[type=checkbox]{width:auto;padding:0;margin:0}.r193-hf select{height:36px}.r193-hf button{grid-column:1/-1;padding:11px;border:0;border-radius:10px;background:linear-gradient(135deg,#6f4a2a,#3d2414);color:#fff;font-weight:900}.r193-hr2{border-top:1px solid #eadbc6;padding:8px 0}.r193-ha{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}.r193-ha button{border:0;border-radius:7px;padding:6px 9px;background:#5b3519;color:#fff;font-weight:800;font-size:10.5px}.r193-ha button.ghost{background:#fff;color:#8f3028;border:1px solid #d9a199}
 .r193-ck{display:flex;gap:6px;align-items:center;font-size:11.5px;margin:2px 0}
@@ -26301,7 +26448,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
 <style id="rcadsR194Css">
 .r194-emp{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r194-h{font-weight:900;font-size:13.5px;color:#7a3d00;margin-bottom:8px}.r194-h.ok{color:#2d6a36;margin:0}
@@ -26915,6 +27062,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     try{(window.rcadsR215&&window.rcadsR215.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
     try{(window.rcadsR217&&window.rcadsR217.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
     try{(window.rcadsR218&&window.rcadsR218.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
+    try{(window.rcadsR224Card&&window.rcadsR224Card.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
     return R;
   }
 
@@ -27217,7 +27365,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
 <style id="rcadsR202Css">
 .r202-hr .r202-up{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;background:#fffaf2;border:1px solid #e6d3bb;border-radius:12px;padding:12px;margin:10px 0}
 .r202-hr .r202-up label{display:flex;flex-direction:column;font-size:11px;font-weight:800;color:#5b3519;gap:4px}.r202-hr .r202-up label.w{grid-column:1/-1}
@@ -27381,7 +27529,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R220 OWNER QR (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
+<!-- RCADS PATCH: R224 BLOCK STAFF APP (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
 <style id="rcadsR208Css">
 .r208-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r208-h{font-weight:900;font-size:13.5px;color:#5b3519}.r208-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
@@ -27416,13 +27564,13 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 
   function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
   function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
-  function gName(b,label){try{const n=JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+b)||'{}')||{};return String((label==='Guard 2'?n.guard02:n.guard01)||'').trim()}catch(e){return ''}}
+  function gName(b,label){try{const n=JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+b)||'{}')||{};return String(n['guard'+String(parseInt(String(label).replace(/\D/g,''),10)||1).padStart(2,'0')]||'').trim()}catch(e){return ''}}
   function hm(ms){const m=Math.max(0,Math.round(ms/60000));return Math.floor(m/60)+'h '+(m%60)+'m'}
   function tm(iso){const d=new Date(iso);return isNaN(d)?'':d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
   function status(b){
     const L=raw().filter(l=>BR(l)===b);const last=L.length?L[L.length-1]:null;
     const recent=!!(last&&Date.now()-Date.parse(last.timestamp)<ACTIVE_DAYS*864e5);
-    const slots=['Guard 1','Guard 2'].map(g=>{let open=null,lastOut=null;for(let i=L.length-1;i>=0;i--){const r=L[i];if(r.guard!==g)continue;if(r.type==='OUT'&&!lastOut&&!open)lastOut=r;if(r.type==='IN'){const later=L.slice(i+1).some(x=>x.guard===g&&x.type==='OUT');if(!later)open=r;break}}
+    const slots=(window.rcadsGuardLabelsLive?window.rcadsGuardLabelsLive(b,L):['Guard 1','Guard 2']).map(g=>{let open=null,lastOut=null;for(let i=L.length-1;i>=0;i--){const r=L[i];if(r.guard!==g)continue;if(r.type==='OUT'&&!lastOut&&!open)lastOut=r;if(r.type==='IN'){const later=L.slice(i+1).some(x=>x.guard===g&&x.type==='OUT');if(!later)open=r;break}}
       const ms=open?Date.now()-Date.parse(open.timestamp):0;return {g,name:gName(b,g)||g,open,lastOut,ms,lvl:open?(ms>=STRAIGHT_H*36e5?'red':(ms>=DUE_H*36e5?'yellow':'green')):'off'}});
     const onDuty=slots.filter(s=>s.open);
     const alerts=[];slots.forEach(s=>{if(s.lvl==='red')alerts.push({lvl:'red',k:b+'|SD|'+s.g+'|'+(s.open&&s.open.timestamp),txt:'STRAIGHT DUTY — '+s.name+' ('+s.g+') on duty '+hm(s.ms)+', no reliever yet'});else if(s.lvl==='yellow')alerts.push({lvl:'yellow',k:b+'|DUE|'+s.g+'|'+(s.open&&s.open.timestamp),txt:'Relief due — '+s.name+' ('+s.g+') on duty '+hm(s.ms)})});
@@ -28002,6 +28150,261 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   function flags(){const o=[];branches().forEach(b=>['KITCHEN','DINING'].forEach(d=>{const mm=mismatches(b.code,d);if(mm.length)o.push({lvl:mm.some(x=>x.late)?'yellow':'green',txt:'Overtime not matching the ACS — '+mm.length+' ('+d+')',who:bName(b.code),go:'r218HrSection'})}));return o}
   window.rcadsR218={all,mismatches,flags,appMin};
   setInterval(()=>{try{tick()}catch(e){console.warn('R218',e)}},2500);
+})();
+</script>
+
+<!-- RCADS PATCH: R221 GUARD ON DUTY name / EMPCODE edit in the apps of Dining Head 1, Captain Waiter, Managers, Asst. Managers -->
+<style id="rcadsR221Css">
+.r221-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
+.r221-h{font-weight:900;font-size:13.5px;color:#5b3519}.r221-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}.r221-b{font-weight:900;margin:4px 0}
+#r221Br{width:100%;padding:9px;border:1px solid #d8bfa1;border-radius:9px;margin:4px 0;background:#fff}
+.r221-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:380px){.r221-grid{grid-template-columns:1fr}}
+.r221-g{background:#fff;border:1px solid #eadbc6;border-radius:12px;padding:8px}.r221-g.on{border:2px solid #2e9e4f}.r221-g b{display:block;font-size:12px}.r221-g span{display:block;font-weight:900;margin-top:4px;word-break:break-word}.r221-g small{display:block;font-size:10px;color:#6b5646;margin-top:2px;word-break:break-all}
+.r221-g button{width:100%;margin-top:6px;padding:8px;border:1px solid #c9a46a;border-radius:9px;background:#fff;color:#5b3519;font-weight:900;font-size:11px}
+.r221-g.edit{grid-column:1/-1}.r221-g label{display:block;font-size:10.5px;font-weight:900;color:#5b3519;margin-top:6px}.r221-g input{width:100%;box-sizing:border-box;padding:9px;border:1px solid #d8bfa1;border-radius:9px;font-size:14px;margin-top:3px}
+.r221-act{display:flex;gap:6px}.r221-act button{background:#5b3519;color:#fff;border:0}.r221-act button.ghost{background:#fff;color:#5b3519;border:1px solid #c9a46a}
+.r221-msg{font-size:11.5px;font-weight:800;color:#2d6a36;min-height:14px;margin-top:6px}
+.r222-card .r221-g em.r222-st{display:inline-block;font-style:normal;font-size:9.5px;font-weight:900;border-radius:20px;padding:2px 7px;margin-top:4px}
+.r222-st.ok{background:#e3f4e6;color:#21683a}.r222-st.pend{background:#fff3d6;color:#8a5a00}.r222-st.off{background:#eee;color:#666}.r222-st.bad{background:#fde3e0;color:#a1281f}
+.r222-card .r221-g.r222-off,.r222-card .r221-g.r222-bad{opacity:.75;background:#f7f4f0}
+.r222-acts{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:4px}.r222-acts button{margin-top:0!important;padding:7px 4px!important;font-size:10.5px!important}
+.r222-acts button.light{background:#f4efe8!important}.r222-acts button.red{background:#a1281f!important;color:#fff!important;border-color:#a1281f!important}.r222-acts small{grid-column:1/-1}
+.r222-new{width:100%;margin:6px 0 8px;padding:11px;border:0;border-radius:11px;background:#2f6b3a;color:#fff;font-weight:900;font-size:12.5px}
+.r222-more{width:100%;margin-top:8px;padding:8px;border:1px dashed #c9a46a;border-radius:10px;background:transparent;color:#5b3519;font-weight:800;font-size:11px}
+.r222-l{display:block;font-size:11px;font-weight:900;color:#5b3519;margin:8px 0 2px;text-align:left}.r222-l input,.r222-l select{display:block;width:100%;box-sizing:border-box;padding:10px;border:1px solid #d8bfa1;border-radius:10px;font-size:14px;margin-top:3px;background:#fff}
+.r222-bh{font-weight:900;margin:10px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+</style>
+<script id="rcadsR221Script">
+/* R222 — GUARD ROSTER (GUARD 1, 2, 3 … permanent number per person)
+   • Legacy RCADS code knew only "Guard 1" / "Guard 2". These overrides make every "Guard N" work the same
+     (TIME IN/OUT, handover, manual attendance, DTR names, EMPCODE).
+   • 🛡 GUARDS card in the apps of HR, Managers, Asst. Managers, Dining Head 1 and Captain Waiter:
+     ✎ name / EMPCODE • 📲 QR (own Guard App) • ➕ NEW GUARD (replaces → old one INACTIVE) • ⏸ DISABLE / ▶ REACTIVATE • ⛔ BLOCK. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  const isG=l=>/^Guard \d+$/.test(String(l||''));
+  window.rcadsIsGuardLabel=isG;
+  const num=l=>parseInt(String(l||'').replace(/\D/g,''),10)||0;
+  const slotOf=l=>'guard'+String(num(l)||1).padStart(2,'0');
+  function curB(){try{return U(rusticaGetCurrentBranchCode())||'SAN_RAFAEL'}catch(e){return 'SAN_RAFAEL'}}
+  function labels(b){try{return window.rcadsGuardLabels?window.rcadsGuardLabels(b||curB()):['Guard 1','Guard 2']}catch(e){return ['Guard 1','Guard 2']}}
+  function namesRaw(b){try{return JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+U(b||curB()))||'{}')||{}}catch(e){return {}}}
+  function stOf(b,slot){try{const r=(window.rcadsR222.roster(b)||[]).find(x=>x.slot===slot);return r?r.status:'EMPTY'}catch(e){return 'NO APP'}}
+  // the guards worth showing: everyone not blocked / inactive, plus anybody still on duty in the log
+  window.rcadsGuardLabelsLive=function(b,logs){b=U(b||curB());const set=new Set();
+    labels(b).forEach(l=>{const st=stOf(b,slotOf(l));if(st!=='BLOCKED'&&st!=='INACTIVE'&&st!=='EMPTY')set.add(l)});
+    (logs||[]).forEach(r=>{if(r&&isG(r.guard))set.add(r.guard)});if(!set.size){set.add('Guard 1');set.add('Guard 2')}
+    return [...set].sort((a,c)=>num(a)-num(c))};
+
+  // ---- names / EMPCODE for any Guard N (keep guard03… when legacy code saves) ----
+  window.rcadsLoadGuardFullNames=function(){const v=namesRaw();const o=Object.assign({},v);
+    o.guard01=String(v.guard01||'').trim();o.guard02=String(v.guard02||'').trim();o.guard01EmCode=U(v.guard01EmCode);o.guard02EmCode=U(v.guard02EmCode);return o};
+  window.rcadsSaveGuardFullNames=function(v){const next=Object.assign({},namesRaw(),v||{});Object.keys(next).forEach(k=>{if(/EmCode$/.test(k))next[k]=U(next[k]);else if(/^guard\d{2}$/.test(k))next[k]=String(next[k]||'').trim()});next.updatedAt=new Date().toISOString();
+    localStorage.setItem('rcads_guard_full_names_v1_'+curB(),JSON.stringify(next));try{rcadsCloudFlushQueue()}catch(e){}return next};
+  window.rcadsGuardEmCode=function(key,fullName){const n=namesRaw();const saved=U(n[key+'EmCode']);if(saved)return saved;
+    let sur='GUARD';try{sur=rcadsGuardSurnameForCode(fullName)}catch(e){}let pf='BR';try{pf=rcadsGuardBranchPrefix()}catch(e){}return pf+'-SG.'+sur+String(num(key)||1).padStart(2,'0')};
+  window.rcadsGuardFullNameForLabel=function(label){const v=String(namesRaw()[slotOf(label)]||'').trim();return v||label};
+
+  // ---- who is the guard on duty (any number) ----
+  window.rcadsInferGuardAuthorizerAt=function(when){const on=labels().filter(l=>{try{return rcadsGuardOnDutyAt(l,when)}catch(e){return false}});return on.length===1?on[0]:''};
+  window.getCurrentAttendanceAuthorizer=function(){
+    try{const op=window.rcadsAttendanceOperator;if(isG(op))return op}catch(e){}
+    try{const g=getLoggedGuardLabel();if(isG(g))return g}catch(e){}
+    try{const open=labels().filter(l=>getCurrentGuardOpenDuty(l));if(open.length===1)return open[0]}catch(e){}
+    return ''};
+  window.rcadsOtherGuard=function(label){const L=window.rcadsGuardLabelsLive(curB()).filter(l=>l!==label);return L[0]||(label==='Guard 1'?'Guard 2':'Guard 1')};
+  function refreshAll(){['refreshGuardHome','updateGuardDutyUI','renderGuardDutyHistory','updateTopGuardDutyStatus','updateApproverGuardDutyStatus'].forEach(f=>{try{if(typeof window[f]==='function')window[f]()}catch(e){}})}
+  // TIME IN of one guard = every other guard of the branch still on duty is timed OUT (handover)
+  window.rcadsAutoGuardHandoverOnLogin=function(active){if(!isG(active))return;
+    const others=new Set(labels());try{getGuardDutyLogs().forEach(r=>{if(r&&isG(r.guard))others.add(r.guard)})}catch(e){}others.delete(active);
+    others.forEach(g=>{try{if(getCurrentGuardOpenDuty(g))rcadsAppendAutoGuardDutyEvent(g,'OUT','Automatic OUT because '+active+' logged in')}catch(e){}});
+    try{if(getCurrentGuardOpenDuty(active))rcadsAppendAutoGuardDutyEvent(active,'OUT','Automatic cleanup of stale '+active+' duty before fresh login IN')}catch(e){}
+    rcadsAppendAutoGuardDutyEvent(active,'IN','Automatic IN on '+active+' login');refreshAll()};
+  // LOGOUT: the outgoing guard is timed OUT; the reliever is timed IN only when there is exactly ONE other active guard (old 2-guard behaviour)
+  window.rcadsAutoReliefOnGuardLogout=function(out){if(!isG(out))return;
+    try{if(getCurrentGuardOpenDuty(out))rcadsAppendAutoGuardDutyEvent(out,'OUT','Automatic OUT on '+out+' logout')}catch(e){}
+    const b=curB();const cand=labels(b).filter(l=>l!==out&&['ACTIVE','NO APP','SETUP'].includes(stOf(b,slotOf(l)))&&(namesRaw(b)[slotOf(l)]||stOf(b,slotOf(l))!=='NO APP'));
+    if(cand.length!==1)return;const relief=cand[0];
+    try{if(getCurrentGuardOpenDuty(relief))rcadsAppendAutoGuardDutyEvent(relief,'OUT','Automatic cleanup of stale '+relief+' duty before relief IN')}catch(e){}
+    rcadsAppendAutoGuardDutyEvent(relief,'IN','Automatic relief IN after '+out+' logout')};
+  // restore a "Guard N" session after reload (legacy restore accepts only Guard 1 / 2)
+  document.addEventListener('DOMContentLoaded',()=>{try{const s=sessionStorage.getItem('rcads_active_guard_session');if(isG(s)&&!window.currentGuardAccount){window.currentGuardAccount=s;const op=sessionStorage.getItem('rcads_attendance_operator');if(isG(op))window.rcadsAttendanceOperator=op;try{updateGuardSessionBanner()}catch(e){}}}catch(e){}});
+  // manual attendance "Authorized by" list = the guards of the roster
+  setInterval(()=>{try{const sel=document.getElementById('headAuthorizer');if(!sel)return;const L=window.rcadsGuardLabelsLive(curB());const have=[...sel.options].map(o=>o.value);L.forEach(l=>{if(!have.includes(l)){const o=document.createElement('option');o.value=l;o.textContent=l;sel.appendChild(o)}})}catch(e){}},3000);
+
+  // ---- 🛡 GUARDS card (apps of Managers, Asst. Managers, Dining Head 1, Captain Waiter) ----
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+  function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));try{rcadsCloudFlushQueue()}catch(_){}return true}catch(e){alert('Cannot save: '+e.message);return false}}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  function branchOf(code){for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(code)))return x.code}return ''}
+  function onDuty(b,label){try{const L=JSON.parse(localStorage.getItem('rustica_srf_guard_duty_logs')||'[]').filter(l=>(U(l.branch)||'SAN_RAFAEL')===b&&l.guard===label);for(let i=L.length-1;i>=0;i--){if(L[i].type==='OUT')return false;if(L[i].type==='IN')return true}}catch(e){}return false}
+  const POS_OK=/(ASST\.?\s*MANAGER|ASSISTANT\s*MANAGER|\bMANAGER\b|CAPT(AIN)?\.?\s*WAITER|SUPERVISOR)/i; // Dining Supervisor (D.SUPERVISOR) = Dining Head 1
+  const GONE=/RESIGN|AWOL|SEPARATED|TERMINATED/i;
+  function who(){
+    const ms=window.currentManagerSession;const mh=document.getElementById('managerHomeScreen');
+    if(ms&&mh&&!mh.classList.contains('hidden'))return {label:'MANAGER • '+(ms.empCode||''),all:true,host:mh,after:document.getElementById('rcadsR97ManagerDashboardHeader'),tab:null};
+    let e=null;try{e=currentEmployee}catch(_){}if(!e)return null;const b=branchOf(e.code);
+    const app=document.getElementById('rcadsR131ApproverApp');const shell=app&&app.querySelector('.r131-shell');
+    if(shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none'){
+      let a=null;try{a=getCurrentApproverAssignment()}catch(_){}const k=a&&a.key||'';
+      const lbl={diningHead1:'DINING HEAD 1',diningHead2:'CAPTAIN WAITER (DINING HEAD 2)',restaurantManager:'RESTAURANT MANAGER',cateringManager:'CATERING MANAGER'}[k];
+      if(lbl||POS_OK.test(e.position||''))return {label:(lbl||(/SUPERVISOR/i.test(e.position||'')?'DINING HEAD 1 (SUPERVISOR)':U(e.position)))+' • '+(e.name||e.code),all:/MANAGER/.test(lbl||'')&&!/ASST|ASSISTANT/i.test(e.position||''),branch:b,host:shell,tab:'home'};
+    }
+    const panel=document.getElementById('employeeSimplePanel');
+    if(panel&&document.body.classList.contains('employee-simple-mode')&&POS_OK.test(e.position||''))return {label:(/SUPERVISOR/i.test(e.position||'')?'DINING HEAD 1 (SUPERVISOR)':U(e.position))+' • '+(e.name||e.code),all:false,branch:b,host:panel,tab:'home'};
+    return null;
+  }
+  const ST={ACTIVE:['ok','🟢 APP ACTIVE'],SETUP:['pend','🟡 QR NOT YET SCANNED'],INACTIVE:['off','⏸ INACTIVE'],BLOCKED:['bad','⛔ BLOCKED'],'NO APP':['off','NO APP YET']};
+  let selB='',editing='',MSG='',showOff=false;
+  function cardHtml(w){
+    const list=w.all?branches().map(x=>x.code):[w.branch];if(!selB||!list.includes(selB))selB=list[0];const b=selB;const n=namesRaw(b);
+    let R=[];try{R=window.rcadsR222.roster(b).filter(x=>x.status!=='EMPTY'||x.num<=2)}catch(e){}
+    const hidden=R.filter(x=>x.status==='BLOCKED'||x.status==='INACTIVE').length;const rows=R.filter(x=>showOff||(x.status!=='BLOCKED'&&x.status!=='INACTIVE'));
+    const row=x=>{const s=x.slot,lab='GUARD '+x.num,name=n[s]||'',em=n[s+'EmCode']||(name?window.rcadsR222.emAuto(b,s,name):'—'),on=onDuty(b,'Guard '+x.num),st=ST[x.status]||['off',x.status];
+      if(editing===s)return '<div class="r221-g edit"><b>'+lab+'</b><label>FULL NAME (SURNAME, FIRST NAME)<input id="r221Name" value="'+esc(name)+'" placeholder="DELA CRUZ, JUAN"></label><label>GUARD EMPCODE<input id="r221Em" value="'+esc(n[s+'EmCode']||'')+'" placeholder="auto: '+esc(window.rcadsR222.emAuto(b,s,name||'GUARD'))+'"></label><div class="r221-act"><button type="button" data-r221-save="'+s+'">SAVE</button><button type="button" class="ghost" data-r221-x="1">CANCEL</button></div></div>';
+      return '<div class="r221-g r222-'+st[0]+(on?' on':'')+'"><b>'+lab+(on?' • 🟢 ON DUTY':'')+'</b><span>'+esc(name||'NO NAME YET')+'</span><small>EMPCODE: '+esc(em)+'</small><em class="r222-st '+st[0]+'">'+st[1]+'</em>'
+        +'<div class="r222-acts">'+(x.status==='BLOCKED'?'':'<button type="button" data-r221-edit="'+s+'">✎ NAME</button><button type="button" data-r222c-qr="'+s+'">📲 '+(x.status==='ACTIVE'?'NEW QR':'QR')+'</button>')
+        +(x.status==='ACTIVE'||x.status==='SETUP'?'<button type="button" class="light" data-r222c-st="'+s+'|INACTIVE">⏸ DISABLE</button>':'')
+        +(x.status==='INACTIVE'?'<button type="button" data-r222c-st="'+s+'|ACTIVE">▶ REACTIVATE</button>':'')
+        +(x.status!=='BLOCKED'?'<button type="button" class="red" data-r222c-st="'+s+'|BLOCKED">⛔ BLOCK</button>':'<small>Only HR can unblock.</small>')+'</div></div>'};
+    return '<div class="r221-h">🛡 GUARDS — GUARD 1, 2, 3 …</div><div class="r221-n">New guard? Press <b>➕ NEW GUARD</b> → he gets the next number and scans his own QR. The guard he replaces is set ⏸ INACTIVE (back on duty → ▶ REACTIVATE). Not coming back → ⛔ BLOCK. By '+esc(w.label)+' • HR sees every change.</div>'
+      +(list.length>1?'<select id="r221Br">'+list.map(c=>'<option value="'+c+'"'+(c===b?' selected':'')+'>'+esc(bName(c))+'</option>').join('')+'</select>':'<div class="r221-b">'+esc(bName(b))+'</div>')
+      +'<button type="button" class="r222-new" data-r222c-new="1">➕ NEW GUARD (QR for his own app)</button>'
+      +'<div class="r221-grid">'+(rows.map(row).join('')||'<div class="r221-n">No guards yet.</div>')+'</div>'
+      +(hidden?'<button type="button" class="r222-more" data-r222c-off="1">'+(showOff?'Hide':'Show')+' inactive / blocked ('+hidden+')</button>':'')+'<div class="r221-msg">'+esc(MSG)+'</div>';
+  }
+  async function act(fn){try{await fn()}catch(e){alert(e.message)}const el=document.getElementById('r221Card');if(el)el.dataset.h='';tick()}
+  function tick(){
+    const w=who();let el=document.getElementById('r221Card');if(!w||!window.rcadsR222){if(el)el.remove();editing='';return}
+    if(!el){el=document.createElement('div');el.id='r221Card';el.className='r221-card r222-card';
+      el.addEventListener('change',e=>{if(e.target.id==='r221Br'){selB=e.target.value;editing='';el.dataset.h='';tick()}});
+      el.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;const ww=who();if(!ww)return;
+        const ed=t.closest('[data-r221-edit]');if(ed){editing=ed.getAttribute('data-r221-edit');MSG='';el.dataset.h='';tick();setTimeout(()=>{const i=document.getElementById('r221Name');if(i)i.focus()},50);return}
+        if(t.closest('[data-r221-x]')){editing='';el.dataset.h='';tick();return}
+        if(t.closest('[data-r222c-off]')){showOff=!showOff;el.dataset.h='';tick();return}
+        if(t.closest('[data-r222c-new]')){window.rcadsR222.newForm(selB,ww.label);return}
+        const q=t.closest('[data-r222c-qr]');if(q){act(async()=>{const r=await window.rcadsR222.qrFor(selB,q.getAttribute('data-r222c-qr'),ww.label);if(!r.ok&&r.msg)alert(r.msg)});return}
+        const st=t.closest('[data-r222c-st]');if(st){const [s,v]=st.getAttribute('data-r222c-st').split('|');act(async()=>{await window.rcadsR222.setStatus(selB,s,v,ww.label);MSG=''});return}
+        const sv=t.closest('[data-r221-save]');if(sv){const s=sv.getAttribute('data-r221-save');const name=U(document.getElementById('r221Name').value).replace(/\s+/g,' ');let em=U(document.getElementById('r221Em').value);
+          if(name.length<4){MSG='Type the full name of the guard.';el.dataset.h='';editing=s;tick();return}if(!em)em=window.rcadsR222.emAuto(selB,s,name);
+          const old=namesRaw(selB)[s]||'';window.rcadsR222.saveName(selB,s,name,em,ww.label);
+          const log=lsGet('rcads_r221_guard_name_log_v1',[])||[];log.push({at:new Date().toISOString(),branch:selB,slot:s,old,name,em,by:ww.label});lsSet('rcads_r221_guard_name_log_v1',log.slice(-300));
+          editing='';MSG='✓ '+window.rcadsR222.label(s)+' is now '+name+' ('+em+').';el.dataset.h='';tick();return}
+      })}
+    if(w.tab)el.setAttribute('data-r162-tab',w.tab);else el.removeAttribute('data-r162-tab');
+    if(w.after&&w.after.parentElement===w.host){if(w.after.nextElementSibling!==el)w.after.insertAdjacentElement('afterend',el)}else if(el.parentElement!==w.host){const nav=w.host.querySelector(':scope > .r162-nav');w.host.insertBefore(el,nav||null)}
+    if(el.dataset.h&&editing&&el.contains(document.activeElement))return;const h=cardHtml(w);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
+  }
+  setInterval(tick,1500);setTimeout(tick,600);
+
+  // ---- HR device: tell Supabase who may make Guard QRs (Managers, Asst. Managers, Dining Head 1, Captain Waiter) ----
+  function issuerCodes(){const set=new Set();
+    branches().forEach(b=>staff(b.code).forEach(e=>{if(e&&e.code&&POS_OK.test(e.position||'')&&!GONE.test(e.name||''))set.add(U(e.code))}));
+    try{Object.entries(simpleHrAccounts||{}).forEach(([k,v])=>{if(['diningHead1','diningHead2','restaurantManager','cateringManager'].includes(k)&&v&&v.identity){const c=U(String(v.identity).split(' - ')[0]);if(c)set.add(c)}})}catch(e){}
+    try{['restaurantManager','cateringManager'].forEach(k=>{const v=simpleHrAccounts[k];if(v&&v.empCode)set.add(U(v.empCode))})}catch(e){}
+    return [...set].filter(c=>/^[A-Z]{2,4}-[A-Z0-9.]+$/.test(c)).sort()}
+  async function pushIssuers(){try{const R=window.rcadsR182;if(!R||!R.canIssue()||!R.setGuardIssuers)return;const codes=issuerCodes();if(!codes.length)return;const sig=codes.join(',');
+    if(lsGet('rcads_r222_issuers_sent_pin_local',null)===sig)return;await R.setGuardIssuers(codes);try{localStorage.setItem('rcads_r222_issuers_sent_pin_local',JSON.stringify(sig))}catch(e){}}catch(e){console.warn('R222 issuers',e.message)}}
+  setTimeout(pushIssuers,8000);setInterval(pushIssuers,10*60000);
+  window.rcadsR222Card={tick,issuerCodes,pushIssuers};
+})();
+</script>
+
+<!-- RCADS PATCH: R224 BLOCK the RCADS app of an employee who left (Managers, Asst. Managers, Dining Head 1 / Supervisor, Captain Waiter, HR) -->
+<style id="rcadsR224Css">
+.r224-q{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d8bfa1;border-radius:10px;font-size:14px;margin:4px 0 6px;background:#fff}
+#r224Br{width:100%;padding:9px;border:1px solid #d8bfa1;border-radius:9px;margin:4px 0;background:#fff}
+.r224-n{font-size:11px;color:#7a6250;margin:4px 0}
+.r224-r{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;border:1px solid #eadbc6;border-radius:12px;padding:8px;margin:5px 0}
+.r224-r b{display:block;font-size:12.5px}.r224-r small{display:block;font-size:10px;color:#6b5646}.r224-r em{font-style:normal;display:inline-block;font-size:9.5px;font-weight:900;border-radius:20px;padding:2px 7px;margin-top:3px}
+.r224-r.sel{display:block;border:2px solid #a1281f}.r224-r label{display:block;font-size:10.5px;font-weight:900;color:#5b3519;margin-top:6px}
+.r224-r select,.r224-r input{display:block;width:100%;box-sizing:border-box;padding:9px;border:1px solid #d8bfa1;border-radius:9px;font-size:14px;margin-top:3px;background:#fff}
+.r224-r button{padding:8px 12px;border-radius:9px;font-weight:900;font-size:11px;border:1px solid #c9a46a;background:#fff;color:#5b3519;white-space:nowrap}
+.r224-r button.red{background:#a1281f;color:#fff;border-color:#a1281f}.r224-b{display:flex;gap:6px;margin-top:8px}.r224-b button{flex:1}
+.r224-warn{font-size:10.5px;font-weight:800;color:#a1281f;margin-top:6px}
+.r224-h2{font-weight:900;font-size:11px;color:#5b3519;margin:10px 0 3px}.r224-rec{font-size:11px;padding:5px 0;border-top:1px dashed #eadbc6}.r224-rec small{display:block;font-size:10px;color:#6b5646}
+</style>
+<script id="rcadsR224Script">
+/* R224 — ⛔ BLOCK THE RCADS APP OF AN EMPLOYEE WHO LEFT
+   Card in the apps of Managers, Asst. Managers, Dining Head 1 (Dining Supervisor) and Captain Waiter (HR: in 🔐 Employee Personal QR).
+   Search the employee → ⛔ BLOCK → reason (Resigned / AWOL / Terminated / End of contract / Other).
+   His app stops at once. Only HR can open it again (new QR). HR gets a 🟡 flag to process the separation. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  function branchOf(code){for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(code)))return x.code}return ''}
+  function empOf(code){for(const x of branches()){const e=staff(x.code).find(q=>U(q.code)===U(code));if(e)return Object.assign({branch:x.code},e)}return null}
+  const POS_OK=/(ASST\.?\s*MANAGER|ASSISTANT\s*MANAGER|\bMANAGER\b|CAPT(AIN)?\.?\s*WAITER|SUPERVISOR)/i;
+  const MGR=/(ASST\.?\s*MANAGER|ASSISTANT\s*MANAGER|\bMANAGER\b)/i;
+  const REASONS=['RESIGNED','AWOL','TERMINATED','END OF CONTRACT','OTHER'];
+  function who(){
+    const ms=window.currentManagerSession;const mh=document.getElementById('managerHomeScreen');
+    if(ms&&mh&&!mh.classList.contains('hidden'))return {label:'MANAGER • '+(ms.empCode||''),code:U(ms.empCode),mgr:true,all:true,host:mh,tab:null};
+    let e=null;try{e=currentEmployee}catch(_){}if(!e)return null;const b=branchOf(e.code);
+    const app=document.getElementById('rcadsR131ApproverApp');const shell=app&&app.querySelector('.r131-shell');
+    if(shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none'){
+      let a=null;try{a=getCurrentApproverAssignment()}catch(_){}const k=a&&a.key||'';
+      const lbl={diningHead1:'DINING HEAD 1',diningHead2:'CAPTAIN WAITER (DINING HEAD 2)',restaurantManager:'RESTAURANT MANAGER',cateringManager:'CATERING MANAGER'}[k];
+      if(lbl||POS_OK.test(e.position||''))return {label:(lbl||(/SUPERVISOR/i.test(e.position||'')?'DINING HEAD 1 (SUPERVISOR)':U(e.position)))+' • '+(e.name||e.code),code:U(e.code),mgr:/MANAGER/.test(lbl||'')||MGR.test(e.position||''),all:/MANAGER/.test(lbl||'')&&!/ASST|ASSISTANT/i.test(e.position||''),branch:b,host:shell,tab:'home'};
+    }
+    const panel=document.getElementById('employeeSimplePanel');
+    if(panel&&document.body.classList.contains('employee-simple-mode')&&POS_OK.test(e.position||''))return {label:(/SUPERVISOR/i.test(e.position||'')?'DINING HEAD 1 (SUPERVISOR)':U(e.position))+' • '+(e.name||e.code),code:U(e.code),mgr:MGR.test(e.position||''),all:false,branch:b,host:panel,tab:'home'};
+    return null;
+  }
+  const ST={ACTIVE:['ok','🟢 APP ACTIVE'],SETUP:['pend','🟡 QR NOT YET SCANNED'],'NO APP':['off','NO APP YET'],DISABLED:['off','DISABLED BY HR'],BLOCKED:['bad','⛔ BLOCKED']};
+  let selB='',Q='',pick='',MSG='',sig='';
+  function list(w){return w.all?branches().map(x=>x.code):[w.branch]}
+  function canBlock(w,e){if(!e)return 'Not found.';if(U(e.code)===w.code)return 'You cannot block your own app.';if(MGR.test(e.position||'')&&!w.mgr)return 'Only a Manager or HR can block a Manager / Asst. Manager.';return ''}
+  function resultsHtml(w){const q=U(Q);if(q.length<2)return '<div class="r224-n">Type at least 2 letters of the name or EMPCODE.</div>';
+    const out=[];staff(selB).forEach(e=>{if(out.length<8&&(U(e.code)+' '+U(e.name)).includes(q))out.push(e)});
+    if(!out.length)return '<div class="r224-n">No employee found in '+esc(bName(selB))+'.</div>';
+    return out.map(e=>{const st=window.rcadsR224?window.rcadsR224.status(e.code):'NO APP';const s=ST[st]||['off',st];const why=canBlock(w,e);
+      if(pick===U(e.code))return '<div class="r224-r sel"><div><b>'+esc(e.name)+'</b><small>'+esc(e.code)+' • '+esc(e.position||'')+'</small></div>'
+        +'<label>REASON<select id="r224Why">'+REASONS.map(r=>'<option>'+r+'</option>').join('')+'</select></label><label>NOTE (date left, etc.)<input id="r224Note" placeholder="e.g. last day Oct 20" autocomplete="off"></label>'
+        +'<div class="r224-warn">His / her RCADS app will stop right away. Only HR can open it again.</div><div class="r224-b"><button type="button" class="red" data-r224-go="'+esc(e.code)+'">⛔ BLOCK NOW</button><button type="button" class="ghost" data-r224-x="1">CANCEL</button></div></div>';
+      return '<div class="r224-r"><div><b>'+esc(e.name)+'</b><small>'+esc(e.code)+' • '+esc(e.position||'')+'</small><em class="r222-st '+s[0]+'">'+s[1]+'</em></div>'
+        +(st==='BLOCKED'?'<small>Only HR can open it again.</small>':(why?'<small>'+esc(why)+'</small>':'<button type="button" class="red" data-r224-pick="'+esc(e.code)+'">⛔ BLOCK</button>'))+'</div>'}).join('')}
+  function recentHtml(w){const L=list(w);const B=(window.rcadsR224?window.rcadsR224.blocks():[]).map(x=>Object.assign(x,{e:empOf(x.code)})).filter(x=>x.e&&L.includes(x.e.branch)).sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,6);
+    return B.length?'<div class="r224-h2">RECENTLY BLOCKED</div>'+B.map(x=>'<div class="r224-rec">⛔ <b>'+esc(x.e.name)+'</b> • '+esc(x.code)+'<small>'+esc(x.reason||'')+(x.note?' — '+esc(x.note):'')+' • by '+esc(x.by||'')+' • '+esc(new Date(x.at).toLocaleDateString())+'</small></div>').join(''):''}
+  function draw(el,w,full){const L=list(w);if(!selB||!L.includes(selB))selB=L[0];
+    if(full||!el.querySelector('#r224Res')){el.innerHTML='<div class="r221-h">⛔ BLOCK APP — EMPLOYEE WHO LEFT</div><div class="r221-n">Resigned, AWOL or terminated? Block his / her RCADS app right away. HR is told to process the separation. By '+esc(w.label)+'.</div>'
+      +(L.length>1?'<select id="r224Br">'+L.map(c=>'<option value="'+c+'"'+(c===selB?' selected':'')+'>'+esc(bName(c))+'</option>').join('')+'</select>':'<div class="r221-b">'+esc(bName(selB))+'</div>')
+      +'<input id="r224Q" class="r224-q" placeholder="🔎 Name or EMPCODE" autocomplete="off" value="'+esc(Q)+'"><div id="r224Res"></div><div class="r221-msg" id="r224Msg"></div><div id="r224Rec"></div>'}
+    el.querySelector('#r224Res').innerHTML=resultsHtml(w);el.querySelector('#r224Msg').textContent=MSG;el.querySelector('#r224Rec').innerHTML=recentHtml(w)}
+  function tick(){
+    const w=who();let el=document.getElementById('r224Card');if(!w||!window.rcadsR224){if(el)el.remove();return}
+    if(!el){el=document.createElement('div');el.id='r224Card';el.className='r221-card r224-card';
+      el.addEventListener('input',e=>{if(e.target.id==='r224Q'){Q=e.target.value;pick='';MSG='';const ww=who();if(ww)draw(el,ww,false)}});
+      el.addEventListener('change',e=>{if(e.target.id==='r224Br'){selB=e.target.value;pick='';const ww=who();if(ww)draw(el,ww,true)}});
+      el.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;const ww=who();if(!ww)return;
+        const p=t.closest('[data-r224-pick]');if(p){pick=U(p.getAttribute('data-r224-pick'));MSG='';draw(el,ww,false);return}
+        if(t.closest('[data-r224-x]')){pick='';draw(el,ww,false);return}
+        const g=t.closest('[data-r224-go]');if(g){const code=g.getAttribute('data-r224-go');const emp=empOf(code);const why=canBlock(ww,emp);if(why){alert(why);return}
+          const reason=(document.getElementById('r224Why')||{}).value||'';const note=String((document.getElementById('r224Note')||{}).value||'').trim();
+          if(reason==='OTHER'&&note.length<3){alert('Type the reason in NOTE.');return}
+          if(!confirm('BLOCK the RCADS app of '+emp.name+' ('+emp.code+')?\nReason: '+reason+(note?' — '+note:'')+'\n\nOnly HR can open it again.'))return;
+          const r=window.rcadsR224.block(emp.code,reason,ww.label,note);MSG=r.ok?'✓ '+emp.name+' — app BLOCKED. HR is notified.':(r.msg||'Could not block.');pick='';draw(el,ww,false)}});
+    }
+    if(w.tab)el.setAttribute('data-r162-tab',w.tab);else el.removeAttribute('data-r162-tab');
+    const anchor=document.getElementById('r221Card');
+    if(anchor&&anchor.parentElement===w.host){if(anchor.nextElementSibling!==el)anchor.insertAdjacentElement('afterend',el)}else if(el.parentElement!==w.host){const nav=w.host.querySelector(':scope > .r162-nav');w.host.insertBefore(el,nav||null)}
+    const s=w.label+'|'+selB;if(s!==sig){sig=s;draw(el,w,true);return}
+    if(el.contains(document.activeElement)||pick)return;el.querySelector('#r224Rec').innerHTML=recentHtml(w);
+  }
+  setInterval(tick,2000);setTimeout(tick,700);
+  // HR 🟡 flag: blocked in the last 30 days and not yet SEPARATED in RCADS
+  function flags(){const out=[];try{(window.rcadsR224?window.rcadsR224.blocks():[]).forEach(x=>{if(Date.now()-Date.parse(x.at)>30*864e5)return;let sep=false;try{sep=!!(window.rcadsIsSeparated&&window.rcadsIsSeparated(x.code))}catch(e){}if(sep)return;const e=empOf(x.code);
+    out.push({lvl:'yellow',txt:'App BLOCKED ('+(x.reason||'')+') — process the separation (201 / payroll)',who:(e?e.name+' • '+bName(e.branch):x.code)+' • by '+(x.by||''),go:'r160HrSection'})})}catch(e){}return out}
+  window.rcadsR224Card={tick,flags};
 })();
 </script>
 </body>
