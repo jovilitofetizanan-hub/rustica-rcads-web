@@ -1,4 +1,4 @@
-<!-- R205 STEADY SCREEN: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
+<!-- R210 HOME QR: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
 <!-- R157 SECURITY FIX: HR PIN no longer stored or shown in plain text; HR can change it. All other R156 behavior unchanged. -->
 <!-- R156 trial: transparent enrollment readiness; no backend enrollment or access grant. Based directly on R155. -->
 <!--
@@ -144,7 +144,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R205 STEADY SCREEN</title>
+<title>Rustica RCADS App — R210 HOME QR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21850,7 +21850,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
+<!-- RCADS PATCH: R210 HOME QR + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
 <style id="rcadsR160Css">
 #r160Gate{position:fixed;inset:0;z-index:2147483300;background:linear-gradient(160deg,#3d2615,#6b3f1d);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:28px 16px}
 html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
@@ -22627,6 +22627,254 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     return o.apply(this,arguments)}})();
   // R181: verify a person's personal PIN (used by the borrowed-phone login) — counts wrong tries / lockout
   window.rcadsR160VerifyPin=async function(code,p){const r=rec(code);if(!r||r.status!=='ACTIVE'||!r.pinHash)return {ok:false,msg:r&&r.status==='SETUP'?'You do not have your own PIN yet. Ask HR for a QR.':'No personal PIN. See HR.'};if(locked(r))return {ok:false,msg:'Locked for '+LOCK_MIN+' minutes because of a wrong PIN.'};let ok=false;try{ok=(await pbkdf2(String(p||'').trim(),r.pinSalt))===r.pinHash}catch(e){}if(!ok){noteFail(code);return {ok:false,msg:'Wrong PIN.'}}noteOk(code);return {ok:true}};
+  /* ================= R206: GUARDS — same as employees (scan the QR from HR → create own PIN → the Guard app stays on the phone) =================
+     • Each branch has GUARD 1 and GUARD 2. HR makes a SETUP QR for the guard on duty; the guard scans it with his own phone,
+       creates his own 4-digit PIN and the phone opens straight to the GUARD screen every time (only the PIN is asked).
+     • Once a guard slot has its own PIN, ONLY that PIN works for that slot of that branch (the old shared Guard PIN stops).
+       Slots with no personal PIN yet still use the Guard PIN from HR PIN CONTROL.
+     • HR can still see the PIN (HR KEY), like employees and owners. */
+  const GDEV='rustica_r206_guard_pin_device'; // contains "pin" → never cloud-synced (per phone only)
+  const GSLOTS=[['guard01','GUARD 1'],['guard02','GUARD 2']];
+  function gKey(b,s){return 'G|'+String(b||'').toUpperCase()+'|'+s}
+  function gRec(k){return (read().guards||{})[k]||null}
+  function gSlotLbl(s){return s==='guard02'?'GUARD 2':'GUARD 1'}
+  function gNames(b){try{return JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+String(b||'').toUpperCase())||'{}')||{}}catch(e){return {}}}
+  function gName(b,s){const n=gNames(b);return String(n[s]||'').trim()}
+  function gLink(b,s,n,setup,ticket){const o={v:1,b,g:s,n:n||''};if(setup)o.s=String(setup);if(ticket)o.k=String(ticket);return appUrl()+'#rcadsGuard='+b64u(JSON.stringify(o))}
+  function gPayload(){const m=String(location.hash||'').match(/(?:^#|[&#])rcadsGuard=([^&]+)/);if(!m)return null;try{const p=JSON.parse(unb64u(m[1]));return p&&p.b&&p.g?p:null}catch(e){return null}}
+  function gDevice(){try{return JSON.parse(localStorage.getItem(GDEV)||'null')}catch(e){return null}}
+  function gRemember(p){try{localStorage.setItem(GDEV,JSON.stringify({b:p.b,g:p.g,n:p.n||''}))}catch(e){}}
+  function gForget(){try{localStorage.removeItem(GDEV)}catch(e){}}
+  async function setGuardPin(k,p,by){
+    const salt=randHex(16),h=await pbkdf2(p,salt),enc=await encForHr(p);
+    const db=read();db.guards=db.guards||{};const old=db.guards[k]||{};const now=new Date().toISOString();const [,b,s]=k.split('|');
+    db.guards[k]={key:k,branch:b,slot:s,name:old.name||gName(b,s),status:'ACTIVE',pinSalt:salt,pinHash:h,pinEnc:enc,pinChangedAt:now,pinChangedBy:by,history:[{at:now,by}].concat(old.history||[]).slice(0,20),fails:0,lockedUntil:'',lastLoginAt:old.lastLoginAt||'',issuedBy:old.issuedBy||''};
+    if(!save(db))return false;pinCache['GUARD:'+k]={k:'GUARD:'+k+'|'+now+'||ACTIVE',pin:p,setup:''};return true;
+  }
+  function guardNote(k,ok){const db=read();const r=(db.guards||{})[k];if(!r)return;if(ok){r.fails=0;r.lockedUntil='';r.lastLoginAt=new Date().toISOString()}else{r.fails=(r.fails||0)+1;if(r.fails>=MAX_FAIL){r.lockedUntil=new Date(Date.now()+LOCK_MIN*60000).toISOString();r.fails=0}}save(db)}
+  async function issueGuardSetup(b,s){
+    if(!(await unlockVault()))return null;const st=await setupFields();const k=gKey(b,s);
+    const db=read();db.guards=db.guards||{};const old=db.guards[k]||{};
+    db.guards[k]=Object.assign({key:k,branch:b,slot:s,name:gName(b,s)||old.name||'',history:old.history||[],lastLoginAt:old.lastLoginAt||''},st.f);
+    if(!save(db))return null;pinCache['GUARD:'+k]={k:'x',pin:'',setup:st.code};return st.code;
+  }
+  async function completeGuardSetup(k,code,p){
+    const r=gRec(k);if(!r||r.status!=='SETUP')return {ok:false,msg:'No SETUP CODE for this guard. Ask HR for a new QR.'};
+    if(locked(r))return {ok:false,msg:'Locked for '+LOCK_MIN+' minutes because of a wrong SETUP CODE.'};
+    if(setupExpired(r))return {ok:false,msg:'The SETUP CODE has expired. Ask HR for a new QR.'};
+    let good=false;try{good=(await pbkdf2(String(code||'').trim(),r.setupSalt))===r.setupHash}catch(e){return {ok:false,msg:'Secure crypto unavailable. Open RCADS using the HTTPS link.'}}
+    if(!good){guardNote(k,false);return {ok:false,msg:'Wrong SETUP CODE.'}}
+    if(!validPin(String(p||''))) return {ok:false,msg:'The PIN is 4 digits and must not be easy to guess (1234, 0000, 1111, 2580…).'};
+    if(!read().hrPub)return {ok:false,msg:'HR has not set up PIN control (HR KEY) yet. See HR.'};
+    return (await setGuardPin(k,String(p),'SELF (SETUP)'))?{ok:true}:{ok:false,msg:'Could not save on this device.'};
+  }
+  async function verifyGuardPin(k,p){
+    const r=gRec(k);if(!r||r.status!=='ACTIVE'||!r.pinHash)return {ok:false,msg:'No personal Guard PIN.'};
+    if(locked(r))return {ok:false,msg:'Locked for '+LOCK_MIN+' minutes because of a wrong PIN. Call HR.'};
+    let ok=false;try{ok=(await pbkdf2(String(p||'').trim(),r.pinSalt))===r.pinHash}catch(e){}
+    guardNote(k,ok);return ok?{ok:true}:{ok:false,msg:'Wrong PIN.'};
+  }
+  async function refreshGuardPins(){if(!hrPriv)return;const o=read().guards||{};for(const [k,r] of Object.entries(o)){const key='GUARD:'+k+'|'+(r.pinChangedAt||'')+'|'+(r.setupIssuedAt||'')+'|'+(r.status||'');if(pinCache['GUARD:'+k]&&pinCache['GUARD:'+k].k===key)continue;pinCache['GUARD:'+k]={k:key,pin:r.status==='ACTIVE'?await decForHr(r):'',setup:r.status==='SETUP'?await decEnc(r.setupEnc):''}}}
+
+  // ---- the guard's phone ----
+  function gShell(p,inner){
+    const g=gateEl();document.documentElement.classList.add('r160-gate-open');
+    g.innerHTML='<div class="r160-card"><div class="r160-brand">RUSTICA • RCADS</div><div class="r160-title">🛡 GUARD APP</div>'
+      +'<div class="r160-who"><b>'+esc(p.n||gSlotLbl(p.g))+'</b><span>'+esc(gSlotLbl(p.g))+' • '+esc(bName(p.b))+'</span></div>'
+      +inner+'<div class="r160-msg" id="r160Msg"></div><button type="button" class="r160-link" id="r206NotMe">Not you? — Close</button></div>';
+    g.querySelector('#r206NotMe').onclick=()=>{gForget();try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}closeGate()};
+    return g;
+  }
+  let gSessionPin='';
+  async function startGuard(p,pinv){
+    setBranch(p.b);closeGate();gSessionPin=String(pinv);
+    try{openGuardLogin()}catch(e){}
+    const a=document.getElementById('guardLoginAccount'),pi=document.getElementById('guardLoginPin');if(a)a.value=p.g;if(pi)pi.value=String(pinv);
+    try{await window.submitGuardLogin()}catch(e){alert('Guard login error: '+e.message)}
+  }
+  async function openGuardGate(p){
+    if(!p||!p.b||!p.g)return;
+    gShell(p,'<div class="r160-wait">Connecting to RCADS…</div>');
+    await cloudPull();
+    p.n=gName(p.b,p.g)||p.n||'';const k=gKey(p.b,p.g);const r=gRec(k);
+    let acctOff=false;try{const sv=JSON.parse(localStorage.getItem((typeof SIMPLE_HR_PIN_KEY!=='undefined'&&SIMPLE_HR_PIN_KEY)||'rustica_srf_simple_hr_pins_v1')||'{}');acctOff=!!(sv[p.g]&&sv[p.g].active===false)}catch(e){}
+    if(acctOff){gShell(p,'<div class="r160-info bad">'+esc(gSlotLbl(p.g))+' access is OFF in HR PIN CONTROL. Call HR.</div><button type="button" class="r160-btn" id="r206Retry">TRY AGAIN</button>');document.getElementById('r206Retry').onclick=()=>openGuardGate(p);return}
+    if(r&&r.status==='SETUP'){
+      const fromQr=!!p.s;
+      gShell(p,'<div class="r160-info">FIRST TIME — CREATE YOUR OWN GUARD PIN'+(fromQr?'<br><small>✓ QR scanned</small>':'')+'</div>'+(fromQr?'<input id="r206Code" type="hidden" value="'+esc(p.s)+'">':'<label>SETUP CODE (6 digits from HR)</label><input id="r206Code" type="password" inputmode="numeric" maxlength="6" autocomplete="one-time-code">')
+        +'<label>YOUR OWN 4-DIGIT PIN</label><input id="r206P1" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"><label>REPEAT THE PIN</label><input id="r206P2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password">'
+        +'<button type="button" class="r160-btn" id="r206Save">SAVE MY PIN</button><div class="r160-hint">You create your own PIN. Do not share it with anyone. Easy-to-guess PINs are not allowed (1234, 0000, 1111, 2580…). For account control, HR can see it.</div>');
+      const save1=async()=>{
+        const c=document.getElementById('r206Code').value,a=document.getElementById('r206P1').value,b2=document.getElementById('r206P2').value;
+        if(!c){msg('Enter the SETUP CODE.');return}if(a!==b2){msg('The PINs do not match.');return}
+        const res=await completeGuardSetup(k,c,a);if(!res.ok){msg(res.msg);return}
+        try{if(gPayload())history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+        gRemember(p);
+        gShell(p,'<div class="r160-info ok">✓ YOUR OWN GUARD PIN IS SAVED</div>'+installHtml()+'<button type="button" class="r160-btn" id="r206Go">OPEN THE GUARD SCREEN →</button>');
+        bindInstall();document.getElementById('r206Go').onclick=()=>startGuard(p,a);
+      };
+      document.getElementById('r206Save').onclick=save1;document.getElementById('r206P2').addEventListener('keydown',e=>{if(e.key==='Enter')save1()});
+      return;
+    }
+    if(!r||r.status!=='ACTIVE'||!r.pinHash){
+      gShell(p,'<div class="r160-info bad">'+(r&&r.status==='DISABLED'?'This Guard access was DISABLED by HR.':'No Guard PIN yet for this phone. Ask HR for a GUARD SETUP QR.')+'</div><button type="button" class="r160-btn" id="r206Retry">TRY AGAIN</button>');
+      document.getElementById('r206Retry').onclick=()=>openGuardGate(p);return;
+    }
+    gShell(p,'<label>MY GUARD PIN</label><input id="r206Pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" autofocus><button type="button" class="r160-btn" id="r206Login">🛡 GUARD ON DUTY</button><div class="r160-hint">Forgot your PIN? Call HR for a new GUARD SETUP QR.</div>');
+    const go=async()=>{const v=document.getElementById('r206Pin').value;const res=await verifyGuardPin(k,v);if(!res.ok){msg(res.msg);document.getElementById('r206Pin').value='';return}gRemember(p);startGuard(p,v)};
+    document.getElementById('r206Login').onclick=go;document.getElementById('r206Pin').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+  }
+  function bootGuardGate(){const p=gPayload();if(p){openGuardGate(p);return}if(payloadFromHash()||deviceOwner())return;const d=gDevice();if(d&&d.b&&d.g&&!sessionStorage.getItem('rcads_active_guard_session'))openGuardGate(d)}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(bootGuardGate,450));else setTimeout(bootGuardGate,450);
+  window.addEventListener('hashchange',()=>{const p=gPayload();if(p)openGuardGate(p)});
+
+  // ---- the normal GUARD LOGIN (branch phone): personal PIN when the slot has one; SETUP CODE in the PIN box = first time ----
+  (function(){const orig=window.submitGuardLogin;if(typeof orig!=='function')return;
+    window.submitGuardLogin=async function(){
+      const s=String(document.getElementById('guardLoginAccount')?.value||'');const entered=String(document.getElementById('guardLoginPin')?.value||'').trim();const st=document.getElementById('guardLoginStatus');
+      const b=(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'SAN_RAFAEL');const k=gKey(b,s);const r=(s&&entered)?gRec(k):null;
+      if(!r)return orig.apply(this,arguments); // no personal Guard PIN for this slot → old shared Guard PIN
+      if(r.status==='DISABLED'){if(st)st.textContent=gSlotLbl(s)+' was DISABLED by HR.';alert('This Guard access was DISABLED by HR.');return false}
+      if(r.status==='SETUP'){
+        const c=String(prompt('FIRST TIME: '+gSlotLbl(s)+' — enter the 6-digit SETUP CODE from HR:',entered)||'').trim();if(!c)return false;
+        const p1=prompt('Create your own 4-digit Guard PIN:','');if(p1===null)return false;const p2=prompt('Repeat the PIN:','');if(p2===null)return false;
+        if(String(p1).trim()!==String(p2).trim()){alert('The PINs do not match.');return false}
+        const res=await completeGuardSetup(k,c,String(p1).trim());if(!res.ok){alert(res.msg);return false}
+        alert('✓ Your own Guard PIN is saved. (HR can see it for account control.)');const pi=document.getElementById('guardLoginPin');if(pi)pi.value=String(p1).trim();return window.submitGuardLogin.apply(this,arguments);
+      }
+      const v=await verifyGuardPin(k,entered);if(!v.ok){if(st)st.textContent=v.msg;alert(v.msg+' ('+gSlotLbl(s)+' has its own PIN — the old shared Guard PIN no longer works.)');const pi=document.getElementById('guardLoginPin');if(pi){pi.value='';pi.focus()}return false}
+      // personal PIN OK → let the original login pass with this PIN (memory only, nothing saved)
+      const SK=(typeof SIMPLE_HR_PIN_KEY!=='undefined'&&SIMPLE_HR_PIN_KEY)||'rustica_srf_simple_hr_pins_v1';const og=Storage.prototype.getItem;let before=null;try{before=simpleHrAccounts[s]?simpleHrAccounts[s].pin:null}catch(e){}
+      Storage.prototype.getItem=function(key){const val=og.call(this,key);if(key===SK){try{const o=JSON.parse(val||'{}');o[s]=Object.assign({},o[s]||{},{pin:entered});return JSON.stringify(o)}catch(e){}}return val};
+      let pr;try{pr=orig.apply(this,arguments)}finally{Storage.prototype.getItem=og}
+      try{return await pr}finally{try{if(simpleHrAccounts[s]&&before!==null)simpleHrAccounts[s].pin=before}catch(e){}}
+    };
+  })();
+
+  // ---- HR: 🛡 GUARDS — PERSONAL PIN (inside 🔐 Employee Personal QR) ----
+  function guardsHrHtml(){
+    const rows=branchList().map(br=>GSLOTS.map(([s,lbl])=>{const k=gKey(br.code,s),r=gRec(k),c=pinCache['GUARD:'+k]||{},nm=gName(br.code,s);const setup=r&&r.status==='SETUP';
+      const stx=!r?'<em class="r160-st none">SHARED GUARD PIN</em>':(r.status==='DISABLED'?'<em class="r160-st none">DISABLED</em>':(setup?'<em class="r160-st pend">'+(setupExpired(r)?'SETUP EXPIRED':'SETUP '+(hrPriv?(c.setup?esc(c.setup):'not readable'):'● ● ● ● ● ●'))+'</em>':'<em class="r160-st ok">'+(hrPriv?(c.pin?'PIN '+esc(c.pin):'PIN not readable'):'PIN ● ● ● ●')+'</em>'));
+      const info=!r?'No personal PIN yet — uses the Guard PIN from HR PIN CONTROL':(setup?'SETUP issued '+esc(new Date(r.setupIssuedAt).toLocaleString())+' • valid until '+esc(new Date(r.setupExpires).toLocaleDateString()):(r.issuedBy?'set up by '+esc(r.issuedBy)+' • ':'')+(r.status==='ACTIVE'?'Own PIN since '+esc(new Date(r.pinChangedAt).toLocaleString())+(r.lastLoginAt?' • last on duty '+esc(new Date(r.lastLoginAt).toLocaleString()):''):'Disabled'));
+      return '<div class="r163-orow"><div><b>'+esc(br.name)+' • '+lbl+'</b><small>'+esc(nm||'(no guard name yet)')+' • '+info+(r&&locked(r)?' • <b style="color:#a1281f">LOCKED</b>':'')+'</small></div>'+stx
+        +'<button type="button" class="r160-mini" data-r206-qr="'+esc(br.code)+'|'+s+'">📲 '+(r&&r.status==='ACTIVE'?'NEW GUARD — SETUP QR':'SETUP QR')+'</button>'
+        +(r&&r.status!=='DISABLED'?'<button type="button" class="r160-mini red" data-r206-off="'+esc(br.code)+'|'+s+'">⛔ DISABLE</button>':'')
+        +(r?'<button type="button" class="r160-mini light" data-r206-shared="'+esc(br.code)+'|'+s+'">↩ SHARED PIN</button>':'')
+        +(r&&locked(r)?'<button type="button" class="r160-mini" data-r206-unlock="'+esc(br.code)+'|'+s+'">UNLOCK</button>':'')+'</div>'}).join('')).join('');
+    return '<div class="r163-owners r206-guards"><div class="r160-hr-title">🛡 GUARDS — PERSONAL GUARD APP</div><div class="r160-hr-note">Same as employees: press <b>📲 SETUP QR</b> for the guard on duty → he scans it with his own phone → creates his own 4-digit PIN → the phone opens straight to the GUARD screen every time (only his PIN is asked). When a guard is replaced, press <b>NEW GUARD — SETUP QR</b> (the old PIN stops). <b>⛔ DISABLE</b> = no access. <b>↩ SHARED PIN</b> = back to the Guard PIN from HR PIN CONTROL. Set the guard’s name first in the Guard name editor. HR can see the PIN with SHOW PINS.</div>'+rows+'</div>';
+  }
+  function renderGuardsHr(){const host=document.getElementById('r206GuardsBox');if(!host)return;const h=guardsHrHtml();if(host.dataset.h!==h){host.dataset.h=h;host.innerHTML=h}}
+  setInterval(async()=>{try{const sec=document.getElementById('r160HrSection');if(!sec)return;let box=document.getElementById('r206GuardsBox');if(!box){box=document.createElement('div');box.id='r206GuardsBox';const o=document.getElementById('r163OwnersBox');if(o&&o.parentElement===sec)o.insertAdjacentElement('afterend',box);else{const grid=sec.querySelector('.r160-hr-grid');sec.insertBefore(box,grid)}}await refreshGuardPins();renderGuardsHr()}catch(e){}},1500);
+  async function showGuardQr(b,s){
+    const k=gKey(b,s);const r=gRec(k);const nm=gName(b,s);
+    if(r&&r.status==='ACTIVE'&&!confirm(gSlotLbl(s)+' of '+bName(b)+' already has a PIN.\n\nA NEW QR will be made for the guard (the old PIN will stop working). Continue?'))return;
+    if(!(await unlockVault()))return;await refreshGuardPins();
+    let sc='';const cur=gRec(k);if(cur&&cur.status==='SETUP'&&!setupExpired(cur))sc=(pinCache['GUARD:'+k]||{}).setup||'';
+    if(!sc){sc=await issueGuardSetup(b,s);if(!sc)return}
+    let tk='',tkErr='';try{if(window.rcadsR182&&window.rcadsR182.canIssue())tk=await window.rcadsR182.issueTicket((nm||gSlotLbl(s))+' • GUARD • '+bName(b),'GUARD-'+b+'-'+s);else tkErr='This device is not enrolled as HR'}catch(e){tkErr=e.message}
+    const link=gLink(b,s,nm,sc,tk);const r2=gRec(k);
+    let o=document.getElementById('r179Qr');if(!o){o=document.createElement('div');o.id='r179Qr';document.documentElement.appendChild(o)}
+    o.innerHTML='<div class="r179-box"><div class="r179-h">🛡 GUARD — SCAN TO OPEN THE RCADS GUARD APP</div><div class="r179-who"><b>'+esc(nm||gSlotLbl(s))+'</b><span>'+esc(gSlotLbl(s))+' • '+esc(bName(b))+'</span></div>'
+      +'<div class="r179-qr">'+qrSvg(link)+'</div><div class="r179-note">SETUP CODE (if asked): <b style="font-size:18px;letter-spacing:4px">'+esc(sc)+'</b></div>'
+      +'<ol class="r179-steps"><li>The guard opens the <b>camera</b> of his phone and scans the QR.</li><li><b>He creates his own 4-digit PIN</b> (2 times).</li><li><b>Install</b> the app (Add to Home Screen).</li><li>Every time: open the app → his PIN → GUARD screen.</li></ol>'
+      +(tk?'<div class="r179-note ok">🔑 The QR has a device key — his phone will sync with Supabase.</div>':'<div class="r179-note">⚠ NO DEVICE KEY in the QR ('+esc(tkErr||'offline')+'). Fix it in ● Database → 🔑 Device Keys, then make the QR again.</div>')
+      +'<div class="r179-note">For this guard only • one time • valid until '+esc(new Date(r2.setupExpires).toLocaleDateString())+'. Do not send it to a group chat.</div>'
+      +'<div class="r179-btns"><button type="button" class="r160-mini light" id="r206Copy">COPY LINK</button><button type="button" class="r160-btn" id="r206Close">✕ CLOSE</button></div></div>';
+    o.classList.add('show');
+    o.querySelector('#r206Close').onclick=()=>{o.classList.remove('show');o.innerHTML='';renderGuardsHr()};
+    o.querySelector('#r206Copy').onclick=async()=>{try{await navigator.clipboard.writeText(link);alert('Link copied ✓ — send it PERSONALLY to the guard only.')}catch(e){prompt('Copy the link:',link)}};
+  }
+  document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
+    const q=t.closest('[data-r206-qr]');if(q){const [b,s]=q.getAttribute('data-r206-qr').split('|');showGuardQr(b,s);return}
+    const off=t.closest('[data-r206-off]');if(off){const [b,s]=off.getAttribute('data-r206-off').split('|');if(!confirm('DISABLE '+gSlotLbl(s)+' of '+bName(b)+'? Nobody can log in to this Guard slot until HR makes a new SETUP QR.'))return;const db=read();db.guards=db.guards||{};const k=gKey(b,s);db.guards[k]=Object.assign({},db.guards[k]||{key:k,branch:b,slot:s},{status:'DISABLED',pinHash:'',pinSalt:'',pinEnc:'',setupHash:'',setupSalt:'',setupEnc:''});save(db);renderGuardsHr();return}
+    const sh=t.closest('[data-r206-shared]');if(sh){const [b,s]=sh.getAttribute('data-r206-shared').split('|');if(!confirm('Back to the SHARED Guard PIN (HR PIN CONTROL) for '+gSlotLbl(s)+' of '+bName(b)+'? The personal Guard PIN will be removed.'))return;const db=read();if(db.guards)delete db.guards[gKey(b,s)];save(db);renderGuardsHr();return}
+    const ul=t.closest('[data-r206-unlock]');if(ul){const [b,s]=ul.getAttribute('data-r206-unlock').split('|');const db=read();const r=(db.guards||{})[gKey(b,s)];if(r){r.lockedUntil='';r.fails=0;save(db)}renderGuardsHr();return}
+    if(t.closest('#r160ShowPins')||t.closest('[data-r160-show]'))setTimeout(async()=>{await refreshGuardPins();renderGuardsHr()},300);
+  });
+  /* ================= R207: RELIEVER GUARD — set up by the guard ON DUTY (no HR needed at the branch) =================
+     The guard on duty presses 🔁 RELIEVER → types the reliever's name → a SETUP QR appears on his screen →
+     the reliever scans it with his own phone → creates his own PIN → installs the app → GUARD ON DUTY (TIME IN) right away
+     (the guard on duty is automatically timed OUT = handover). Valid 1 day, only for the other Guard slot,
+     and only when that slot has no Guard App yet. HR sees who set it up. */
+  function curGuardSlot(){const l=String(window.currentGuardAccount||sessionStorage.getItem('rcads_active_guard_session')||'');return /2/.test(l)?'guard02':(/1/.test(l)?'guard01':'')}
+  async function relieverQr(){
+    const me=curGuardSlot();if(!me){alert('Log in as Guard first.');return}
+    const other=me==='guard01'?'guard02':'guard01';const b=(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'SAN_RAFAEL');const k=gKey(b,other);const r=gRec(k);
+    if(r&&r.status==='ACTIVE'){alert(gSlotLbl(other)+' already has its own Guard App ('+(r.name||gName(b,other)||'guard')+').\n\nIf the reliever is a DIFFERENT person, call HR for a NEW GUARD SETUP QR.');return}
+    if(r&&r.status==='DISABLED'){alert(gSlotLbl(other)+' was DISABLED by HR. Call HR.');return}
+    if(!read().hrPub){alert('HR has not set up PIN control (HR KEY) yet. Call HR.');return}
+    const nm=String(prompt('RELIEVER GUARD — full name (SURNAME, FIRST NAME):',gName(b,other)||'')||'').trim().toUpperCase();if(!nm)return;
+    if(nm.length<4){alert('Enter the full name.');return}
+    const st=await setupFields();st.f.setupExpires=new Date(Date.now()+864e5).toISOString();
+    const myName=gName(b,me)||gSlotLbl(me);
+    const db=read();db.guards=db.guards||{};const old=db.guards[k]||{};
+    db.guards[k]=Object.assign({key:k,branch:b,slot:other,name:nm,history:old.history||[],lastLoginAt:old.lastLoginAt||'',issuedBy:gSlotLbl(me)+' ('+myName+')'},st.f);
+    if(!save(db))return;
+    // the reliever's name becomes the name of that Guard slot (DTR / EMPCODE)
+    try{const nk='rcads_guard_full_names_v1_'+b;const n=JSON.parse(localStorage.getItem(nk)||'{}')||{};n[other]=nm;n[other+'EmCode']=(typeof rcadsGuardBranchPrefix==='function'?rcadsGuardBranchPrefix():'BR')+'-SG.'+(typeof rcadsGuardSurnameForCode==='function'?rcadsGuardSurnameForCode(nm):'GUARD')+(other==='guard02'?'02':'01');n.updatedAt=new Date().toISOString();localStorage.setItem(nk,JSON.stringify(n));try{rcadsCloudFlushQueue()}catch(e){}}catch(e){}
+    let tk='',tkErr='';try{if(window.rcadsR182&&window.rcadsR182.guardTicket)tk=await window.rcadsR182.guardTicket(nm+' • GUARD RELIEVER • '+bName(b));else tkErr='update RCADS'}catch(e){tkErr=e.message}
+    const link=gLink(b,other,nm,st.code,tk);
+    let o=document.getElementById('r179Qr');if(!o){o=document.createElement('div');o.id='r179Qr';document.documentElement.appendChild(o)}
+    o.innerHTML='<div class="r179-box"><div class="r179-h">🔁 RELIEVER — SCAN WITH YOUR OWN PHONE</div><div class="r179-who"><b>'+esc(nm)+'</b><span>'+esc(gSlotLbl(other))+' • '+esc(bName(b))+'</span></div>'
+      +'<div class="r179-qr">'+qrSvg(link)+'</div><div class="r179-note">SETUP CODE (if asked): <b style="font-size:18px;letter-spacing:4px">'+esc(st.code)+'</b></div>'
+      +'<ol class="r179-steps"><li>The reliever opens the <b>camera</b> of his phone and scans this QR.</li><li>He <b>creates his own 4-digit PIN</b> (2 times) and <b>installs</b> the app.</li><li>He presses <b>OPEN THE GUARD SCREEN</b> = <b>TIME IN</b>. You are timed <b>OUT</b> automatically (handover).</li></ol>'
+      +(tk?'':'<div class="r179-note">⚠ No device key ('+esc(tkErr||'offline')+'). His app will work but will not sync until HR fixes it.</div>')
+      +'<div class="r179-note">For this reliever only • valid today • HR will see that '+esc(gSlotLbl(me))+' set it up.</div>'
+      +'<div class="r179-btns"><button type="button" class="r160-btn" id="r207Close">✕ CLOSE</button></div></div>';
+    o.classList.add('show');o.querySelector('#r207Close').onclick=()=>{o.classList.remove('show');o.innerHTML=''};
+  }
+  setInterval(()=>{try{
+    const gh=document.getElementById('guardHomeScreen');const on=!!(gh&&!gh.classList.contains('hidden')&&getComputedStyle(gh).display!=='none'&&curGuardSlot());
+    let bt=document.getElementById('r207RelBtn');
+    if(on&&!bt){bt=document.createElement('button');bt.id='r207RelBtn';bt.type='button';bt.className='btn';bt.style.cssText='width:100%;margin:8px 0;background:#2f6b3a;color:#fff;font-weight:900;border:0;border-radius:12px;padding:12px';bt.innerHTML='🔁 RELIEVER — make his GUARD APP QR<br><small style="font-weight:700;font-size:10px">For the next guard: he scans, creates his PIN, TIME IN</small>';bt.onclick=relieverQr;const c=gh.querySelector('.card')||gh;c.insertBefore(bt,c.firstChild)}
+    if(bt)bt.style.display=on?'':'none';
+  }catch(e){}},1500);
+  /* ================= R210: HR HOME QR — "scan here to open your RCADS app" =================
+     On the clean HR HOME screen: HR types the name / EMPCODE / RUST-ID (or the guard's name) → the big QR on the screen
+     becomes that person's QR → he/she scans it with their own phone → creates their own PIN → the RCADS app opens.
+     Already has a PIN (new phone)? The QR only opens the app and asks the PIN. The screen shows ✓ when done. */
+  let homeSel=null,homeLink='',homeCode='',homeAt=0;
+  function homeSearch(q){q=U(q);const out=[];if(q.length<2)return out;
+    branchList().forEach(b=>{let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b.code)||[]).slice()}catch(e){}if(b.code==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}
+      l.forEach(e=>{if(!e||!e.code||isSepCode(e.code))return;const s=U(e.code)+' '+U(e.name)+' '+U(rustId(e.code));if(s.includes(q))out.push({t:'E',code:U(e.code),name:e.name||e.code,branch:b.code,pos:e.position||''})});
+      GSLOTS.forEach(([s,l])=>{const n=gName(b.code,s);if((n&&U(n).includes(q))||(q.length>=3&&'GUARD'.startsWith(q)))out.push({t:'G',slot:s,name:n||l,branch:b.code,pos:l})})});
+    return out.slice(0,12)}
+  function homeStatus(){if(!homeSel)return '';if(homeSel.t==='G'){const r=gRec(gKey(homeSel.branch,homeSel.slot));return r?r.status:''}const r=rec(homeSel.code);return r?r.status:''}
+  function homeDone(){if(!homeSel)return false;const r=homeSel.t==='G'?gRec(gKey(homeSel.branch,homeSel.slot)):rec(homeSel.code);return !!(r&&r.status==='ACTIVE'&&r.pinChangedAt&&Date.parse(r.pinChangedAt)>homeAt)}
+  function homeCardHtml(){
+    if(!homeSel)return '<div class="r210-h">📲 SCAN HERE TO OPEN YOUR RCADS APP</div><div class="r210-s">Type the name, EMPCODE or Rustica ID of the person in front of you (employee, approver, manager or guard). The QR will be for him / her only.</div><input id="r210Q" class="r210-q" placeholder="e.g. Jurado • SRF-EMP42 • RUST-091 • guard" autocomplete="off"><div id="r210Res"></div>';
+    const done=homeDone();
+    return '<div class="r210-h">📲 SCAN WITH YOUR OWN PHONE</div><div class="r210-who"><b>'+esc(homeSel.name)+'</b><span>'+esc(homeSel.t==='G'?homeSel.pos+' • '+bName(homeSel.branch):(homeSel.code+(rustId(homeSel.code)?' • '+rustId(homeSel.code):'')+' • '+bName(homeSel.branch)))+'</span></div>'
+      +(done?'<div class="r210-done">✓ '+esc(homeSel.name)+' created the PIN — the RCADS app is open on the phone.</div>':'<div class="r210-qr">'+qrSvg(homeLink)+'</div>'+(homeCode?'<div class="r210-code">SETUP CODE (if asked): <b>'+esc(homeCode)+'</b></div>':'<div class="r210-code">Already has a PIN — the QR only opens the app on the new phone.</div>')
+        +'<ol class="r210-steps"><li>Open the phone <b>camera</b> and scan.</li><li>Create your own <b>4-digit PIN</b> (2 times).</li><li><b>Install</b> the app (Add to Home Screen).</li></ol>')
+      +'<button type="button" class="r160-btn" id="r210Next">'+(done?'NEXT PERSON →':'✕ CANCEL / NEXT PERSON')+'</button>';
+  }
+  function homeRender(force){
+    const p=document.getElementById('rcadsR143HrNormalPanel');if(!p||!p.parentElement)return;
+    let c=document.getElementById('r210Home');if(!c){c=document.createElement('div');c.id='r210Home';c.className='r210-card';p.parentElement.insertBefore(c,p);
+      c.addEventListener('input',e=>{if(e.target.id!=='r210Q')return;const res=homeSearch(e.target.value);const box=c.querySelector('#r210Res');box.innerHTML=res.length?res.map((it,i)=>'<button type="button" data-r210-pick="'+i+'"><b>'+esc(it.name)+'</b><small>'+esc(it.t==='G'?'🛡 '+it.pos+' • '+bName(it.branch):it.code+' • '+bName(it.branch)+(it.pos?' • '+it.pos:''))+'</small></button>').join(''):(e.target.value.trim().length>=2?'<div class="r210-s">No match.</div>':'');box._res=res});
+      c.addEventListener('click',async e=>{const pk=e.target.closest&&e.target.closest('[data-r210-pick]');if(pk){const it=(c.querySelector('#r210Res')._res||[])[+pk.getAttribute('data-r210-pick')];if(it)await homePick(it);return}if(e.target.closest&&e.target.closest('#r210Next')){homeSel=null;homeLink='';homeCode='';homeRender(true);setTimeout(()=>{const q=document.getElementById('r210Q');if(q)q.focus()},50)}})}
+    const h=homeCardHtml();if(force||(c.dataset.h!==h&&!c.contains(document.activeElement))){c.dataset.h=h;c.innerHTML=h}
+  }
+  async function homePick(it){
+    if(!(await unlockVault()))return;
+    let sc='',link='';const label=it.name+' • '+(it.t==='G'?'GUARD':it.code);
+    if(it.t==='G'){const k=gKey(it.branch,it.slot);await refreshGuardPins();const r=gRec(k);
+      if(!(r&&r.status==='ACTIVE')){const cur=gRec(k);if(cur&&cur.status==='SETUP'&&!setupExpired(cur))sc=(pinCache['GUARD:'+k]||{}).setup||'';if(!sc)sc=await issueGuardSetup(it.branch,it.slot);if(!sc)return}
+      let tk='';try{if(window.rcadsR182&&window.rcadsR182.canIssue())tk=await window.rcadsR182.issueTicket(label,'GUARD-'+it.branch+'-'+it.slot)}catch(e){}
+      link=gLink(it.branch,it.slot,it.name,sc,tk);
+    }else{
+      await refreshPinCache();const r=rec(it.code);
+      if(!(r&&r.status==='ACTIVE')){if(r&&r.status==='SETUP'&&!setupExpired(r))sc=knownSetup(it.code);if(!sc)sc=await issueSetup(it.code,it.branch,it.name);if(!sc)return}
+      let tk='';try{if(window.rcadsR182&&window.rcadsR182.canIssue())tk=await window.rcadsR182.issueTicket(label,it.code)}catch(e){}
+      link=personalLink(it.code,it.branch,it.name,sc,tk);
+    }
+    homeSel=it;homeLink=link;homeCode=sc;homeAt=Date.now()-1000;homeRender(true);
+  }
+  setInterval(async()=>{try{if(!document.body.classList.contains('r209-home')){const c=document.getElementById('r210Home');if(c&&!homeSel)c.dataset.h='';return}homeRender(false);
+    if(homeSel&&!homeDone()&&Date.now()-homeAt>4000){try{if(typeof rcadsCloudReady==='function'&&rcadsCloudReady())await rcadsCloudPullMerge()}catch(e){}if(homeDone())homeRender(true)}}catch(e){}},3000);
+  window.rcadsR210Link=()=>homeLink;
+  window.rcadsR206={gKey,gRec,issueGuardSetup,completeGuardSetup,verifyGuardPin,gLink,openGuardGate};
   window.rcadsR160={assignPin,read,personalLink,openGate,setOwnerPin,issueSetup,issueOwnerSetup,completeSetup,showSetupQr};
 
 })();
@@ -22865,7 +23113,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
+<!-- RCADS PATCH: R210 HOME QR (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
 <style id="rcadsR167Css">
 .r167-card{position:relative;overflow:hidden;background:#fff;border-radius:3.2mm;font-family:Arial,Helvetica,sans-serif;color:#3d2615;box-shadow:0 2px 10px rgba(0,0,0,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact;flex:0 0 auto}
 .r167-card.port{width:54mm;height:85.6mm}.r167-card.land{width:85.6mm;height:54mm}
@@ -23360,7 +23608,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
+<!-- RCADS PATCH: R210 HOME QR — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
 <style id="rcadsR170Css">
 #r170Blocked{position:fixed;inset:0;z-index:2147483400;background:linear-gradient(160deg,#3d2615,#1c0f07);display:flex;align-items:center;justify-content:center;padding:18px}
 .r170-card{max-width:380px;width:100%;background:#fffaf2;border-radius:16px;padding:22px 18px;text-align:center;color:#3d2615;border-top:6px solid #a1281f}
@@ -24206,9 +24454,9 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
+<!-- RCADS PATCH: R210 HOME QR (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
 <style id="rcadsR177Css">
-/* ===== R205 STEADY SCREEN ===== */
+/* ===== R210 HOME QR ===== */
 #simpleHrAdminModal#simpleHrAdminModal#simpleHrAdminModal .rcads-hr-main.r177-paged > *:not(.r177-on){display:none!important}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main{background:linear-gradient(180deg,#f6efe4 0%,#f3eadc 100%)}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.r177-hr #simpleHrAdminModal .rcads-hr-main > .r160-hr{border-radius:16px!important;box-shadow:0 4px 18px rgba(60,30,10,.08)!important;border:1px solid #e6d3bb!important}
@@ -24603,7 +24851,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
+<!-- RCADS PATCH: R210 HOME QR — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
 <style id="rcadsR181Css">
 /* ===== R181 attendance handshake ===== */
 .r181-card{background:#fffaf3;border:2px solid #c8862a;border-radius:16px;padding:12px;margin:10px 0;color:#3d2412;font-family:Arial,Helvetica,sans-serif;box-shadow:0 3px 12px rgba(91,53,25,.12)}
@@ -24964,7 +25212,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
+<!-- RCADS PATCH: R210 HOME QR — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
 <style id="rcadsR182Css">
 .r182-panel{background:#fff!important}
 .r182-h{font-weight:900;font-size:14px;color:#3d2412;margin-bottom:8px}
@@ -25012,13 +25260,14 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   async function enrollHr(pin){const d=await rpc('rustica_rcads_enroll_hr',{p_branch_code:branch(),p_hr_pin:String(pin||''),p_label:'HR • '+devLabel()});setKey(d.key,'HR','HR • '+devLabel());return d}
   async function issueTicket(label,emp){if(role()!=='HR'||!key())throw new Error('This device is not enrolled as HR');const d=await rpc('rustica_rcads_issue_ticket',{p_branch_code:branch(),p_key:key(),p_label:label||'',p_emp_code:emp||'',p_hours:168});return d.ticket}
   async function redeem(t){const d=await rpc('rustica_rcads_redeem_ticket',{p_ticket:t,p_label:devLabel()});setKey(d.key,'DEVICE',(d.label||'')+' • '+devLabel());return d}
-  window.rcadsR182={key,role,canIssue:()=>role()==='HR'&&!!key(),issueTicket,enrollHr,redeem,setKey};
+  async function guardTicket(label){if(!key())throw new Error('This phone has no device key');const d=await rpc('rustica_rcads_guard_ticket',{p_branch_code:branch(),p_key:key(),p_label:label||''});return d.ticket}
+  window.rcadsR182={key,role,canIssue:()=>role()==='HR'&&!!key(),issueTicket,enrollHr,redeem,setKey,guardTicket};
 
   /* ---------- redeem a ticket from the QR BEFORE anything syncs ---------- */
   function hashTicket(){
     const h=String(location.hash||'');
     let m=h.match(/(?:^#|[&#])rcadsDev=([A-Za-z0-9]+)/);if(m)return {t:m[1],dev:true};
-    m=h.match(/(?:^#|[&#])rcadsEmp=([^&]+)/);if(m){try{let s=m[1].replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const p=JSON.parse(decodeURIComponent(escape(atob(s))));if(p&&p.k)return {t:p.k,dev:false}}catch(e){}}
+    m=h.match(/(?:^#|[&#])rcads(?:Emp|Guard)=([^&]+)/);if(m){try{let s=m[1].replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const p=JSON.parse(decodeURIComponent(escape(atob(s))));if(p&&p.k)return {t:p.k,dev:false}}catch(e){}}
     return null;
   }
   const ht=hashTicket();
@@ -25090,7 +25339,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN — button visible again (HIDE & CLOSE panel + HR Database page) -->
+<!-- RCADS PATCH: R210 HOME QR — button visible again (HIDE & CLOSE panel + HR Database page) -->
 <style id="rcadsR183Css">
 #r183BranchCard{margin:10px 0;padding:12px 14px;border:1px solid #d7c29f;border-radius:12px;background:#fffaf2;font-family:inherit}
 #r183BranchCard .r183-t{font-size:14px;font-weight:900;color:#4c2b17;letter-spacing:.3px}
@@ -25139,7 +25388,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
+<!-- RCADS PATCH: R210 HOME QR — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
 <style id="rcadsR184Css">
 #r184PayrollCard{margin:8px 0 10px;padding:10px;border:1px solid #c9a77a;border-radius:11px;background:#fff8ec}
 #r184SendPayroll{width:100%;padding:13px;border:0;border-radius:10px;background:linear-gradient(135deg,#7a4a1f,#3a2210);color:#fff;font-weight:900;font-size:14px;letter-spacing:.3px;cursor:pointer}
@@ -25192,7 +25441,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
+<!-- RCADS PATCH: R210 HOME QR — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
 <style id="rcadsR185Css">
 .r185-hr .r185-h{font-size:18px;font-weight:900;color:#4c2b17;display:flex;align-items:center;gap:8px}
 .r185-hr .r185-h em{font-style:normal;background:#b3261e;color:#fff;border-radius:999px;padding:2px 9px;font-size:11px}
@@ -25435,7 +25684,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
+<!-- RCADS PATCH: R210 HOME QR — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
 <script id="rcadsR190Script">
 /* R190 — POSITIONS FROM RCPS.
    • RCPS → Employee Master → "Send positions to RCADS" makes an .xlsx with EMPCODE, name, dept and position (NO salary).
@@ -25769,7 +26018,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
+<!-- RCADS PATCH: R210 HOME QR — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
 <style id="rcadsR193Css">
 .r193-head{margin:12px 0;padding:12px;border-radius:14px;background:#fffaf2;border:1px solid #e6d3b8;color:#3d2615;font-size:12px;text-align:left}.r193-hh{font-weight:900;font-size:13px;color:#4c2b17}.r193-hn{font-size:11px;color:#6d5845;margin:6px 0;line-height:1.45}.r193-hf{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.r193-hf input,.r193-hf select{padding:8px;border:1px solid #cdbb9f;border-radius:8px;font-size:12.5px;width:100%;box-sizing:border-box}.r193-hf label{font-size:11px;font-weight:800;color:#6b4a2f;display:flex;flex-direction:column;gap:3px}.r193-hf label.r193-ck{grid-column:1/-1;flex-direction:row;align-items:center;font-weight:700;font-size:12px}.r193-hf input[type=checkbox],.r193-ha input[type=checkbox]{width:auto;padding:0;margin:0}.r193-hf select{height:36px}.r193-hf button{grid-column:1/-1;padding:11px;border:0;border-radius:10px;background:linear-gradient(135deg,#6f4a2a,#3d2414);color:#fff;font-weight:900}.r193-hr2{border-top:1px solid #eadbc6;padding:8px 0}.r193-ha{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}.r193-ha button{border:0;border-radius:7px;padding:6px 9px;background:#5b3519;color:#fff;font-weight:800;font-size:10.5px}.r193-ha button.ghost{background:#fff;color:#8f3028;border:1px solid #d9a199}
 .r193-ck{display:flex;gap:6px;align-items:center;font-size:11.5px;margin:2px 0}
@@ -25975,7 +26224,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
+<!-- RCADS PATCH: R210 HOME QR — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
 <style id="rcadsR194Css">
 .r194-emp{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r194-h{font-weight:900;font-size:13.5px;color:#7a3d00;margin-bottom:8px}.r194-h.ok{color:#2d6a36;margin:0}
@@ -26584,6 +26833,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       if(r.status==='PENDING')add('yellow','Rustica ID — waiting for HR approval',w,'r167HrSection');
       else if(r.status==='ACTIVE'&&r.validUntil){const d=daysTo(String(r.validUntil).slice(0,10));if(d!=null&&d<0)add('red','Rustica ID EXPIRED '+fmt(String(r.validUntil).slice(0,10)),w,'r167HrSection');else if(d!=null&&d<=30)add('green','Rustica ID expires in '+d+' day(s)',w,'r167HrSection')}});
     try{(window.rcadsR200&&window.rcadsR200.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
+    try{(window.rcadsR208&&window.rcadsR208.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
     return R;
   }
 
@@ -26886,7 +27136,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R205 STEADY SCREEN (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
+<!-- RCADS PATCH: R210 HOME QR (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
 <style id="rcadsR202Css">
 .r202-hr .r202-up{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;background:#fffaf2;border:1px solid #e6d3bb;border-radius:12px;padding:12px;margin:10px 0}
 .r202-hr .r202-up label{display:flex;flex-direction:column;font-size:11px;font-weight:800;color:#5b3519;gap:4px}.r202-hr .r202-up label.w{grid-column:1/-1}
@@ -27049,5 +27299,183 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   };
 })();
 </script>
+
+<!-- RCADS PATCH: R210 HOME QR (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
+<style id="rcadsR208Css">
+.r208-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
+.r208-h{font-weight:900;font-size:13.5px;color:#5b3519}.r208-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
+.r208-br{background:#fff;border:1px solid #eadbc6;border-radius:12px;padding:8px 10px;margin:8px 0}.r208-br.red{border:2px solid #d32f2f;background:#fff5f4}
+.r208-bn{font-weight:900;font-size:12.5px;margin-bottom:4px}
+.r208-al{border-radius:8px;padding:6px 8px;margin:4px 0;font-weight:800;font-size:11.5px}.r208-al.red{background:#d32f2f;color:#fff}.r208-al.yellow{background:#fff3d6;color:#7a5200;border:1px solid #f2b705}
+.r208-row{display:flex;gap:8px;align-items:center;padding:4px 0;border-top:1px dashed #eadbc6}.r208-row b{font-size:12px}.r208-row small{display:block;font-size:10.5px;color:#6b5646}
+.r208-log summary{cursor:pointer;font-weight:800;font-size:11px;color:#5b3519;margin-top:4px}.r208-log div{font-size:10.5px;padding:2px 0;border-top:1px solid #f1e6d6}
+#r208Pop{position:fixed;inset:0;z-index:2147483400;background:rgba(40,8,4,.7);display:flex;align-items:center;justify-content:center;padding:16px}
+.r208-pbox{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:16px;border:4px solid #d32f2f;font-family:Arial,sans-serif;color:#3d2615}
+.r208-ph{font-weight:900;font-size:17px;color:#b3261e;margin-bottom:8px}.r208-pi{background:#fff5f4;border-radius:10px;padding:8px;margin:6px 0;font-size:12.5px;font-weight:700}.r208-pi b{display:block;color:#b3261e}
+.r208-pbox button{width:100%;margin-top:8px;padding:12px;border:0;border-radius:10px;background:#b3261e;color:#fff;font-weight:900}
+#r208HrNavBtn[data-flag]:not([data-flag=""])::after{content:attr(data-flag);margin-left:6px;background:#d32f2f;color:#fff;border-radius:999px;padding:0 6px;font-size:10px}
+</style>
+<script id="rcadsR208Script">
+/* R208 — 🛡 GUARDS ON DUTY for HR, the Owners, the Managers and Dining Head 1 + STRAIGHT DUTY / NO RELIEVER alerts
+   • Guard duty logs now carry the BRANCH (each branch's Guard 1 / Guard 2 are separate; old logs = San Rafael).
+   • HR / Owners / Managers: all branches. Dining Head 1: own branch.
+   • 🔴 STRAIGHT DUTY: a guard on duty 12 hours or more (no reliever yet) • 🔴 NO GUARD ON DUTY • 🟡 relief due within 1 hour.
+   • Owners / Managers / Dining Head 1 get a pop-up once per alert; HR sees it in the red-flag dots. */
+(function(){
+  'use strict';
+  const RAW='rustica_srf_guard_duty_logs',STRAIGHT_H=12,DUE_H=11,ACTIVE_DAYS=7;
+  const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function cur(){try{return rusticaGetCurrentBranchCode()}catch(e){return 'SAN_RAFAEL'}}
+  function raw(){try{const v=JSON.parse(localStorage.getItem(RAW)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}}
+  const BR=l=>U(l&&l.branch)||'SAN_RAFAEL';
+  // ---- branch-aware guard logs (same functions everybody already uses) ----
+  window.getGuardDutyLogs=function(){const b=cur();return raw().filter(l=>BR(l)===b)};
+  window.saveGuardDutyLogs=function(logs){const b=cur();const others=raw().filter(l=>BR(l)!==b);const mine=(logs||[]).map(l=>l&&l.branch?l:Object.assign({},l,{branch:b}));localStorage.setItem(RAW,JSON.stringify(others.concat(mine)));try{rcadsCloudFlushQueue()}catch(e){}};
+
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function gName(b,label){try{const n=JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+b)||'{}')||{};return String((label==='Guard 2'?n.guard02:n.guard01)||'').trim()}catch(e){return ''}}
+  function hm(ms){const m=Math.max(0,Math.round(ms/60000));return Math.floor(m/60)+'h '+(m%60)+'m'}
+  function tm(iso){const d=new Date(iso);return isNaN(d)?'':d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
+  function status(b){
+    const L=raw().filter(l=>BR(l)===b);const last=L.length?L[L.length-1]:null;
+    const recent=!!(last&&Date.now()-Date.parse(last.timestamp)<ACTIVE_DAYS*864e5);
+    const slots=['Guard 1','Guard 2'].map(g=>{let open=null,lastOut=null;for(let i=L.length-1;i>=0;i--){const r=L[i];if(r.guard!==g)continue;if(r.type==='OUT'&&!lastOut&&!open)lastOut=r;if(r.type==='IN'){const later=L.slice(i+1).some(x=>x.guard===g&&x.type==='OUT');if(!later)open=r;break}}
+      const ms=open?Date.now()-Date.parse(open.timestamp):0;return {g,name:gName(b,g)||g,open,lastOut,ms,lvl:open?(ms>=STRAIGHT_H*36e5?'red':(ms>=DUE_H*36e5?'yellow':'green')):'off'}});
+    const onDuty=slots.filter(s=>s.open);
+    const alerts=[];slots.forEach(s=>{if(s.lvl==='red')alerts.push({lvl:'red',k:b+'|SD|'+s.g+'|'+(s.open&&s.open.timestamp),txt:'STRAIGHT DUTY — '+s.name+' ('+s.g+') on duty '+hm(s.ms)+', no reliever yet'});else if(s.lvl==='yellow')alerts.push({lvl:'yellow',k:b+'|DUE|'+s.g+'|'+(s.open&&s.open.timestamp),txt:'Relief due — '+s.name+' ('+s.g+') on duty '+hm(s.ms)})});
+    if(recent&&!onDuty.length)alerts.push({lvl:'red',k:b+'|NONE|'+(last&&last.timestamp),txt:'NO GUARD ON DUTY'+(last?' since '+tm(last.timestamp):'')});
+    return {b,active:recent,slots,alerts,log:L.slice(-12).reverse()};
+  }
+  function allStatus(only){return branches().map(x=>x.code).filter(c=>!only||c===only).map(status).filter(s=>s.active)}
+  const DOT={red:'🔴',yellow:'🟡',green:'🟢',off:'⚪'};
+  function cardHtml(list,title){
+    if(!list.length)return '';
+    return '<div class="r208-h">🛡 '+esc(title)+'</div><div class="r208-n">Straight duty = 🔴 on duty '+STRAIGHT_H+' hours or more (no reliever yet) • 🟡 relief due • ⚪ off duty</div>'
+      +list.map(s=>'<div class="r208-br'+(s.alerts.some(a=>a.lvl==='red')?' red':'')+'"><div class="r208-bn">'+esc(bName(s.b))+'</div>'
+        +s.alerts.map(a=>'<div class="r208-al '+a.lvl+'">'+(a.lvl==='red'?'⚠ ':'')+esc(a.txt)+'</div>').join('')
+        +s.slots.map(x=>'<div class="r208-row"><span>'+DOT[x.lvl]+'</span><div><b>'+esc(x.name)+'</b><small>'+esc(x.g)+' • '+(x.open?'ON DUTY since '+esc(tm(x.open.timestamp))+' • '+hm(x.ms):(x.lastOut?'OFF since '+esc(tm(x.lastOut.timestamp)):'no record'))+'</small></div></div>').join('')
+        +'<details class="r208-log"><summary>Guard log (last 12)</summary>'+(s.log.length?s.log.map(l=>'<div>'+esc(tm(l.timestamp))+' • <b>'+esc(gName(s.b,l.guard)||l.guard)+'</b> '+esc(l.type)+(l.reason?' <small>'+esc(l.reason)+'</small>':'')+'</div>').join(''):'<div>No record.</div>')+'</details></div>').join('');
+  }
+  // ---- HR: red-flag dots + section ----
+  function flags(){const o=[];allStatus().forEach(s=>s.alerts.forEach(a=>o.push({lvl:a.lvl,txt:'Guard — '+a.txt,who:bName(s.b),go:'r208HrSection'})));return o}
+  function hrMount(){
+    const admin=document.getElementById('simpleHrAdminModal');if(!admin||getComputedStyle(admin).display==='none')return;const main=admin.querySelector('.rcads-hr-main');if(!main)return;
+    const nav=admin.querySelector('.rcads-hr-nav');if(nav&&!document.getElementById('r208HrNavBtn')){const bt=document.createElement('button');bt.id='r208HrNavBtn';bt.type='button';bt.setAttribute('onclick',"rcadsHrGo('r208HrSection')");bt.textContent='🛡 Guards on Duty';nav.appendChild(bt)}
+    let sec=document.getElementById('r208HrSection');if(!sec){sec=document.createElement('div');sec.id='r208HrSection';sec.className='rcads-dashboard-section r160-hr r208-card';main.appendChild(sec)}
+    const h=cardHtml(allStatus(),'GUARDS ON DUTY — ALL BRANCHES')||'<div class="r208-h">🛡 GUARDS ON DUTY</div><div class="r208-n">No guard records yet.</div>';if(sec.dataset.h!==h&&!sec.querySelector('details[open]')){sec.dataset.h=h;sec.innerHTML=h}
+    const b=document.getElementById('r208HrNavBtn');if(b){const n=flags().filter(x=>x.lvl==='red').length;b.dataset.flag=n?String(n):''}
+  }
+  // ---- Owners / Managers / Dining Head 1 ----
+  function dh1Branch(){try{const a=typeof getCurrentApproverAssignment==='function'?getCurrentApproverAssignment():null;if(!a||a.key!=='diningHead1')return '';const e=currentEmployee;for(const x of branches()){const l=window.rusticaManagerLoadBranchEmployeeMaster?.(x.code)||[];if(l.some(q=>U(q.code)===U(e.code)))return x.code}}catch(e){}return ''}
+  function place(id,host,before,tab){let el=document.getElementById(id);if(!el){el=document.createElement('div');el.id=id;el.className='r208-card'}if(tab)el.setAttribute('data-r162-tab',tab);if(before===el)return el;
+    if(before&&before.parentElement===host){if(el.nextElementSibling!==before)host.insertBefore(el,before)}else if(el.parentElement!==host)host.insertBefore(el,host.firstChild);return el}
+  function render(el,list,title,who){const h=cardHtml(list,title);if(!h){el.style.display='none';return}el.style.display='';if(el.dataset.h!==h&&!el.querySelector('details[open]')){el.dataset.h=h;el.innerHTML=h}popup(list,who)}
+  function popup(list,who){
+    const reds=[];list.forEach(s=>s.alerts.filter(a=>a.lvl==='red').forEach(a=>reds.push(Object.assign({b:s.b},a))));
+    const seenK='rcads_r208_seen_'+who;let seen={};try{seen=JSON.parse(localStorage.getItem(seenK)||'{}')||{}}catch(e){}
+    const fresh=reds.filter(a=>!seen[a.k]);if(!fresh.length||document.getElementById('r208Pop'))return;
+    const d=document.createElement('div');d.id='r208Pop';d.innerHTML='<div class="r208-pbox"><div class="r208-ph">⚠ GUARD ALERT</div>'+fresh.map(a=>'<div class="r208-pi"><b>'+esc(bName(a.b))+'</b>'+esc(a.txt)+'</div>').join('')+'<button type="button">OK, I SEE IT</button></div>';
+    document.body.appendChild(d);try{navigator.vibrate&&navigator.vibrate([300,150,300])}catch(e){}
+    d.querySelector('button').onclick=()=>{fresh.forEach(a=>seen[a.k]=Date.now());const keep={};Object.entries(seen).forEach(([k,t])=>{if(Date.now()-t<7*864e5)keep[k]=t});try{localStorage.setItem(seenK,JSON.stringify(keep))}catch(e){}d.remove()};
+  }
+  function tick(){
+    hrMount();
+    // owners
+    const th=document.getElementById('topManagementHomeScreen');const root=th&&th.querySelector('.r100-content');
+    if(window.rcadsTopManagementSession&&root&&getComputedStyle(th).display!=='none'){const el=place('r208Owner',root,root.firstElementChild,'home');render(el,allStatus(),'GUARDS ON DUTY — ALL BRANCHES','OWNER_'+(window.rcadsTopManagementSession.ownerAccountKey||''))}
+    else{const el=document.getElementById('r208Owner');if(el)el.remove()}
+    // managers
+    const mh=document.getElementById('managerHomeScreen');const ms=window.currentManagerSession;
+    if(ms&&mh&&!mh.classList.contains('hidden')){const hd=document.getElementById('rcadsR97ManagerDashboardHeader');const el=place('r208Mgr',mh,hd&&hd.parentElement===mh?hd.nextElementSibling:mh.firstElementChild,null);render(el,allStatus(),'GUARDS ON DUTY — ALL BRANCHES','MGR_'+(ms.empCode||''))}
+    else{const el=document.getElementById('r208Mgr');if(el)el.remove()}
+    // Dining Head 1
+    const app=document.getElementById('rcadsR131ApproverApp');const shell=app&&app.querySelector('.r131-shell');let b='';
+    if(shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none')b=dh1Branch();
+    if(b){const el=place('r208Dh1',shell,shell.querySelector(':scope > .r162-nav'),'home');render(el,allStatus(b),'GUARDS ON DUTY — '+bName(b).toUpperCase(),'DH1_'+(currentEmployee&&currentEmployee.code))}
+    else{const el=document.getElementById('r208Dh1');if(el)el.remove()}
+  }
+  window.rcadsR208={status,allStatus,flags};
+  setInterval(()=>{try{tick()}catch(e){console.warn('R208',e)}},3000);
+})();
+</script>
+
+<!-- RCADS PATCH: R209 CLEAN MAIN SCREEN on the HR device + bottom menu HOME • LIVE • PEOPLE • NOTICES • MORE -->
+<style id="rcadsR209Css">
+/* R209 HR device — clean main screen: HIDE & CLOSE • HR OPERATION OFFICER • HR QR + SCANNER, the rest under MORE */
+body.r209-home #topManagementLoginScreen,body.r209-home #hrActiveAccessSummaryCard,body.r209-home #managerLoginScreen,body.r209-home #cateringManagerLoginScreen,
+body.r209-home #selectScreen .guard-login-entry,body.r209-home #r137HrGuardCards,body.r209-home #rcadsR143HrNormalPanel .rcads-r143-title,body.r209-home #rcadsR143HrNormalPanel .rcads-r143-sub,
+body.r209-home #rcadsR143HrNormalPanel .rcads-r144-target,body.r209-home #rcadsR144HrWaiting,body.r209-home #rcadsR153PersonalLinkPanel,body.r209-home #r209EmpCard,body.r209-home #selectScreen > .note{display:none!important}
+body.r209-home #rcadsR143HrNormalPanel{margin-top:12px}
+body.r209-on{padding-bottom:78px!important}
+#r209Nav{position:fixed;left:0;right:0;bottom:0;z-index:2147483000;display:none;background:#2f1b10;border-top:2px solid #c8862a;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+body.r209-on #r209Nav{display:flex;justify-content:center}
+#r209Nav .w{display:flex;width:100%;max-width:560px}
+#r209Nav button{flex:1;background:none;border:0;color:#d9c3a3;font-weight:900;font-size:10px;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;border-radius:10px;cursor:pointer;width:auto;margin:0;box-shadow:none}
+#r209Nav button span{font-size:20px;line-height:1}
+#r209Nav button.on{color:#ffd38a;background:rgba(255,211,138,.12)}
+#r209MoreHead{display:none;margin:10px 0;padding:10px 12px;border-radius:12px;background:#fff6e6;border:1px dashed #c9a46a;color:#5b3519;font-weight:900;font-size:12px;text-align:center}
+body.r209-more #r209MoreHead{display:block}
+body.r209-home #r137HrGuardCards{position:absolute!important;left:-99999px!important;top:0!important;width:300px!important}
+</style>
+<script id="rcadsR209Script">
+/* R209 — CLEAN MAIN SCREEN on the HR device + bottom menu HOME • LIVE • PEOPLE • NOTICES • MORE
+   • HOME: only HIDE & CLOSE, HR OPERATION OFFICER, the HR QR and the HR QR SCANNER.
+   • MORE: everything else is still there (Top Management, Current Active Access, Managers, Guard, person QR / personal link, Employee select).
+   • LIVE / PEOPLE / NOTICES: open the HR dashboard (HR PIN) straight to that page.
+   • Only on the HR device — branch phones / kiosks keep the full screen. */
+(function(){
+  'use strict';
+  let tab='home';try{tab=sessionStorage.getItem('r209_tab')||'home'}catch(e){}
+  function hrDevice(){try{return localStorage.getItem('rustica_r167_hrdevice_pin_flag')==='1'||localStorage.getItem('r182_device_role')==='HR'}catch(e){return false}}
+  function shown(el){return !!(el&&!el.classList.contains('hidden')&&getComputedStyle(el).display!=='none')}
+  function onMain(){
+    const sel=document.getElementById('selectScreen');const hr=document.getElementById('simpleHrAdminModal');
+    if(!shown(sel))return false;if(hr&&getComputedStyle(hr).display!=='none')return false;
+    if(document.getElementById('r160Gate'))return false;if(document.body.classList.contains('employee-simple-mode')||document.body.classList.contains('approver-only-mode')||document.body.classList.contains('guard-session-active'))return false;
+    if(window.rcadsTopManagementSession||window.currentManagerSession)return false;return true;
+  }
+  function nav(){let n=document.getElementById('r209Nav');if(!n){n=document.createElement('nav');n.id='r209Nav';n.innerHTML='<div class="w">'+[['home','🏠','HOME'],['live','🟢','LIVE'],['people','🔎','PEOPLE'],['notices','📢','NOTICES'],['more','☰','MORE']].map(([k,i,l])=>'<button type="button" data-r209="'+k+'"><span>'+i+'</span>'+l+'</button>').join('')+'</div>';document.body.appendChild(n);n.addEventListener('click',click)}return n}
+  function tagEmpCard(){const s=document.getElementById('employeeSelect');const c=s&&s.closest('.card');if(c&&!c.id)c.id='r209EmpCard'}
+  function moreHead(){if(document.getElementById('r209MoreHead'))return;const h=document.createElement('div');h.id='r209MoreHead';h.textContent='☰ MORE — all RCADS logins and tools. Tap 🏠 HOME to go back to the clean screen.';const ref=document.getElementById('centralBranchSelectorCard');if(ref)ref.insertAdjacentElement('afterend',h)}
+  function setTab(k){tab=k;try{sessionStorage.setItem('r209_tab',k)}catch(e){}apply()}
+  const TARGET={live:['live','hrSharedMonitoringPanel'],people:['people','r160HrSection'],notices:['notices','r159HrSection']};
+  function click(e){const b=e.target.closest&&e.target.closest('[data-r209]');if(!b)return;const k=b.getAttribute('data-r209');
+    if(k==='home'||k==='more'){setTab(k);window.scrollTo({top:0,behavior:'smooth'});return}
+    try{sessionStorage.setItem('r209_go',k)}catch(_){}const hb=document.getElementById('hrOperationOfficerButton');if(hb)hb.click()}
+  function routePending(){
+    let k='';try{k=sessionStorage.getItem('r209_go')||''}catch(e){}if(!k)return;
+    const hr=document.getElementById('simpleHrAdminModal');if(!hr||getComputedStyle(hr).display==='none')return;
+    try{sessionStorage.removeItem('r209_go')}catch(e){}
+    setTimeout(()=>{const t=TARGET[k];if(!t)return;const m=document.querySelector('#r178App [data-r178-tab="'+t[0]+'"]');const app=document.getElementById('r178App');
+      if(m&&app&&getComputedStyle(app).display!=='none')m.click();else{try{rcadsHrGo(t[1])}catch(_){}}},900);
+  }
+  function apply(){
+    tagEmpCard();moreHead();
+    const on=hrDevice()&&onMain();
+    document.body.classList.toggle('r209-on',on);document.body.classList.toggle('r209-home',on&&tab!=='more');document.body.classList.toggle('r209-more',on&&tab==='more');
+    const n=nav();n.querySelectorAll('[data-r209]').forEach(b=>b.classList.toggle('on',b.getAttribute('data-r209')===(tab==='more'?'more':'home')));
+  }
+  setInterval(()=>{try{apply();routePending()}catch(e){console.warn('R209',e)}},700);
+})();
+</script>
+
+<!-- RCADS PATCH: R210 HR HOME QR — scan here to open your RCADS app -->
+<style id="rcadsR210Css">
+#r210Home{display:none}
+body.r209-home #r210Home{display:block}
+body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{display:none!important}
+.r210-card{margin:12px 0;padding:14px;border-radius:16px;background:#fffaf2;border:2px solid #c8862a;color:#3d2615;text-align:center}
+.r210-h{font-weight:900;font-size:15px;color:#5b3519}.r210-s{font-size:11.5px;color:#7a6250;margin:4px 0 8px}
+.r210-q{width:100%;box-sizing:border-box;padding:12px;border:2px solid #c9a46a;border-radius:11px;font-size:15px;text-align:center}
+#r210Res button{display:block;width:100%;text-align:left;margin:6px 0;padding:9px 11px;border:1px solid #e6d3b8;border-radius:10px;background:#fff;cursor:pointer;color:#3d2615}
+#r210Res button b{display:block;font-size:13px}#r210Res button small{font-size:10.5px;color:#7a6250}
+.r210-who{background:#f3e4cd;border-radius:12px;padding:8px;margin:8px 0}.r210-who b{display:block;font-size:15px}.r210-who span{font-size:11px;color:#6b5646}
+.r210-qr svg{width:100%;max-width:340px;height:auto;margin:6px auto;display:block;background:#fff;padding:6px;border-radius:10px}
+.r210-code{font-size:11.5px;margin:4px 0}.r210-code b{font-size:20px;letter-spacing:5px}
+.r210-steps{text-align:left;font-size:12px;margin:8px 0 4px 18px;padding:0}
+.r210-done{background:#e8f4e5;border:2px solid #2e9e4f;color:#1f5e2c;border-radius:12px;padding:16px;font-weight:900;margin:10px 0}
+</style>
 </body>
 </html>
