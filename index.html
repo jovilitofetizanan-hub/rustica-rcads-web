@@ -1,4 +1,4 @@
-<!-- R212 GUARD QR FIX: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
+<!-- R219 OT REASONS: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
 <!-- R157 SECURITY FIX: HR PIN no longer stored or shown in plain text; HR can change it. All other R156 behavior unchanged. -->
 <!-- R156 trial: transparent enrollment readiness; no backend enrollment or access grant. Based directly on R155. -->
 <!--
@@ -144,7 +144,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R212 GUARD QR FIX</title>
+<title>Rustica RCADS App — R219 OT REASONS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21850,7 +21850,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
+<!-- RCADS PATCH: R219 OT REASONS + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
 <style id="rcadsR160Css">
 #r160Gate{position:fixed;inset:0;z-index:2147483300;background:linear-gradient(160deg,#3d2615,#6b3f1d);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:28px 16px}
 html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
@@ -23116,7 +23116,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
+<!-- RCADS PATCH: R219 OT REASONS (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
 <style id="rcadsR167Css">
 .r167-card{position:relative;overflow:hidden;background:#fff;border-radius:3.2mm;font-family:Arial,Helvetica,sans-serif;color:#3d2615;box-shadow:0 2px 10px rgba(0,0,0,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact;flex:0 0 auto}
 .r167-card.port{width:54mm;height:85.6mm}.r167-card.land{width:85.6mm;height:54mm}
@@ -23611,7 +23611,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
+<!-- RCADS PATCH: R219 OT REASONS — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
 <style id="rcadsR170Css">
 #r170Blocked{position:fixed;inset:0;z-index:2147483400;background:linear-gradient(160deg,#3d2615,#1c0f07);display:flex;align-items:center;justify-content:center;padding:18px}
 .r170-card{max-width:380px;width:100%;background:#fffaf2;border-radius:16px;padding:22px 18px;text-align:center;color:#3d2615;border-top:6px solid #a1281f}
@@ -24457,9 +24457,9 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
+<!-- RCADS PATCH: R219 OT REASONS (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
 <style id="rcadsR177Css">
-/* ===== R212 GUARD QR FIX ===== */
+/* ===== R219 OT REASONS ===== */
 #simpleHrAdminModal#simpleHrAdminModal#simpleHrAdminModal .rcads-hr-main.r177-paged > *:not(.r177-on){display:none!important}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main{background:linear-gradient(180deg,#f6efe4 0%,#f3eadc 100%)}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.r177-hr #simpleHrAdminModal .rcads-hr-main > .r160-hr{border-radius:16px!important;box-shadow:0 4px 18px rgba(60,30,10,.08)!important;border:1px solid #e6d3bb!important}
@@ -24854,7 +24854,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
+<!-- RCADS PATCH: R219 OT REASONS — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
 <style id="rcadsR181Css">
 /* ===== R181 attendance handshake ===== */
 .r181-card{background:#fffaf3;border:2px solid #c8862a;border-radius:16px;padding:12px;margin:10px 0;color:#3d2412;font-family:Arial,Helvetica,sans-serif;box-shadow:0 3px 12px rgba(91,53,25,.12)}
@@ -25084,13 +25084,45 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       resultBox('r181GuardRes',head+'<b class="big ok">✓ TIME IN • '+esc(s.time)+'</b><span>Recorded. (Mutual scan ✓)</span>','ok');return;
     }
     if(st.state==='WORKING'){
-      resultBox('r181GuardRes',head+'<b>ON DUTY since '+esc(st.recs[0].time||fmtT(st.recs[0].date))+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r181-out="END">🏁 TIME OUT — END OF SHIFT</button><button type="button" class="r181-btn alt" data-r181-out="EARLY">⏳ EARLY LEAVE</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','');
-      pendingOut={p,name,base};return;
+      const wi=workedInfo(p.c);
+      if(wi.worked<NEED){resultBox('r181GuardRes',head+'<b class="big bad">⛔ UNDERTIME — worked '+hmR(wi.worked)+' only</b><span>8 hours needed (still '+hmR(NEED-wi.worked)+'). The guard does NOT record undertime. Ask the <b>Kitchen / Dining Head 1</b> why: if approved, the Head 1 does the TIME OUT in the Head app with the reason.</span><div class="r181-acts"><button type="button" class="r181-btn alt" data-r217-abandon>🚩 LEFT WITHOUT PERMISSION — ABANDONMENT</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','warn');pendingOut={p,name,base,wi};return}
+      resultBox('r181GuardRes',head+'<b>ON DUTY since '+esc(st.recs[0].time||fmtT(st.recs[0].date))+' • worked '+hmR(wi.worked)+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r181-out="END">🏁 TIME OUT — END OF SHIFT</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','');
+      pendingOut={p,name,base,wi};return;
     }
     if(st.state==='BREAK'){resultBox('r181GuardRes',head+'<b>☕ ON BREAK since '+esc(st.last.time||fmtT(st.last.date))+'</b><span>BREAK IN is done by the Kitchen/Dining Head 1 or a Manager. After BREAK IN, then TIME OUT with you.</span>','warn');return}
     resultBox('r181GuardRes',head+'<b>SHIFT DONE</b><span>Already has a TIME OUT this shift ('+esc(st.last.time||fmtT(st.last.date))+'). Cannot be done twice.</span>','warn');
   }
   let pendingOut=null;
+  /* ===== R217: 8-HOUR RULE • UNDERTIME only by Head 1 (with reason) • ABANDONMENT flag ===== */
+  const NEED=480;
+  function workedInfo(c){const st=shiftState(c);const recs=st.recs||[];let w=0,brk=0,inAt=null,brkAt=null;
+    recs.forEach(r=>{const t=Date.parse(r.date);if(r.type==='IN'){if(brkAt!=null){brk+=t-brkAt;brkAt=null}inAt=t}else if(r.type==='OUT'){if(inAt!=null){w+=t-inAt;inAt=null}if(r.kind==='Break')brkAt=t}});
+    const now=Date.now();if(inAt!=null)w+=now-inAt;if(brkAt!=null)brk+=now-brkAt;return {st,worked:Math.round(w/60000),brk:Math.round(brk/60000)}}
+  function hmR(m){m=Math.max(0,Math.round(m));return Math.floor(m/60)+'h '+(m%60)+'m'}
+  const UT_REASONS=['No guest / slow business','Transferred to another branch','Family emergency','Sick / not feeling well','Sent home by the Manager / Head','Approved half-day / leave','Personal errand (approved)','Power / water interruption','Other (type the reason)'];
+  function flagUtApproved(code,reason,by){try{const a=JSON.parse(localStorage.getItem('rustica_central_approver_flags_v2')||'[]');a.push({employeeCode:U(code),issueType:'UNDERTIME',decision:'APPROVED',createdAt:new Date().toISOString(),reason,approvedBy:by,source:'R217'});localStorage.setItem('rustica_central_approver_flags_v2',JSON.stringify(a));try{rcadsCloudFlushQueue()}catch(e){}}catch(e){}}
+  function utLog(ev){const k='rcads_r217_ut_log_v1';const a=lsGet(k,[])||[];a.push(Object.assign({at:new Date().toISOString()},ev));lsSet(k,a.slice(-600))}
+  let pendingHead=null;
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('[data-r217-abandon]')){if(!pendingOut)return;const {p,name,base,wi}=pendingOut;
+      if(!confirm('ABANDONMENT — '+name+' is leaving WITHOUT the approval of the Head 1 (worked '+hmR(wi?wi.worked:0)+' only).\n\nThis will be recorded and flagged RED to HR. Continue?'))return;
+      const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
+      const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Abandonment',date:s.date.toISOString(),time:s.time,reason:'LEFT WITHOUT PERMISSION — reported by '+base.authorizedBy,reasonApproved:'NO'},base));
+      const f=findEmp(p.c);utLog({t:'ABANDON',code:p.c,name,branch:f?f.branch:curBranch(),worked:wi?wi.worked:0,by:base.authorizedBy});
+      resultBox('r181GuardRes','<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+'</span></div><b class="big bad">🚩 ABANDONMENT RECORDED • '+esc(s.time)+'</b><span>HR has been flagged.</span>','bad');pendingOut=null;return}
+    if(t.closest('[data-r217-x]')){pendingHead=null;resultBox('r181BreakRes','<span>Cancelled.</span>','');return}
+    if(t.closest('[data-r217-brk]')){if(!pendingHead)return;const {p,name,base,a,head}=pendingHead;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingHead=null;return}
+      const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break / End of Shift',reasonApproved:'N/A'},base));resultBox('r181BreakRes',head+'<b class="big ok">☕ BREAK OUT • '+esc(s.time)+'</b><span>Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
+    if(t.closest('[data-r217-ut]')){const b=document.getElementById('r217Ut');if(b)b.hidden=false;return}
+    if(t.closest('[data-r217-utsave]')){if(!pendingHead)return;const {p,name,base,a,head}=pendingHead;const sel=document.getElementById('r217Reason');let reason=sel?sel.value:'';
+      if(/^Other/.test(reason)){reason=String((document.getElementById('r217Other')||{}).value||'').trim();if(!reason){alert('Type the reason.');return}}
+      const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingHead=null;return}
+      const wi=workedInfo(p.c);const s=nowStampLocal();
+      appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Undertime',date:s.date.toISOString(),time:s.time,reason,reasonApproved:'YES',approvedBy:a.label},base));
+      flagUtApproved(p.c,reason,a.label);const f=findEmp(p.c);utLog({t:'UNDERTIME',code:p.c,name,branch:f?f.branch:curBranch(),worked:wi.worked,reason,by:a.label});
+      resultBox('r181BreakRes',head+'<b class="big ok">⏳ UNDERTIME TIME OUT • '+esc(s.time)+'</b><span>Worked '+hmR(wi.worked)+' • Reason: '+esc(reason)+' • Approved by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
+  });
+  document.addEventListener('change',e=>{if(e.target&&e.target.id==='r217Reason'){const o=document.getElementById('r217Other');if(o)o.hidden=!/^Other/.test(e.target.value)}});
   function doOut(kind){
     if(!pendingOut)return;const {p,name,base}=pendingOut;let reason='Regular Break / End of Shift',appr='N/A';
     if(kind==='Early Leave'){reason=prompt('EARLY LEAVE — reason (e.g. Sick, Emergency, Approved by Manager):','');if(reason===null)return;reason=String(reason).trim()||'Not stated';appr=confirm('Was the early leave APPROVED by the Head/Manager?\nOK = YES • Cancel = NO')?'YES':'NO'}
@@ -25125,7 +25157,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(a.code&&a.code===p.c){resultBox('r181BreakRes','<b>✗ NOT ALLOWED ON YOURSELF</b><span>Another Head/Manager must do your BREAK.</span>','bad');return}
     const st=shiftState(p.c);const head='<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span>'+(String(p.ph||'').indexOf('BORROWED')===0?'<em>👥 BORROWED PHONE</em>':'')+'</div>';
     const base={authorizedBy:a.label,handshake:'BREAK QR',phone:p.ph||'OWN'};const s=nowStampLocal();
-    if(st.state==='WORKING'){appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break / End of Shift',reasonApproved:'N/A'},base));resultBox('r181BreakRes',head+'<b class="big ok">☕ BREAK OUT • '+esc(s.time)+'</b><span>Recorded by '+esc(a.label)+'.</span>','ok');return}
+    if(st.state==='WORKING'){const wi=workedInfo(p.c);pendingHead={p,name,base,a,head};resultBox('r181BreakRes',head+'<b>ON DUTY • worked '+hmR(wi.worked)+(wi.brk?' • break so far '+hmR(wi.brk):'')+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r217-brk>☕ BREAK OUT</button>'+(wi.worked<NEED?'<button type="button" class="r181-btn alt" data-r217-ut>⏳ UNDERTIME TIME OUT (approve)</button>':'')+'<button type="button" class="r181-btn ghost" data-r217-x>CANCEL</button></div>'+'<div id="r217Ut" hidden><label>REASON FOR UNDERTIME (you approve it)</label><select id="r217Reason">'+UT_REASONS.map(r=>'<option>'+esc(r)+'</option>').join('')+'</select><input id="r217Other" placeholder="Type the reason" hidden><button type="button" class="r181-btn" data-r217-utsave>✓ APPROVE & TIME OUT</button></div>','');return}
     if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},base));resultBox('r181BreakRes',head+'<b class="big ok">✓ BREAK IN • '+esc(s.time)+'</b><span>Break: '+mins+' minutes • Recorded by '+esc(a.label)+'.</span>','ok');return}
     if(st.state==='NONE'){resultBox('r181BreakRes',head+'<b>✗ NO TIME IN YET</b><span>You must TIME IN with the Guard first (mutual scan).</span>','warn');return}
     resultBox('r181BreakRes',head+'<b>SHIFT DONE</b><span>Already has a TIME OUT with the Guard.</span>','warn');
@@ -25215,7 +25247,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
+<!-- RCADS PATCH: R219 OT REASONS — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
 <style id="rcadsR182Css">
 .r182-panel{background:#fff!important}
 .r182-h{font-weight:900;font-size:14px;color:#3d2412;margin-bottom:8px}
@@ -25342,7 +25374,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX — button visible again (HIDE & CLOSE panel + HR Database page) -->
+<!-- RCADS PATCH: R219 OT REASONS — button visible again (HIDE & CLOSE panel + HR Database page) -->
 <style id="rcadsR183Css">
 #r183BranchCard{margin:10px 0;padding:12px 14px;border:1px solid #d7c29f;border-radius:12px;background:#fffaf2;font-family:inherit}
 #r183BranchCard .r183-t{font-size:14px;font-weight:900;color:#4c2b17;letter-spacing:.3px}
@@ -25391,7 +25423,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
+<!-- RCADS PATCH: R219 OT REASONS — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
 <style id="rcadsR184Css">
 #r184PayrollCard{margin:8px 0 10px;padding:10px;border:1px solid #c9a77a;border-radius:11px;background:#fff8ec}
 #r184SendPayroll{width:100%;padding:13px;border:0;border-radius:10px;background:linear-gradient(135deg,#7a4a1f,#3a2210);color:#fff;font-weight:900;font-size:14px;letter-spacing:.3px;cursor:pointer}
@@ -25444,7 +25476,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
+<!-- RCADS PATCH: R219 OT REASONS — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
 <style id="rcadsR185Css">
 .r185-hr .r185-h{font-size:18px;font-weight:900;color:#4c2b17;display:flex;align-items:center;gap:8px}
 .r185-hr .r185-h em{font-style:normal;background:#b3261e;color:#fff;border-radius:999px;padding:2px 9px;font-size:11px}
@@ -25687,7 +25719,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
+<!-- RCADS PATCH: R219 OT REASONS — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
 <script id="rcadsR190Script">
 /* R190 — POSITIONS FROM RCPS.
    • RCPS → Employee Master → "Send positions to RCADS" makes an .xlsx with EMPCODE, name, dept and position (NO salary).
@@ -26021,7 +26053,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
+<!-- RCADS PATCH: R219 OT REASONS — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
 <style id="rcadsR193Css">
 .r193-head{margin:12px 0;padding:12px;border-radius:14px;background:#fffaf2;border:1px solid #e6d3b8;color:#3d2615;font-size:12px;text-align:left}.r193-hh{font-weight:900;font-size:13px;color:#4c2b17}.r193-hn{font-size:11px;color:#6d5845;margin:6px 0;line-height:1.45}.r193-hf{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.r193-hf input,.r193-hf select{padding:8px;border:1px solid #cdbb9f;border-radius:8px;font-size:12.5px;width:100%;box-sizing:border-box}.r193-hf label{font-size:11px;font-weight:800;color:#6b4a2f;display:flex;flex-direction:column;gap:3px}.r193-hf label.r193-ck{grid-column:1/-1;flex-direction:row;align-items:center;font-weight:700;font-size:12px}.r193-hf input[type=checkbox],.r193-ha input[type=checkbox]{width:auto;padding:0;margin:0}.r193-hf select{height:36px}.r193-hf button{grid-column:1/-1;padding:11px;border:0;border-radius:10px;background:linear-gradient(135deg,#6f4a2a,#3d2414);color:#fff;font-weight:900}.r193-hr2{border-top:1px solid #eadbc6;padding:8px 0}.r193-ha{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}.r193-ha button{border:0;border-radius:7px;padding:6px 9px;background:#5b3519;color:#fff;font-weight:800;font-size:10.5px}.r193-ha button.ghost{background:#fff;color:#8f3028;border:1px solid #d9a199}
 .r193-ck{display:flex;gap:6px;align-items:center;font-size:11.5px;margin:2px 0}
@@ -26227,7 +26259,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
+<!-- RCADS PATCH: R219 OT REASONS — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
 <style id="rcadsR194Css">
 .r194-emp{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r194-h{font-weight:900;font-size:13.5px;color:#7a3d00;margin-bottom:8px}.r194-h.ok{color:#2d6a36;margin:0}
@@ -26837,6 +26869,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       else if(r.status==='ACTIVE'&&r.validUntil){const d=daysTo(String(r.validUntil).slice(0,10));if(d!=null&&d<0)add('red','Rustica ID EXPIRED '+fmt(String(r.validUntil).slice(0,10)),w,'r167HrSection');else if(d!=null&&d<=30)add('green','Rustica ID expires in '+d+' day(s)',w,'r167HrSection')}});
     try{(window.rcadsR200&&window.rcadsR200.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
     try{(window.rcadsR208&&window.rcadsR208.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
+    try{(window.rcadsR213&&window.rcadsR213.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
+    try{(window.rcadsR215&&window.rcadsR215.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
+    try{(window.rcadsR217&&window.rcadsR217.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
+    try{(window.rcadsR218&&window.rcadsR218.flags()||[]).forEach(x=>add(x.lvl,x.txt,x.who,x.go))}catch(e){}
     return R;
   }
 
@@ -27139,7 +27175,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
+<!-- RCADS PATCH: R219 OT REASONS (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
 <style id="rcadsR202Css">
 .r202-hr .r202-up{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;background:#fffaf2;border:1px solid #e6d3bb;border-radius:12px;padding:12px;margin:10px 0}
 .r202-hr .r202-up label{display:flex;flex-direction:column;font-size:11px;font-weight:800;color:#5b3519;gap:4px}.r202-hr .r202-up label.w{grid-column:1/-1}
@@ -27303,7 +27339,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R212 GUARD QR FIX (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
+<!-- RCADS PATCH: R219 OT REASONS (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
 <style id="rcadsR208Css">
 .r208-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r208-h{font-weight:900;font-size:13.5px;color:#5b3519}.r208-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
@@ -27480,5 +27516,451 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 .r210-steps{text-align:left;font-size:12px;margin:8px 0 4px 18px;padding:0}
 .r210-done{background:#e8f4e5;border:2px solid #2e9e4f;color:#1f5e2c;border-radius:12px;padding:16px;font-weight:900;margin:10px 0}
 </style>
+
+<!-- RCADS PATCH: R213/R214 OPENING ALARM (Dining Head 1 / Kitchen Head 1 / Managers) + OPENING SIGNALS 🔴🟡🟢 for HR and Owners (no alarm) -->
+<style id="rcadsR213Css">
+.r213-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
+.r213-h{font-weight:900;font-size:13.5px;color:#5b3519}.r213-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
+.r213-b{background:#fff;border:1px solid #eadbc6;border-radius:12px;padding:8px 10px;margin:8px 0}.r213-b.red{border:2px solid #d32f2f;background:#fff5f4}.r213-b.yellow{border:2px solid #f2b705}
+.r213-bt{font-weight:900;font-size:12px}.r213-al{background:#d32f2f;color:#fff;border-radius:8px;padding:6px 8px;margin:5px 0;font-weight:900;font-size:12px}.r213-s{font-size:11px;color:#7a6250}
+.r213-r{display:flex;gap:8px;align-items:center;padding:4px 0;border-top:1px dashed #eadbc6}.r213-r b{font-size:12px}.r213-r small{display:block;font-size:10.5px;color:#6b5646}
+#r213Pop{position:fixed;inset:0;z-index:2147483450;background:rgba(40,8,4,.75);display:flex;align-items:center;justify-content:center;padding:16px}
+.r213-pb{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:16px;border:4px solid #d32f2f;font-family:Arial,sans-serif;color:#3d2615;animation:r213s .6s ease-in-out 3}
+@keyframes r213s{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.r213-ph{font-weight:900;font-size:18px;color:#b3261e;margin-bottom:8px}.r213-pi{background:#fff5f4;border-radius:10px;padding:8px;margin:6px 0;font-size:12.5px}.r213-pi b{display:block;color:#b3261e}
+.r213-pb button{width:100%;margin-top:8px;padding:12px;border:0;border-radius:10px;background:#b3261e;color:#fff;font-weight:900}
+</style>
+<script id="rcadsR213Script">
+/* R213 — OPENING ALARM for Dining Head 1, Kitchen Head 1 and the two Managers
+   • From today's schedule: the OPENING crew = staff whose TIME IN is the earliest of the day (per branch, Kitchen / Dining).
+   • 10 minutes after the opening time:
+       🔴 NO ONE HAS OPENED YET  → alarm (sound + vibration + pop-up) on the phone, while the RCADS app is open.
+       🟡 still missing from the opening crew → listed on the card.
+   • Dining Head 1 = Dining (+ Extra dining) of own branch • Kitchen Head 1 = Kitchen of own branch • Managers = all branches. */
+(function(){
+  'use strict';
+  const GRACE=10,KITCHEN_RE=/COOK|KITCHEN|DISH|PANTRY|CHEF|PREP|BAKER|BUTCHER|INVENTORY|UTILITY|STEWARD|GRILL|FRY/i;
+  const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function pad(n){return String(n).padStart(2,'0')}
+  function today(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function nowMin(){const d=new Date();return d.getHours()*60+d.getMinutes()}
+  function t12(m){if(m==null)return '';m=((m%1440)+1440)%1440;let h=Math.floor(m/60);const mi=m%60,ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(mi)+' '+ap}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  function isSep(c){try{return !!(window.rcadsIsSeparated&&window.rcadsIsSeparated(c))}catch(e){return false}}
+  function side(e){const d=String(e.dept||'').toUpperCase();if(d==='KITCHEN')return 'Kitchen';if(d==='DINING')return 'Dining';if(d==='EXTRA')return KITCHEN_RE.test(e.position||'')?'Kitchen':'Dining';return ''}
+  function excusedToday(code){let a=[];try{a=JSON.parse(localStorage.getItem('rustica_central_approver_flags_v2')||'[]')}catch(e){}return a.some(f=>U(f.employeeCode)===U(code)&&/ABSENT|LEAVE|OFF/.test(U(f.issueType))&&/APPROV/.test(U(f.decision))&&String(f.createdAt||'').slice(0,10)===today())}
+  function inToday(e){let recs=[];try{recs=getEmployeeAttendanceRecordsForDtr(e)||[]}catch(x){return null}const t=today();const ins=recs.filter(r=>{let k='';try{k=dtrDateKey(r.date)}catch(x){}return k===t&&r.type==='IN'}).map(r=>{try{return dtrPunchMinutes(r)}catch(x){return null}}).filter(x=>x!=null).sort((a,b)=>a-b);return ins.length?ins[0]:null}
+  function opening(b,sd){
+    const t=today();const crew=[];
+    staff(b).forEach(e=>{if(isSep(e.code)||side(e)!==sd)return;let s=null;try{s=getScheduleEntryForEmployeeDate(e,t)}catch(x){}if(!s||s.type!=='TIME')return;let m=null;try{m=dtrMinutesFromHHMM(s.in)}catch(x){}if(m==null)return;crew.push({e,m})});
+    if(!crew.length)return null;const open=Math.min(...crew.map(c=>c.m));const oc=crew.filter(c=>c.m<=open+30&&!excusedToday(c.e.code));if(!oc.length)return null;
+    const rows=oc.map(c=>({code:U(c.e.code),name:c.e.name||c.e.code,pos:c.e.position||'',sched:c.m,inAt:inToday(c.e)}));
+    const now=nowMin();const due=now>=open+GRACE;const anyIn=rows.some(r=>r.inAt!=null);const missing=rows.filter(r=>r.inAt==null&&now>=r.sched+GRACE);
+    const first=rows.map(r=>r.inAt).filter(x=>x!=null).sort((a,b)=>a-b)[0];const lateOpen=first!=null&&first>open+GRACE;
+    const lvl=!due?'wait':(!anyIn?'red':(missing.length?'yellow':(lateOpen?'green':'ok')));
+    return {b,sd,open,rows,missing,lvl,first,key:b+'|'+sd+'|'+t};
+  }
+  function scope(){
+    // Dining / Kitchen Head 1 (approver app) or Managers
+    try{const a=typeof getCurrentApproverAssignment==='function'?getCurrentApproverAssignment():null;
+      if(a&&document.body.classList.contains('approver-only-mode')){
+        if(a.key==='diningHead1'||a.key==='kitchenHead1'){const e=currentEmployee;let br='';for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(br)return {who:a.key+'_'+U(e.code),title:(a.key==='kitchenHead1'?'KITCHEN':'DINING')+' OPENING • '+bName(br),list:[[br,a.key==='kitchenHead1'?'Kitchen':'Dining']],host:'ap'}}
+        if(a.key==='restaurantManager'||a.key==='cateringManager')return {who:a.key,title:'OPENING • ALL BRANCHES',list:branches().flatMap(x=>[[x.code,'Kitchen'],[x.code,'Dining']]),host:'ap'};
+      }}catch(e){}
+    const ms=window.currentManagerSession;const mh=document.getElementById('managerHomeScreen');
+    if(ms&&mh&&!mh.classList.contains('hidden'))return {who:'MGR_'+(ms.empCode||''),title:'OPENING • ALL BRANCHES',list:branches().flatMap(x=>[[x.code,'Kitchen'],[x.code,'Dining']]),host:'mgr'};
+    return null;
+  }
+  const IC={red:'🔴',yellow:'🟡',green:'🟢',ok:'✅',wait:'⏳'};
+  function cardHtml(sc,res){
+    if(!res.length)return '';
+    return '<div class="r213-h">⏰ '+esc(sc.title)+'</div><div class="r213-n">'+(sc.quiet?'From the weekly schedule • 🔴 no opening yet • 🟡 crew incomplete • 🟢 opened late • ✅ opened (the Heads and Managers get the alarm)':'Opening crew from today’s schedule • alarm '+GRACE+' min after the opening time if NO ONE has timed in')+'</div>'
+      +res.map(o=>'<div class="r213-b '+o.lvl+'"><div class="r213-bt">'+IC[o.lvl]+' '+esc(bName(o.b))+' • '+esc(o.sd.toUpperCase())+' • opening '+t12(o.open)+'</div>'
+        +(o.lvl==='green'?'<div class="r213-s">Opened late — first TIME IN '+t12(o.first)+'</div>':'')+(o.lvl==='red'?'<div class="r213-al">NO ONE HAS OPENED YET</div>':(o.lvl==='wait'?'<div class="r213-s">Not yet opening time.</div>':''))
+        +o.rows.map(r=>'<div class="r213-r"><span>'+(r.inAt!=null?'✅':(o.missing.includes(r)?'❌':'⏳'))+'</span><div><b>'+esc(r.name)+'</b><small>'+esc(r.pos)+' • sched '+t12(r.sched)+(r.inAt!=null?' • IN '+t12(r.inAt):'')+'</small></div></div>').join('')+'</div>').join('');
+  }
+  let actx=null;
+  function beep(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const t0=actx.currentTime;[0,0.35,0.7,1.4,1.75,2.1].forEach(d=>{const o=actx.createOscillator(),g=actx.createGain();o.type='square';o.frequency.value=880;g.gain.value=0.12;o.connect(g);g.connect(actx.destination);o.start(t0+d);o.stop(t0+d+0.22)})}catch(e){}try{navigator.vibrate&&navigator.vibrate([400,200,400,200,800])}catch(e){}}
+  document.addEventListener('click',()=>{try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume&&actx.resume()}catch(e){}},{passive:true});
+  function alarm(sc,res){
+    const reds=res.filter(o=>o.lvl==='red');if(!reds.length||document.getElementById('r213Pop'))return;
+    const k='rcads_r213_ack_'+sc.who;let ack={};try{ack=JSON.parse(localStorage.getItem(k)||'{}')||{}}catch(e){}
+    const fresh=reds.filter(o=>!ack[o.key]||Date.now()-ack[o.key]>20*60000);if(!fresh.length)return; // remind again every 20 minutes while still nobody
+    const d=document.createElement('div');d.id='r213Pop';d.innerHTML='<div class="r213-pb"><div class="r213-ph">⏰ NO OPENING YET</div>'+fresh.map(o=>'<div class="r213-pi"><b>'+esc(bName(o.b))+' • '+esc(o.sd)+'</b>Opening '+t12(o.open)+' — nobody has timed in. Call: '+esc(o.rows.map(r=>r.name).join(', '))+'</div>').join('')+'<button type="button">OK — I WILL CALL THEM</button></div>';
+    document.body.appendChild(d);beep();
+    d.querySelector('button').onclick=()=>{fresh.forEach(o=>ack[o.key]=Date.now());try{localStorage.setItem(k,JSON.stringify(ack))}catch(e){}d.remove()};
+  }
+  function tick(){
+    const sc=scope();let el=document.getElementById('r213Card');
+    if(!sc){if(el)el.remove();return}
+    const res=sc.list.map(([b,s])=>opening(b,s)).filter(Boolean);
+    let host=null,before=null;
+    if(sc.host==='ap'){const app=document.getElementById('rcadsR131ApproverApp');host=app&&app.querySelector('.r131-shell');before=host&&host.querySelector(':scope > .r162-nav')}
+    else{host=document.getElementById('managerHomeScreen');const hd=document.getElementById('rcadsR97ManagerDashboardHeader');before=hd&&hd.parentElement===host?hd.nextElementSibling:host&&host.firstElementChild}
+    if(!host)return;
+    if(!el){el=document.createElement('div');el.id='r213Card';el.className='r213-card'}
+    if(sc.host==='ap')el.setAttribute('data-r162-tab','home');
+    if(before===el){}else if(before&&before.parentElement===host){if(el.nextElementSibling!==before)host.insertBefore(el,before)}else if(el.parentElement!==host)host.insertBefore(el,host.firstChild);
+    const h=cardHtml(sc,res);el.style.display=h?'':'none';if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
+    alarm(sc,res);
+  }
+  // ---- HR + OWNERS: colour signals only (no alarm) ----
+  function all(){const o=[];branches().forEach(x=>['Kitchen','Dining'].forEach(sd=>{const r=opening(x.code,sd);if(r&&r.lvl!=='wait')o.push(r)}));return o}
+  function flags(){return all().filter(o=>['red','yellow','green'].includes(o.lvl)).map(o=>({lvl:o.lvl,txt:o.lvl==='red'?'NO OPENING YET — '+o.sd+' (opening '+t12(o.open)+')':(o.lvl==='yellow'?'Opening crew incomplete — '+o.sd+' ('+o.missing.length+' not in yet)':'Opened late — '+o.sd+' (first IN '+t12(o.first)+', opening '+t12(o.open)+')'),who:bName(o.b),go:'r214HrSection'}))}
+  function quiet(){
+    const res=all();const h=cardHtml({title:'OPENING TODAY • ALL BRANCHES',quiet:true},res)||'<div class="r213-h">⏰ OPENING TODAY</div><div class="r213-n">No opening schedule yet today (or not yet opening time).</div>';
+    const admin=document.getElementById('simpleHrAdminModal');
+    if(admin&&getComputedStyle(admin).display!=='none'){const main=admin.querySelector('.rcads-hr-main');const nav=admin.querySelector('.rcads-hr-nav');
+      if(nav&&!document.getElementById('r214HrNavBtn')){const bt=document.createElement('button');bt.id='r214HrNavBtn';bt.type='button';bt.setAttribute('onclick',"rcadsHrGo('r214HrSection')");bt.textContent='⏰ Opening Today';nav.appendChild(bt)}
+      if(main){let sec=document.getElementById('r214HrSection');if(!sec){sec=document.createElement('div');sec.id='r214HrSection';sec.className='rcads-dashboard-section r160-hr r213-card';main.appendChild(sec)}if(sec.dataset.h!==h){sec.dataset.h=h;sec.innerHTML=h}}}
+    const th=document.getElementById('topManagementHomeScreen');const root=th&&th.querySelector('.r100-content');let el=document.getElementById('r214Owner');
+    if(window.rcadsTopManagementSession&&root&&getComputedStyle(th).display!=='none'){if(!el){el=document.createElement('div');el.id='r214Owner';el.className='r213-card';el.setAttribute('data-r162-tab','home')}const g=document.getElementById('r208Owner');if(g&&g.parentElement===root){if(g.nextElementSibling!==el)g.insertAdjacentElement('afterend',el)}else if(el.parentElement!==root)root.insertBefore(el,root.firstChild);const hh=res.length?h:'';el.style.display=hh?'':'none';if(el.dataset.h!==hh){el.dataset.h=hh;el.innerHTML=hh}}
+    else if(el)el.remove();
+  }
+  setInterval(()=>{try{quiet()}catch(e){console.warn('R214',e)}},6000);
+  window.rcadsR213={opening,all,flags};
+  setInterval(()=>{try{tick()}catch(e){console.warn('R213',e)}},5000);
+})();
+</script>
+
+<!-- RCADS PATCH: R215 SCHEDULE UPLOAD by Kitchen Head 1 / Dining Head 1 — ORIGINAL every Sunday, ACS every Saturday + cut-off; ACS read first -->
+<style id="rcadsR215Css">
+.r215-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
+.r215-h{font-weight:900;font-size:13.5px;color:#5b3519}.r215-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
+.r215-box{border-radius:10px;padding:8px 10px;margin:6px 0;background:#fff;border:1px solid #eadbc6;border-left:6px solid #2e9e4f}.r215-box.bad{border-left-color:#d32f2f;background:#fff5f4}.r215-box.wait{border-left-color:#f2b705}
+.r215-box b{display:block;font-size:12px}.r215-box small{display:block;font-size:10.5px;color:#6b5646;word-break:break-word}
+.r215-row{display:flex;gap:6px;margin:4px 0 10px}.r215-row button,.r215-up{flex:1;text-align:center;padding:10px 6px;border-radius:10px;font-weight:900;font-size:11.5px;cursor:pointer}
+.r215-row button{background:#fff;border:1.5px solid #c9a46a;color:#5b3519;width:auto;margin:0}.r215-up{background:#5b3519;color:#fff;border:0}.r215-up.acs{background:#2f6b3a}
+.r215-msg{font-size:11.5px;font-weight:800;color:#2d6a36;min-height:14px}
+</style>
+<script id="rcadsR215Script">
+/* R215 — SCHEDULE UPLOAD BY KITCHEN HEAD 1 / DINING HEAD 1 (separate files, separate departments)
+   • ORIGINAL SCHEDULE — every SUNDAY, for the coming week (Mon–Sun). Kitchen Head 1 = Kitchen only, Dining Head 1 = Dining only.
+   • ACS (Approved Change of Schedule) — every SATURDAY and on the CUT-OFF day. Only the changed days need to be filled.
+   • RCADS reads ACS first, then the ORIGINAL → late / undertime / overtime / opening alarm use the corrected schedule.
+   • Schedules are read per employee's own branch (all branches work on HR / Manager devices).
+   • HR gets 🔴🟡🟢 reminders when a department has no schedule yet. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function pad(n){return String(n).padStart(2,'0')}
+  function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function today(){return ymd(new Date())}
+  function addD(iso,n){const [y,m,d]=iso.split('-').map(Number);return ymd(new Date(y,m-1,d+n))}
+  function monday(iso){const [y,m,d]=iso.split('-').map(Number);const dt=new Date(y,m-1,d);const w=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-w);return ymd(dt)}
+  function fmt(iso){const [y,m,d]=iso.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+  function dow(){return new Date().getDay()} // 0 Sun … 6 Sat
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  const KITCHEN_RE=/COOK|KITCHEN|DISH|PANTRY|CHEF|PREP|BAKER|BUTCHER|INVENTORY|UTILITY|STEWARD|GRILL|FRY/i;
+  function deptOf(e){const d=U(e.dept);if(d==='KITCHEN'||d==='DINING')return d;if(d==='EXTRA')return KITCHEN_RE.test(e.position||'')?'KITCHEN':'DINING';return d}
+  function lib(){try{return typeof rcadsGetScheduleLibrary==='function'?rcadsGetScheduleLibrary():[]}catch(e){return []}}
+  function cat(x){return U(x&&x.category||(typeof rcadsInferScheduleCategory==='function'?rcadsInferScheduleCategory(x&&x.fileName):''))}
+  function isAcs(x){return /\bACS\b/.test(cat(x))}
+  function entryDates(x){try{return rcadsScheduleEntryDates(x)}catch(e){return []}}
+
+  /* ---------- schedule lookup: ACS first, then ORIGINAL, from the employee's own branch ---------- */
+  let codeBranch={},cbAt=0;
+  function branchOfCode(code){if(Date.now()-cbAt>60000){codeBranch={};branches().forEach(b=>staff(b.code).forEach(e=>{const c=U(e.code);if(!codeBranch[c])codeBranch[c]=b.code}));cbAt=Date.now()}return codeBranch[U(code)]||''}
+  function fromEntry(x,code,dk){
+    if(Array.isArray(x.rowData)&&x.rowData.length){const m=x.rowData.find(r=>U(r['EMPLOYEE ID'])===code&&excelDateToISO(r['DATE'])===dk);
+      if(m){const tin=excelTimeToHHMM(m['TIME IN']),tout=excelTimeToHHMM(m['TIME OUT']);if(tin&&tout)return {type:'TIME',in:tin,out:tout,status:''};const p=parseScheduleRange(m['TIME IN']);if(p.type==='STATUS')return {type:'STATUS',status:p.status};return {type:'EMPTY',status:''}}}
+    for(const w of (x.weeklyBlocks||[])){const col=(w.dateCols||[]).find(c=>c.date===dk);if(!col)continue;const row=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===code);if(!row)continue;
+      const rawIn=row[col.idx],rawOut=col.outIdx!==undefined?row[col.outIdx]:'';const tin=excelTimeToHHMM(rawIn),tout=excelTimeToHHMM(rawOut);
+      if(tin&&tout){const p=normalizeSchedulePair(tin,tout);return {type:'TIME',in:p.tin,out:p.tout,status:''}}
+      const p=parseScheduleRange(rawIn);if(p.type==='STATUS')return {type:'STATUS',status:p.status};if(p.type==='TIME')return {type:'TIME',in:p.in,out:p.out,status:''};return {type:'EMPTY',status:''}}
+    return null;
+  }
+  const orig=window.getScheduleEntryForEmployeeDate;let cache={},cacheSig='';
+  if(typeof orig==='function'){
+    window.getScheduleEntryForEmployeeDate=function(emp,dk){
+      try{
+        const code=U(emp&&emp.code);if(!code||!dk)return orig.apply(this,arguments);
+        let L=null;const raw=localStorage.getItem('rcads_persistent_schedule_library_v1')||'';const sig=raw.length+'|'+raw.slice(-40);if(sig!==cacheSig){cache={};cacheSig=sig}
+        const ck=code+'|'+dk;if(cache[ck])return cache[ck];
+        L=lib();const br=branchOfCode(code)||(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'');
+        const mine=L.filter(x=>x&&x.branch===br).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));
+        let res=null;
+        for(const x of mine.filter(isAcs)){const r=fromEntry(x,code,dk);if(r&&(r.type==='TIME'||r.type==='STATUS')){res=Object.assign({acs:true},r);break}}
+        if(!res)for(const x of mine.filter(x=>!isAcs(x))){const r=fromEntry(x,code,dk);if(r){res=r;break}}
+        if(!res)res=orig.apply(this,arguments);
+        cache[ck]=res;return res;
+      }catch(e){return orig.apply(this,arguments)}
+    };
+  }
+
+  function lookup(br,code,dk){const mine=lib().filter(x=>x&&String(x.branch||'').toUpperCase()===U(br)).sort((a,c)=>String(c.savedAt||'').localeCompare(String(a.savedAt||'')));
+    for(const x of mine.filter(isAcs)){const r=fromEntry(x,code,dk);if(r&&(r.type==='TIME'||r.type==='STATUS'))return Object.assign({acs:true},r)}
+    for(const x of mine.filter(x=>!isAcs(x))){const r=fromEntry(x,code,dk);if(r)return r}return null}
+  const origB=window.rcadsBranchScheduleEntryForEmployeeDate;
+  if(typeof origB==='function')window.rcadsBranchScheduleEntryForEmployeeDate=function(br,emp,dk){try{const r=lookup(br,U(emp&&emp.code),dk);if(r)return r}catch(e){}return origB.apply(this,arguments)};
+  function otHours(v){if(v===null||v===undefined||v==='')return 0;if(typeof v==='number')return v<1&&v>0?v*24:v;const t=String(v).trim();let m=t.match(/^(\d{1,2}):(\d{2})$/);if(m)return +m[1]+(+m[2])/60;m=t.match(/^(\d+(?:\.\d+)?)/);return m?+m[1]:0}
+  function acsOtMinutes(code,dk){const br=branchOfCode(code)||(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'');
+    const L=lib().filter(x=>x&&String(x.branch||'').toUpperCase()===U(br)&&isAcs(x)).sort((a,c)=>String(c.savedAt||'').localeCompare(String(a.savedAt||'')));
+    for(const x of L)for(const w of (x.weeklyBlocks||[])){const col=(w.dateCols||[]).find(c=>c.date===dk);if(!col)continue;const sub=(w.matrix[w.headerRow+1]||[]).map(v=>U(v));if(!/OT/.test(sub[col.idx+2]||''))continue;
+      const row=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===U(code));if(!row)continue;const h=Math.floor(otHours(row[col.idx+2]));if(h>0)return h*60}
+    return 0}
+  const origOt=window.getApprovedOtMinutesForDate;
+  if(typeof origOt==='function')window.getApprovedOtMinutesForDate=function(emp,dk,excess){let base=0;try{base=origOt.apply(this,arguments)||0}catch(e){}
+    try{if(typeof isManagementEmployee==='function'&&isManagementEmployee(emp))return 0;const a=acsOtMinutes(U(emp&&emp.code),dk);if(a>0)return Math.max(base,Math.min(Math.max(0,excess||0),a))}catch(e){}return base};
+  /* ---------- status per branch / department ---------- */
+  function status(b,dept){
+    const L=lib().filter(x=>x&&x.branch===b);const t=today(),mon=monday(t),nextMon=addD(mon,7);
+    const origFor=m=>L.filter(x=>cat(x)===dept&&entryDates(x).some(d=>d>=m&&d<=addD(m,6))).sort((a,c)=>String(c.savedAt).localeCompare(String(a.savedAt)))[0]||null;
+    const acs=L.filter(x=>cat(x)===dept+' ACS').sort((a,c)=>String(c.savedAt).localeCompare(String(a.savedAt)))[0]||null;
+    let cutTo='';try{const c=getSavedHrCutoffPeriod();cutTo=c&&c.to||''}catch(e){}
+    const acsToday=!!(acs&&String(acs.savedAt||'').slice(0,10)===t);
+    return {b,dept,mon,nextMon,cur:origFor(mon),next:origFor(nextMon),acs,acsDue:(dow()===6||cutTo===t)&&!acsToday,cutDay:cutTo===t,used:L.some(x=>cat(x)===dept||cat(x)===dept+' ACS')};
+  }
+
+  /* ---------- Excel template (Kitchen or Dining only) ---------- */
+  function template(b,dept,mon,kind){
+    if(typeof XLSX==='undefined'){alert('The Excel library did not load. Connect to the internet and open RCADS again.');return}
+    const days=['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];const sun=addD(mon,6);
+    const [y]=mon.split('-');const M=iso=>new Date(iso+'T00:00').toLocaleDateString('en-US',{month:'short'}).toUpperCase()+' '+Number(iso.slice(8));
+    const rows=[[`RUSTICA ${bName(b).toUpperCase()} — ${dept} ${kind==='ACS'?'ACS (APPROVED CHANGE OF SCHEDULE)':'WEEKLY SCHEDULE (ORIGINAL)'}`],[`DATE: ${M(mon)} - ${M(sun)}, ${y}`],
+      ['EMPCODE','NAME','POSITION'].concat(...days.map(d=>kind==='ACS'?[d,'','']:[d,''])),['','',''].concat(...days.map(()=>kind==='ACS'?['IN','OUT','APRVD OT (hrs)']:['IN','OUT']))];
+    staff(b).filter(e=>deptOf(e)===dept&&!(window.rcadsIsSeparated&&window.rcadsIsSeparated(e.code))).sort((a,c)=>String(a.code).localeCompare(String(c.code),undefined,{numeric:true})).forEach(e=>rows.push([U(e.code),e.name||'',e.position||''].concat(...days.map(()=>kind==='ACS'?['','','']:['','']))));
+    rows.push([]);rows.push([kind==='ACS'?'Fill ONLY the changed days (new time IN / OUT, or OFF / LEAVE in the IN column) and the APPROVED OVERTIME in WHOLE hours (1, 2, 3 — no half hour; same as approved in RCADS). Leave the rest blank. Long break = scheduled hours minus 8 hours (automatic).':'Time like 7:00 AM / 4:00 PM. Day off: type OFF in the IN column.']);rows.push(['PREPARED BY: '+(dept==='KITCHEN'?'KITCHEN HEAD 1':'DINING HEAD 1')]);
+    const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:12},{wch:26},{wch:16}].concat(Array(kind==='ACS'?21:14).fill({wch:9}));
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,dept);XLSX.writeFile(wb,`${dept}_${kind}_${b}_${mon}.xlsx`);
+  }
+
+  /* ---------- upload (uses the RCADS schedule reader; saved per branch + department) ---------- */
+  function upload(file,b,dept,kind,by,done){
+    if(typeof loadOriginalScheduleFile!=='function'){done(false,'Schedule reader missing.');return}
+    try{if(typeof rusticaGetCurrentBranchCode==='function'&&rusticaGetCurrentBranchCode()!==b)localStorage.setItem('rustica_central_current_branch_v1',b)}catch(e){}
+    const category=kind==='ACS'?dept+' ACS':dept;const before=JSON.stringify(lib()).length;
+    const os=window.setUploadStatus;let last='',ok=null;
+    window.setUploadStatus=function(m,cls){last=String(m||'');ok=cls==='ok'?true:(cls==='err'?false:ok);try{os.apply(this,arguments)}catch(e){}};
+    try{loadOriginalScheduleFile({target:{files:[file],dataset:{scheduleCategory:category}}})}catch(e){window.setUploadStatus=os;done(false,e.message);return}
+    const t0=new Date(Date.now()-5000).toISOString();const saved=()=>lib().some(e=>e&&e.branch===b&&cat(e)===category&&e.fileName===file.name&&String(e.savedAt||'')>=t0);
+    let n=0;const iv=setInterval(()=>{n++;if(!saved()&&ok!==false&&n<40)return;if(!saved()&&ok===false&&n<8)return;clearInterval(iv);window.setUploadStatus=os;
+      if(!saved()){done(false,(last||'No schedule table found in the file.')+' — use the ⬇ TEMPLATE.');return}
+      try{const L=lib();const x=L.filter(e=>e&&e.branch===b&&cat(e)===category&&e.fileName===file.name).sort((a,c)=>String(c.savedAt).localeCompare(String(a.savedAt)))[0];
+        if(x){x.uploadedBy=by;x.kind=kind;rcadsSaveScheduleLibrary(L);try{rcadsCloudFlushQueue()}catch(e){}}
+        // how many of the department's staff are in the file
+        const codes=new Set(staff(b).filter(e=>deptOf(e)===dept).map(e=>U(e.code)));let found=0,other=0;
+        (x&&x.weeklyBlocks||[]).forEach(w=>(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).forEach(r=>{const c=U(r[w.empIdx]);if(!/^[A-Z]{2,4}-/.test(c))return;if(codes.has(c))found++;else other++}));
+        (x&&x.rowData||[]).forEach(r=>{const c=U(r['EMPLOYEE ID']);if(c){if(codes.has(c))found++;else other++}});
+        cache={};done(true,'✓ '+(kind==='ACS'?'ACS':'ORIGINAL SCHEDULE')+' saved • '+found+' '+dept.toLowerCase()+' row(s)'+(other?' • ⚠ '+other+' row(s) not in '+dept:'')+'. HR and the system can see it now.');
+      }catch(e){done(true,'✓ Saved.')}
+    },250);
+  }
+
+  /* ---------- Head 1 card ---------- */
+  function ctx(){try{const a=typeof getCurrentApproverAssignment==='function'?getCurrentApproverAssignment():null;if(!a||!document.body.classList.contains('approver-only-mode'))return null;
+    if(a.key!=='kitchenHead1'&&a.key!=='diningHead1')return null;const e=currentEmployee;let br='';for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(!br)return null;
+    return {b:br,dept:a.key==='kitchenHead1'?'KITCHEN':'DINING',by:(a.key==='kitchenHead1'?'KITCHEN HEAD 1':'DINING HEAD 1')+' • '+(e.name||e.code)}}catch(e){return null}}
+  function line(x){return x?'✓ '+esc(x.fileName||'')+' • '+esc(new Date(x.savedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+(x.uploadedBy?' • '+esc(x.uploadedBy):''):'❌ not uploaded yet'}
+  function cardHtml(c,s,msg){
+    const sun=dow()===0;
+    return '<div class="r215-h">📅 SCHEDULE — '+esc(c.dept)+' • '+esc(bName(c.b))+'</div><div class="r215-n">Separate file for '+esc(c.dept)+' only • ORIGINAL every SUNDAY • ACS every SATURDAY and on the CUT-OFF day</div>'
+      +'<div class="r215-box '+(s.cur?'ok':'bad')+'"><b>THIS WEEK '+fmt(s.mon)+' – '+fmt(addD(s.mon,6))+'</b><small>'+line(s.cur)+'</small></div>'
+      +'<div class="r215-box '+(s.next?'ok':(sun?'bad':'wait'))+'"><b>NEXT WEEK '+fmt(s.nextMon)+' – '+fmt(addD(s.nextMon,6))+(sun&&!s.next?' • DUE TODAY (Sunday)':'')+'</b><small>'+line(s.next)+'</small></div>'
+      +'<div class="r215-row"><button type="button" data-r215-t="ORIGINAL">⬇ TEMPLATE</button><label class="r215-up">📤 UPLOAD ORIGINAL SCHEDULE<input type="file" accept=".xlsx,.xls" data-r215-up="ORIGINAL" hidden></label></div>'
+      +'<div class="r215-box '+(s.acsDue?'bad':'ok')+'"><b>ACS — Approved Change of Schedule'+(s.acsDue?' • DUE TODAY ('+(s.cutDay?'cut-off':'Saturday')+')':'')+'</b><small>Last: '+(s.acs?line(s.acs):'none yet')+'</small></div>'
+      +'<div class="r215-row"><button type="button" data-r215-t="ACS">⬇ ACS TEMPLATE</button><label class="r215-up acs">📤 UPLOAD ACS<input type="file" accept=".xlsx,.xls" data-r215-up="ACS" hidden></label></div>'
+      +'<div class="r215-msg" id="r215Msg">'+esc(msg||'')+'</div>';
+  }
+  let MSG='';
+  function tick(){
+    const c=ctx();let el=document.getElementById('r215Card');
+    if(!c){if(el)el.remove();return}
+    const app=document.getElementById('rcadsR131ApproverApp');const host=app&&app.querySelector('.r131-shell');if(!host)return;
+    if(!el){el=document.createElement('div');el.id='r215Card';el.className='r215-card';el.setAttribute('data-r162-tab','home');
+      el.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-r215-t]');if(!t)return;const cc=ctx();if(!cc)return;const s=status(cc.b,cc.dept);const k=t.getAttribute('data-r215-t');template(cc.b,cc.dept,k==='ACS'?s.mon:s.nextMon,k)});
+      el.addEventListener('change',e=>{const i=e.target.closest&&e.target.closest('[data-r215-up]');if(!i||!i.files||!i.files[0])return;const cc=ctx();if(!cc)return;const kind=i.getAttribute('data-r215-up');const f=i.files[0];
+        MSG='Reading '+f.name+'…';el.dataset.h='';tick();upload(f,cc.b,cc.dept,kind,cc.by,(ok,m)=>{MSG=(ok?'':'⚠ ')+m;el.dataset.h='';tick()});i.value=''})}
+    const nav=host.querySelector(':scope > .r162-nav');if(el.parentElement!==host){if(nav)host.insertBefore(el,nav);else host.appendChild(el)}
+    const h=cardHtml(c,status(c.b,c.dept),MSG);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
+  }
+
+  /* ---------- HR reminders (red-flag dots) ---------- */
+  function flags(){const o=[];const d=dow();
+    branches().forEach(b=>['KITCHEN','DINING'].forEach(dept=>{const s=status(b.code,dept);if(!s.used)return;const who=bName(b.code)+' • '+dept;
+      if(!s.cur)o.push({lvl:'red',txt:'No ORIGINAL schedule for this week ('+fmt(s.mon)+')',who,go:'hrScheduleUploadPanel'});
+      if(d===0&&!s.next)o.push({lvl:'yellow',txt:'ORIGINAL schedule for next week due today (Sunday)',who,go:'hrScheduleUploadPanel'});
+      if(s.acsDue)o.push({lvl:'green',txt:'ACS due today ('+(s.cutDay?'cut-off':'Saturday')+')',who,go:'hrScheduleUploadPanel'});
+    }));return o}
+  window.rcadsR215={status,flags,template,acsOtMinutes};
+  setInterval(()=>{try{tick()}catch(e){console.warn('R215',e)}},2500);
+})();
+</script>
+
+<!-- RCADS PATCH: R217 8-HOUR RULE — undertime TIME OUT only by Head 1 with reason, guard marks ABANDONMENT, over-break = late -->
+<style id="rcadsR217Css">
+.r217-t{width:100%;border-collapse:collapse;font-size:12px}.r217-t th,.r217-t td{border-bottom:1px solid #eadbc6;padding:6px;text-align:left;vertical-align:top}.r217-t th{background:#f3e4cd;font-size:11px}.r217-t tr.ab td{background:#fff5f4}
+#r217Ut{margin-top:8px;padding:8px;border:1px dashed #c9a46a;border-radius:10px;background:#fffaf2}#r217Ut label{display:block;font-size:11px;font-weight:900;color:#5b3519;margin-bottom:4px}
+#r217Ut select,#r217Ut input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d8bfa1;border-radius:9px;font-size:14px;margin-bottom:6px;background:#fff}
+#r217HrNavBtn[data-flag]:not([data-flag=""])::after{content:attr(data-flag);margin-left:6px;background:#d32f2f;color:#fff;border-radius:999px;padding:0 6px;font-size:10px}
+.r181-result b.big.bad{color:#b3261e}
+</style>
+<script id="rcadsR217Script">
+/* R217 (outside R181) — OVER-BREAK counts as LATE in the DTR + HR list of UNDERTIME (with reasons) and ABANDONMENT
+   Long break = the scheduled hours minus 8 hours (9 AM – 9 PM = 12 h → 4 h break). A longer break = LATE. */
+(function(){
+  'use strict';
+  const NEED=480,U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function overBreakDay(emp,dk,punches){
+    let s=null;try{s=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!s||s.type!=='TIME')return 0;
+    let a=dtrMinutesFromHHMM(s.in),b=dtrMinutesFromHHMM(s.out);if(a==null||b==null)return 0;if(b<=a)b+=1440;const allowed=Math.max(0,(b-a)-NEED);
+    const ps=punches.slice().sort((x,y)=>(Date.parse(x.date)||0)-(Date.parse(y.date)||0));let brk=0,at=null;
+    ps.forEach(r=>{if(r.type==='OUT'&&r.kind==='Break')at=Date.parse(r.date);else if(r.type==='IN'&&at!=null){brk+=(Date.parse(r.date)-at)/60000;at=null}});
+    return Math.max(0,Math.round(brk-allowed));
+  }
+  const orig=window.calculateEmployeeDtrSummary;
+  if(typeof orig==='function')window.calculateEmployeeDtrSummary=function(emp,cutoff){
+    const r=orig.apply(this,arguments);try{if(!r||!r.cutoff)return r;let recs=[];try{recs=getEmployeeAttendanceRecordsForDtr(emp)||[]}catch(e){}
+      const by={};recs.forEach(x=>{let k='';try{k=dtrDateKey(x.date)}catch(e){}if(k)(by[k]=by[k]||[]).push(x)});let ob=0;
+      dtrDateRangeKeys(r.cutoff.from,r.cutoff.to).forEach(dk=>{if(by[dk])ob+=overBreakDay(emp,dk,by[dk])});
+      if(ob>0){r.overBreakMinutes=ob;r.lateMinutes=(r.lateMinutes||0)+ob;r.lateHHMM=dtrHHMM(r.lateMinutes)}else r.overBreakMinutes=0}catch(e){}
+    return r};
+  // ---- HR: undertime with reasons + abandonment ----
+  function log(){return lsGet('rcads_r217_ut_log_v1',[])||[]}
+  function cut(){try{const c=getSavedHrCutoffPeriod();if(c&&c.from)return c}catch(e){}return null}
+  function inCut(iso){const c=cut();const d=String(iso||'').slice(0,10);return !c||(d>=c.from&&d<=c.to)}
+  function flags(){const o=[];const seen=lsGet('rcads_r217_seen_v1',{})||{};log().filter(x=>x.t==='ABANDON'&&inCut(x.at)&&!seen[x.at+x.code]).forEach(x=>o.push({lvl:'red',txt:'ABANDONMENT — left without permission ('+Math.floor((x.worked||0)/60)+'h '+((x.worked||0)%60)+'m worked)',who:x.name+' • '+bName(x.branch),go:'r217HrSection'}));return o}
+  function hrHtml(){
+    const L=log().filter(x=>inCut(x.at)).slice().reverse();const seen=lsGet('rcads_r217_seen_v1',{})||{};
+    const row=x=>'<tr class="'+(x.t==='ABANDON'?'ab':'')+'"><td>'+esc(new Date(x.at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+'</td><td><b>'+esc(x.name)+'</b><br><small>'+esc(x.code)+' • '+esc(bName(x.branch))+'</small></td><td>'+(x.t==='ABANDON'?'🚩 ABANDONMENT':'⏳ UNDERTIME')+'</td><td>'+Math.floor((x.worked||0)/60)+'h '+((x.worked||0)%60)+'m</td><td>'+esc(x.t==='ABANDON'?'Left without permission':x.reason||'')+'</td><td>'+esc(x.by||'')+'</td><td>'+(x.t==='ABANDON'?(seen[x.at+x.code]?'✓ seen':'<button type="button" class="r160-mini" data-r217-seen="'+esc(x.at+x.code)+'">MARK SEEN</button>'):'')+'</td></tr>';
+    return '<div class="r160-hr-title">🚩 UNDERTIME & ABANDONMENT — this cut-off</div><div class="r160-hr-note">UNDERTIME TIME OUT is done only by the Kitchen / Dining Head 1 (or a Manager) with the reason — it is APPROVED, so no Notice to Explain. If the employee leaves before 8 hours without the Head 1, the guard marks ABANDONMENT (🔴 to HR). A break longer than (scheduled hours − 8 h) is counted as LATE in the DTR.</div>'
+      +(L.length?'<div style="overflow:auto"><table class="r217-t"><tr><th>WHEN</th><th>EMPLOYEE</th><th>KIND</th><th>WORKED</th><th>REASON</th><th>BY</th><th></th></tr>'+L.map(row).join('')+'</table></div>':'<div class="r160-empty">No undertime or abandonment this cut-off.</div>');
+  }
+  function hrMount(){const admin=document.getElementById('simpleHrAdminModal');if(!admin||getComputedStyle(admin).display==='none')return;const main=admin.querySelector('.rcads-hr-main');const nav=admin.querySelector('.rcads-hr-nav');
+    if(nav&&!document.getElementById('r217HrNavBtn')){const bt=document.createElement('button');bt.id='r217HrNavBtn';bt.type='button';bt.setAttribute('onclick',"rcadsHrGo('r217HrSection')");bt.textContent='🚩 Undertime / Abandonment';nav.appendChild(bt)}
+    if(!main)return;let sec=document.getElementById('r217HrSection');if(!sec){sec=document.createElement('div');sec.id='r217HrSection';sec.className='rcads-dashboard-section r160-hr';main.appendChild(sec);
+      sec.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-r217-seen]');if(!b)return;const s=lsGet('rcads_r217_seen_v1',{})||{};s[b.getAttribute('data-r217-seen')]=Date.now();try{localStorage.setItem('rcads_r217_seen_v1',JSON.stringify(s));rcadsCloudFlushQueue()}catch(_){}sec.dataset.h=''})}
+    const h=hrHtml();if(sec.dataset.h!==h){sec.dataset.h=h;sec.innerHTML=h}const bt=document.getElementById('r217HrNavBtn');if(bt){const n=flags().length;bt.dataset.flag=n?String(n):''}}
+  window.rcadsR217={flags,overBreakDay};
+  setInterval(()=>{try{hrMount()}catch(e){console.warn('R217',e)}},3000);
+})();
+</script>
+
+<!-- RCADS PATCH: R218 OVERTIME approved by Head 1 (whole hours, reason) matched with the ACS -->
+<style id="rcadsR218Css">
+.r218-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
+.r218-h{font-weight:900;font-size:13.5px;color:#5b3519}.r218-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
+.r218-f label{display:block;font-size:11px;font-weight:900;color:#5b3519;margin:6px 0 2px}.r218-f select,.r218-f input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d8bfa1;border-radius:9px;font-size:14px;background:#fff;margin-top:3px}
+.r218-btn{width:100%;margin-top:10px;padding:12px;border:0;border-radius:10px;background:#2f6b3a;color:#fff;font-weight:900}
+.r218-msg{font-size:11.5px;font-weight:800;color:#2d6a36;min-height:14px;margin-top:6px}
+.r218-mm{margin-top:10px;padding:8px 10px;border-radius:10px;background:#fff3d6;border:1px solid #f2b705;font-size:11.5px}.r218-mm div{padding:2px 0}.r218-mm small{display:block;color:#7a5200;margin-top:4px}
+.r218-ok{margin-top:10px;padding:8px 10px;border-radius:10px;background:#e8f4e5;color:#1f5e2c;font-weight:800;font-size:11.5px}
+.r218-list summary{cursor:pointer;font-weight:800;margin-top:8px}.r218-list div{font-size:11px;padding:3px 0;border-top:1px solid #eadbc6}.r218-list button{width:auto;padding:0 6px;margin-left:4px;border:1px solid #d8bfa1;border-radius:6px;background:#fff;color:#b3261e}
+</style>
+<script id="rcadsR218Script">
+/* R218 — OVERTIME APPROVED BY KITCHEN / DINING HEAD 1 (whole hours only, with reason) + MATCH WITH THE ACS
+   • In the Head 1 app (APPROVALS): ⏱ APPROVE OVERTIME → employee of own department, date, hours (1, 2, 3 … no half hour), reason.
+   • The ACS sent every Saturday / cut-off has the APRVD OT (hrs) column → RCADS checks both: ✓ match or ⚠ mismatch (Head + HR).
+   • DTR approved OT = whole hours only = the lower of (actual extra time, OT approved in the app, OT in the ACS). */
+(function(){
+  'use strict';
+  const KEY='rcads_r218_ot_v1';const U=c=>String(c||'').trim().toUpperCase();
+  const REASONS=['Full house / heavy guest volume','Catering / event / function','Short of staff (absent / leave)','Covering for a late reliever','Special order / big order','Opening / closing preparation','Other (type the reason)'];
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+  function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));try{rcadsCloudFlushQueue()}catch(_){}return true}catch(e){alert('Cannot save: '+e.message);return false}}
+  function pad(n){return String(n).padStart(2,'0')}
+  function today(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function fmt(iso){const [y,m,d]=String(iso).split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  const KITCHEN_RE=/COOK|KITCHEN|DISH|PANTRY|CHEF|PREP|BAKER|BUTCHER|INVENTORY|UTILITY|STEWARD|GRILL|FRY/i;
+  function deptOf(e){const d=U(e.dept);if(d==='KITCHEN'||d==='DINING')return d;if(d==='EXTRA')return KITCHEN_RE.test(e.position||'')?'KITCHEN':'DINING';return d}
+  function isSep(c){try{return !!(window.rcadsIsSeparated&&window.rcadsIsSeparated(c))}catch(e){return false}}
+  function cut(){try{const c=getSavedHrCutoffPeriod();if(c&&c.from)return c}catch(e){}return null}
+  function all(){const v=lsGet(KEY,[]);return Array.isArray(v)?v:[]}
+  function appMin(code,dk){return all().filter(r=>U(r.code)===U(code)&&r.date===dk&&!r.voided&&sameDay(r)).reduce((s,r)=>s+(+r.hours||0)*60,0)}
+  function acsMin(code,dk){try{return window.rcadsR215&&window.rcadsR215.acsOtMinutes?window.rcadsR215.acsOtMinutes(code,dk):0}catch(e){return 0}}
+  function hasInToday(code){let recs=[];try{recs=getEmployeeAttendanceRecordsForDtr({code})||[]}catch(e){}const t=today();return recs.some(r=>{let k='';try{k=dtrDateKey(r.date)}catch(e){}return k===t&&r.type==='IN'})}
+  function sameDay(r){const d=new Date(r.at);return !isNaN(d)&&(d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()))===r.date}
+  function hoursFloor(m){return Math.floor(Math.max(0,m)/60)*60}
+
+  /* ---- DTR: approved OT in whole hours, lower of app / ACS / actual ---- */
+  const prev=window.getApprovedOtMinutesForDate;
+  if(typeof prev==='function')window.getApprovedOtMinutesForDate=function(emp,dk,excess){
+    let base=0;try{base=prev.apply(this,arguments)||0}catch(e){}
+    try{if(typeof isManagementEmployee==='function'&&isManagementEmployee(emp))return 0;
+      const a=appMin(emp&&emp.code,dk),c=acsMin(emp&&emp.code,dk);
+      if(a){const appr=c?Math.min(a,c):a;return hoursFloor(Math.min(Math.max(0,excess||0),appr))}if(c)return 0; // ACS-only OT (not approved on the day) does not count
+      }catch(e){}
+    return hoursFloor(base)};
+
+  /* ---- match app ⇄ ACS ---- */
+  function acsAll(b){const out=[];try{const L=(rcadsGetScheduleLibrary()||[]).filter(x=>x&&String(x.branch||'').toUpperCase()===b&&/\bACS\b/.test(U(x.category)));
+    L.forEach(x=>(x.weeklyBlocks||[]).forEach(w=>{const sub=(w.matrix[w.headerRow+1]||[]).map(v=>U(v));(w.dateCols||[]).forEach(col=>{if(!/OT/.test(sub[col.idx+2]||''))return;
+      (w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).forEach(r=>{const c=U(r[w.empIdx]);if(!/^[A-Z]{2,4}-/.test(c))return;const v=r[col.idx+2];if(v===''||v==null)return;out.push({code:c,date:col.date})})})}))}catch(e){}return out}
+  function mismatches(b,dept){const c=cut();const inC=d=>!c||(d>=c.from&&d<=c.to);const codes=new Set(staff(b).filter(e=>!dept||deptOf(e)===dept).map(e=>U(e.code)));
+    const keys={};all().filter(r=>!r.voided&&r.branch===b&&codes.has(U(r.code))&&inC(r.date)).forEach(r=>keys[U(r.code)+'|'+r.date]=1);
+    acsAll(b).filter(x=>codes.has(x.code)&&inC(x.date)).forEach(x=>keys[x.code+'|'+x.date]=1);
+    const t=today();const out=[];const covered=new Set();try{(rcadsGetScheduleLibrary()||[]).filter(x=>x&&String(x.branch||'').toUpperCase()===b&&/\bACS\b/.test(U(x.category))).forEach(x=>(rcadsScheduleEntryDates(x)||[]).forEach(d=>covered.add(d)))}catch(e){}
+    Object.keys(keys).forEach(k=>{const [code,date]=k.split('|');const a=appMin(code,date),s=acsMin(code,date);if(a===s)return;if(!s&&!covered.has(date))return; // ACS for that week not sent yet
+      const e=staff(b).find(x=>U(x.code)===code);out.push({code,name:e?e.name:code,date,app:a/60,acs:s/60,late:date<t})});
+    return out.sort((x,y)=>x.date<y.date?-1:1)}
+
+  /* ---- Head 1 card ---- */
+  function ctx(){try{const a=typeof getCurrentApproverAssignment==='function'?getCurrentApproverAssignment():null;if(!a||!document.body.classList.contains('approver-only-mode'))return null;
+    if(a.key!=='kitchenHead1'&&a.key!=='diningHead1')return null;const e=currentEmployee;let br='';for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(!br)return null;
+    return {b:br,dept:a.key==='kitchenHead1'?'KITCHEN':'DINING',by:(a.key==='kitchenHead1'?'KITCHEN HEAD 1':'DINING HEAD 1')+' • '+(e.name||e.code),me:U(e.code)}}catch(e){return null}}
+  let MSG='';
+  function cardHtml(c){
+    const emps=staff(c.b).filter(e=>deptOf(e)===c.dept&&!isSep(e.code)).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+    const cc=cut();const mine=all().filter(r=>!r.voided&&r.branch===c.b&&(!cc||(r.date>=cc.from&&r.date<=cc.to))&&emps.some(e=>U(e.code)===U(r.code))).sort((a,b)=>b.date.localeCompare(a.date)||String(b.at).localeCompare(String(a.at)));
+    const mm=mismatches(c.b,c.dept);
+    return '<div class="r218-h">⏱ OVERTIME — '+esc(c.dept)+' • '+esc(bName(c.b))+'</div><div class="r218-n">TODAY ONLY — overtime is approved on the same day (no late entry). Whole hours only. It must MATCH the APRVD OT in the ACS you send every Saturday and on cut-off.</div>'
+      +'<div class="r218-f"><label>EMPLOYEE<select id="r218Emp"><option value="">— choose —</option>'+emps.map(e=>'<option value="'+esc(U(e.code))+'">'+esc(e.name)+' • '+esc(U(e.code))+'</option>').join('')+'</select></label>'
+      +'<label>DATE<input id="r218Date" value="'+esc(fmt(today()))+' (today only)" readonly></label>'
+      +'<label>HOURS<select id="r218Hrs">'+[1,2,3,4,5,6].map(h=>'<option value="'+h+'">'+h+' hour'+(h>1?'s':'')+'</option>').join('')+'</select></label>'
+      +'<label>REASON<select id="r218Reason">'+REASONS.map(r=>'<option>'+esc(r)+'</option>').join('')+'</select></label><input id="r218Other" placeholder="Type the reason" hidden>'
+      +'<button type="button" class="r218-btn" data-r218-save>✓ APPROVE OVERTIME</button><div class="r218-msg">'+esc(MSG)+'</div></div>'
+      +(mm.length?'<div class="r218-mm"><b>⚠ NOT MATCHING THE ACS ('+mm.length+')</b>'+mm.map(x=>'<div>'+esc(x.name)+' • '+esc(fmt(x.date))+' — app '+x.app+' h • ACS '+x.acs+' h</div>').join('')+'<small>Fix the ACS (upload again) or the approval so both are the same.</small></div>':(mine.length?'<div class="r218-ok">✓ All overtime matches the ACS so far.</div>':''))
+      +(mine.length?'<details class="r218-list"><summary>Approved this cut-off ('+mine.length+')</summary>'+mine.map(r=>'<div><b>'+esc(r.name)+'</b> • '+esc(fmt(r.date))+' • '+r.hours+' h • '+esc(r.reason)+(r.date===today()?' <button type="button" data-r218-void="'+esc(r.id)+'">✕</button>':'')+'</div>').join('')+'</details>':'');
+  }
+  function tick(){
+    const c=ctx();let el=document.getElementById('r218Card');if(!c){if(el)el.remove();return}
+    const app=document.getElementById('rcadsR131ApproverApp');const host=app&&app.querySelector('.r131-shell');if(!host)return;
+    if(!el){el=document.createElement('div');el.id='r218Card';el.className='r218-card';el.setAttribute('data-r162-tab','approvals');
+      el.addEventListener('change',e=>{if(e.target.id==='r218Reason'){const o=document.getElementById('r218Other');if(o)o.hidden=!/^Other/.test(e.target.value)}});
+      el.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;const cc=ctx();if(!cc)return;
+        if(t.closest('[data-r218-save]')){const code=document.getElementById('r218Emp').value,date=today(),h=+document.getElementById('r218Hrs').value;let reason=document.getElementById('r218Reason').value;
+          if(!code){MSG='Choose the employee.';el.dataset.h='';tick();return}if(!hasInToday(code)){MSG='⛔ No TIME IN today for this employee — overtime can only be approved on the same day for someone who is on duty.';el.dataset.h='';tick();return}
+          if(/^Other/.test(reason)){reason=String(document.getElementById('r218Other').value||'').trim();if(!reason){MSG='Type the reason.';el.dataset.h='';tick();return}}
+          if(code===cc.me){MSG='You cannot approve your own overtime.';el.dataset.h='';tick();return}
+          const e2=staff(cc.b).find(x=>U(x.code)===code);const L=all();
+          if(L.some(r=>!r.voided&&U(r.code)===code&&r.date===date)&&!confirm('There is already approved OT for '+(e2?e2.name:code)+' on '+fmt(date)+'. Add '+h+' more hour(s)?'))return;
+          L.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),code,name:e2?e2.name:code,branch:cc.b,dept:cc.dept,date,hours:h,reason,by:cc.by,at:new Date().toISOString()});lsSet(KEY,L.slice(-3000));
+          MSG='✓ '+h+' hour(s) OT approved for '+(e2?e2.name:code)+' • '+fmt(date)+'. Put the same in the ACS.';el.dataset.h='';tick();return}
+        const v=t.closest('[data-r218-void]');if(v){if(!confirm('Remove this approved overtime?'))return;const L=all();const r=L.find(x=>x.id===v.getAttribute('data-r218-void'));if(r&&r.date!==today()){MSG='Past overtime cannot be changed.';el.dataset.h='';tick();return}if(r){r.voided=true;r.voidedBy=cc.by;r.voidedAt=new Date().toISOString();lsSet(KEY,L)}MSG='Removed.';el.dataset.h='';tick()}
+      })}
+    const nav=host.querySelector(':scope > .r162-nav');if(el.parentElement!==host){if(nav)host.insertBefore(el,nav);else host.appendChild(el)}
+    if(el.dataset.h&&el.contains(document.activeElement))return;const h=cardHtml(c);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
+  }
+  /* ---- HR section ---- */
+  function hrMount(){const admin=document.getElementById('simpleHrAdminModal');if(!admin||getComputedStyle(admin).display==='none')return;const main=admin.querySelector('.rcads-hr-main');const nav=admin.querySelector('.rcads-hr-nav');
+    if(nav&&!document.getElementById('r218HrNavBtn')){const bt=document.createElement('button');bt.id='r218HrNavBtn';bt.type='button';bt.setAttribute('onclick',"rcadsHrGo('r218HrSection')");bt.textContent='⏱ Overtime (Head 1 / ACS)';nav.appendChild(bt)}
+    if(!main)return;let sec=document.getElementById('r218HrSection');if(!sec){sec=document.createElement('div');sec.id='r218HrSection';sec.className='rcads-dashboard-section r160-hr';main.appendChild(sec)}
+    const c=cut();const L=all().filter(r=>!r.voided&&(!c||(r.date>=c.from&&r.date<=c.to))).sort((a,b)=>b.date.localeCompare(a.date));
+    const mm=[];branches().forEach(b=>['KITCHEN','DINING'].forEach(d=>mismatches(b.code,d).forEach(x=>mm.push(Object.assign({b:b.code,d},x)))));
+    const h='<div class="r160-hr-title">⏱ OVERTIME — approved by Head 1 • matched with the ACS</div><div class="r160-hr-note">Whole hours only. DTR approved OT = the lower of the actual extra time, the Head 1 approval and the ACS.</div>'
+      +(mm.length?'<div class="r218-mm"><b>⚠ NOT MATCHING ('+mm.length+')</b>'+mm.map(x=>'<div>'+esc(bName(x.b))+' • '+esc(x.d)+' • '+esc(x.name)+' • '+esc(fmt(x.date))+' — Head 1 '+x.app+' h • ACS '+x.acs+' h</div>').join('')+'</div>':'<div class="r218-ok">✓ No mismatch this cut-off.</div>')
+      +(L.length?'<div style="overflow:auto"><table class="r217-t"><tr><th>DATE</th><th>EMPLOYEE</th><th>HOURS</th><th>REASON</th><th>APPROVED BY</th><th>ACS</th></tr>'+L.map(r=>{const s=acsMin(r.code,r.date)/60;return '<tr><td>'+esc(fmt(r.date))+'</td><td><b>'+esc(r.name)+'</b><br><small>'+esc(r.code)+' • '+esc(bName(r.branch))+'</small></td><td>'+r.hours+' h</td><td>'+esc(r.reason)+'</td><td>'+esc(r.by)+'</td><td>'+(s===appMin(r.code,r.date)/60?'✓ '+s+' h':'⚠ '+s+' h')+'</td></tr>'}).join('')+'</table></div>':'<div class="r160-empty">No approved overtime this cut-off.</div>');
+    if(sec.dataset.h!==h){sec.dataset.h=h;sec.innerHTML=h}}
+  setInterval(()=>{try{hrMount()}catch(e){}},4000);
+  /* ---- HR dots ---- */
+  function flags(){const o=[];branches().forEach(b=>['KITCHEN','DINING'].forEach(d=>{const mm=mismatches(b.code,d);if(mm.length)o.push({lvl:mm.some(x=>x.late)?'yellow':'green',txt:'Overtime not matching the ACS — '+mm.length+' ('+d+')',who:bName(b.code),go:'r218HrSection'})}));return o}
+  window.rcadsR218={all,mismatches,flags,appMin};
+  setInterval(()=>{try{tick()}catch(e){console.warn('R218',e)}},2500);
+})();
+</script>
 </body>
 </html>
