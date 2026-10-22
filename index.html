@@ -1,4 +1,4 @@
-<!-- R228 OT RECORD: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
+<!-- R230 BRANCH SIGNALS: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
 <!-- R157 SECURITY FIX: HR PIN no longer stored or shown in plain text; HR can change it. All other R156 behavior unchanged. -->
 <!-- R156 trial: transparent enrollment readiness; no backend enrollment or access grant. Based directly on R155. -->
 <!--
@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R228 OT RECORD</title>
+<title>Rustica RCADS App — R230 BRANCH SIGNALS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21851,7 +21851,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
 <style id="rcadsR160Css">
 #r160Gate{position:fixed;inset:0;z-index:2147483300;background:linear-gradient(160deg,#3d2615,#6b3f1d);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:28px 16px}
 html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
@@ -23372,7 +23372,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
 <style id="rcadsR167Css">
 .r167-card{position:relative;overflow:hidden;background:#fff;border-radius:3.2mm;font-family:Arial,Helvetica,sans-serif;color:#3d2615;box-shadow:0 2px 10px rgba(0,0,0,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact;flex:0 0 auto}
 .r167-card.port{width:54mm;height:85.6mm}.r167-card.land{width:85.6mm;height:54mm}
@@ -23867,7 +23867,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
 <style id="rcadsR170Css">
 #r170Blocked{position:fixed;inset:0;z-index:2147483400;background:linear-gradient(160deg,#3d2615,#1c0f07);display:flex;align-items:center;justify-content:center;padding:18px}
 .r170-card{max-width:380px;width:100%;background:#fffaf2;border-radius:16px;padding:22px 18px;text-align:center;color:#3d2615;border-top:6px solid #a1281f}
@@ -24713,9 +24713,9 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
 <style id="rcadsR177Css">
-/* ===== R228 OT RECORD ===== */
+/* ===== R230 BRANCH SIGNALS ===== */
 #simpleHrAdminModal#simpleHrAdminModal#simpleHrAdminModal .rcads-hr-main.r177-paged > *:not(.r177-on){display:none!important}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main{background:linear-gradient(180deg,#f6efe4 0%,#f3eadc 100%)}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.r177-hr #simpleHrAdminModal .rcads-hr-main > .r160-hr{border-radius:16px!important;box-shadow:0 4px 18px rgba(60,30,10,.08)!important;border:1px solid #e6d3bb!important}
@@ -25110,7 +25110,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
 <style id="rcadsR181Css">
 /* ===== R181 attendance handshake ===== */
 .r181-card{background:#fffaf3;border:2px solid #c8862a;border-radius:16px;padding:12px;margin:10px 0;color:#3d2412;font-family:Arial,Helvetica,sans-serif;box-shadow:0 3px 12px rgba(91,53,25,.12)}
@@ -25503,7 +25503,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
 <style id="rcadsR182Css">
 .r182-panel{background:#fff!important}
 .r182-h{font-weight:900;font-size:14px;color:#3d2412;margin-bottom:8px}
@@ -25632,7 +25632,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD — button visible again (HIDE & CLOSE panel + HR Database page) -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS — button visible again (HIDE & CLOSE panel + HR Database page) -->
 <style id="rcadsR183Css">
 #r183BranchCard{margin:10px 0;padding:12px 14px;border:1px solid #d7c29f;border-radius:12px;background:#fffaf2;font-family:inherit}
 #r183BranchCard .r183-t{font-size:14px;font-weight:900;color:#4c2b17;letter-spacing:.3px}
@@ -25681,7 +25681,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
 <style id="rcadsR184Css">
 #r184PayrollCard{margin:8px 0 10px;padding:10px;border:1px solid #c9a77a;border-radius:11px;background:#fff8ec}
 #r184SendPayroll{width:100%;padding:13px;border:0;border-radius:10px;background:linear-gradient(135deg,#7a4a1f,#3a2210);color:#fff;font-weight:900;font-size:14px;letter-spacing:.3px;cursor:pointer}
@@ -25734,7 +25734,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
 <style id="rcadsR185Css">
 .r185-hr .r185-h{font-size:18px;font-weight:900;color:#4c2b17;display:flex;align-items:center;gap:8px}
 .r185-hr .r185-h em{font-style:normal;background:#b3261e;color:#fff;border-radius:999px;padding:2px 9px;font-size:11px}
@@ -25977,7 +25977,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
 <script id="rcadsR190Script">
 /* R190 — POSITIONS FROM RCPS.
    • RCPS → Employee Master → "Send positions to RCADS" makes an .xlsx with EMPCODE, name, dept and position (NO salary).
@@ -26311,7 +26311,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
 <style id="rcadsR193Css">
 .r193-head{margin:12px 0;padding:12px;border-radius:14px;background:#fffaf2;border:1px solid #e6d3b8;color:#3d2615;font-size:12px;text-align:left}.r193-hh{font-weight:900;font-size:13px;color:#4c2b17}.r193-hn{font-size:11px;color:#6d5845;margin:6px 0;line-height:1.45}.r193-hf{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.r193-hf input,.r193-hf select{padding:8px;border:1px solid #cdbb9f;border-radius:8px;font-size:12.5px;width:100%;box-sizing:border-box}.r193-hf label{font-size:11px;font-weight:800;color:#6b4a2f;display:flex;flex-direction:column;gap:3px}.r193-hf label.r193-ck{grid-column:1/-1;flex-direction:row;align-items:center;font-weight:700;font-size:12px}.r193-hf input[type=checkbox],.r193-ha input[type=checkbox]{width:auto;padding:0;margin:0}.r193-hf select{height:36px}.r193-hf button{grid-column:1/-1;padding:11px;border:0;border-radius:10px;background:linear-gradient(135deg,#6f4a2a,#3d2414);color:#fff;font-weight:900}.r193-hr2{border-top:1px solid #eadbc6;padding:8px 0}.r193-ha{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}.r193-ha button{border:0;border-radius:7px;padding:6px 9px;background:#5b3519;color:#fff;font-weight:800;font-size:10.5px}.r193-ha button.ghost{background:#fff;color:#8f3028;border:1px solid #d9a199}
 .r193-ck{display:flex;gap:6px;align-items:center;font-size:11.5px;margin:2px 0}
@@ -26517,7 +26517,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
 <style id="rcadsR194Css">
 .r194-emp{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r194-h{font-weight:900;font-size:13.5px;color:#7a3d00;margin-bottom:8px}.r194-h.ok{color:#2d6a36;margin:0}
@@ -27435,7 +27435,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
 <style id="rcadsR202Css">
 .r202-hr .r202-up{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;background:#fffaf2;border:1px solid #e6d3bb;border-radius:12px;padding:12px;margin:10px 0}
 .r202-hr .r202-up label{display:flex;flex-direction:column;font-size:11px;font-weight:800;color:#5b3519;gap:4px}.r202-hr .r202-up label.w{grid-column:1/-1}
@@ -27599,7 +27599,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
 <style id="rcadsR208Css">
 .r208-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r208-h{font-weight:900;font-size:13.5px;color:#5b3519}.r208-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
@@ -27643,8 +27643,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const slots=(window.rcadsGuardLabelsLive?window.rcadsGuardLabelsLive(b,L):['Guard 1','Guard 2']).map(g=>{let open=null,lastOut=null;for(let i=L.length-1;i>=0;i--){const r=L[i];if(r.guard!==g)continue;if(r.type==='OUT'&&!lastOut&&!open)lastOut=r;if(r.type==='IN'){const later=L.slice(i+1).some(x=>x.guard===g&&x.type==='OUT');if(!later)open=r;break}}
       const ms=open?Date.now()-Date.parse(open.timestamp):0;return {g,name:gName(b,g)||g,open,lastOut,ms,lvl:open?(ms>=STRAIGHT_H*36e5?'red':(ms>=DUE_H*36e5?'yellow':'green')):'off'}});
     const onDuty=slots.filter(s=>s.open);
-    const alerts=[];slots.forEach(s=>{if(s.lvl==='red')alerts.push({lvl:'red',k:b+'|SD|'+s.g+'|'+(s.open&&s.open.timestamp),txt:'STRAIGHT DUTY — '+s.name+' ('+s.g+') on duty '+hm(s.ms)+', no reliever yet'});else if(s.lvl==='yellow')alerts.push({lvl:'yellow',k:b+'|DUE|'+s.g+'|'+(s.open&&s.open.timestamp),txt:'Relief due — '+s.name+' ('+s.g+') on duty '+hm(s.ms)})});
-    if(recent&&!onDuty.length)alerts.push({lvl:'red',k:b+'|NONE|'+(last&&last.timestamp),txt:'NO GUARD ON DUTY'+(last?' since '+tm(last.timestamp):'')});
+    const alerts=[];slots.forEach(s=>{if(s.lvl==='red')alerts.push({lvl:'red',k:b+'|SD|'+s.g+'|'+(s.open&&s.open.timestamp),txt:'📍 '+U(bName(b))+' • STRAIGHT DUTY — '+s.name+' ('+s.g+') on duty '+hm(s.ms)+', no reliever yet'});else if(s.lvl==='yellow')alerts.push({lvl:'yellow',k:b+'|DUE|'+s.g+'|'+(s.open&&s.open.timestamp),txt:'📍 '+U(bName(b))+' • Relief due — '+s.name+' ('+s.g+') on duty '+hm(s.ms)})});
+    if(recent&&!onDuty.length)alerts.push({lvl:'red',k:b+'|NONE|'+(last&&last.timestamp),txt:'📍 '+U(bName(b))+' • NO GUARD ON DUTY'+(last?' since '+tm(last.timestamp):'')});
     return {b,active:recent,slots,alerts,log:L.slice(-12).reverse()};
   }
   function allStatus(only){return branches().map(x=>x.code).filter(c=>!only||c===only).map(status).filter(s=>s.active)}
@@ -27675,7 +27675,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const reds=[];list.forEach(s=>s.alerts.filter(a=>a.lvl==='red').forEach(a=>reds.push(Object.assign({b:s.b},a))));
     const seenK='rcads_r208_seen_'+who;let seen={};try{seen=JSON.parse(localStorage.getItem(seenK)||'{}')||{}}catch(e){}
     const fresh=reds.filter(a=>!seen[a.k]);if(!fresh.length||document.getElementById('r208Pop'))return;
-    const d=document.createElement('div');d.id='r208Pop';d.innerHTML='<div class="r208-pbox"><div class="r208-ph">⚠ GUARD ALERT</div>'+fresh.map(a=>'<div class="r208-pi"><b>'+esc(bName(a.b))+'</b>'+esc(a.txt)+'</div>').join('')+'<button type="button">OK, I SEE IT</button></div>';
+    const d=document.createElement('div');d.id='r208Pop';d.innerHTML='<div class="r208-pbox"><div class="r208-ph">⚠ GUARD ALERT</div>'+fresh.map(a=>'<div class="r208-pi">'+esc(a.txt)+'</div>').join('')+'<button type="button">OK, I SEE IT</button></div>';
     document.body.appendChild(d);try{navigator.vibrate&&navigator.vibrate([300,150,300])}catch(e){}
     d.querySelector('button').onclick=()=>{fresh.forEach(a=>seen[a.k]=Date.now());const keep={};Object.entries(seen).forEach(([k,t])=>{if(Date.now()-t<7*864e5)keep[k]=t});try{localStorage.setItem(seenK,JSON.stringify(keep))}catch(e){}d.remove()};
   }
@@ -27683,11 +27683,11 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     hrMount();
     // owners
     const th=document.getElementById('topManagementHomeScreen');const root=th&&th.querySelector('.r100-content');
-    if(window.rcadsTopManagementSession&&root&&getComputedStyle(th).display!=='none'){const el=place('r208Owner',root,root.firstElementChild,'home');render(el,allStatus(),'GUARDS ON DUTY — ALL BRANCHES','OWNER_'+(window.rcadsTopManagementSession.ownerAccountKey||''))}
+    if(window.rcadsTopManagementSession&&root&&getComputedStyle(th).display!=='none'){const el=place('r208Owner',root,root.firstElementChild,'home');if(false)render(el,allStatus(),'GUARDS ON DUTY — ALL BRANCHES','OWNER_'+(window.rcadsTopManagementSession.ownerAccountKey||''))}
     else{const el=document.getElementById('r208Owner');if(el)el.remove()}
     // managers
     const mh=document.getElementById('managerHomeScreen');const ms=window.currentManagerSession;
-    if(ms&&mh&&!mh.classList.contains('hidden')){const hd=document.getElementById('rcadsR97ManagerDashboardHeader');const el=place('r208Mgr',mh,hd&&hd.parentElement===mh?hd.nextElementSibling:mh.firstElementChild,null);render(el,allStatus(),'GUARDS ON DUTY — ALL BRANCHES','MGR_'+(ms.empCode||''))}
+    if(ms&&mh&&!mh.classList.contains('hidden')){const hd=document.getElementById('rcadsR97ManagerDashboardHeader');const el=place('r208Mgr',mh,hd&&hd.parentElement===mh?hd.nextElementSibling:mh.firstElementChild,null);if(false)render(el,allStatus(),'GUARDS ON DUTY — ALL BRANCHES','MGR_'+(ms.empCode||''))}
     else{const el=document.getElementById('r208Mgr');if(el)el.remove()}
     // Dining Head 1
     const app=document.getElementById('rcadsR131ApproverApp');const shell=app&&app.querySelector('.r131-shell');let b='';
@@ -27695,7 +27695,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(b){const el=place('r208Dh1',shell,shell.querySelector(':scope > .r162-nav'),'home');render(el,allStatus(b),'GUARDS ON DUTY — '+bName(b).toUpperCase(),'DH1_'+(currentEmployee&&currentEmployee.code))}
     else{const el=document.getElementById('r208Dh1');if(el)el.remove()}
   }
-  window.rcadsR208={status,allStatus,flags};
+  window.rcadsR208={status,allStatus,flags,cardHtml};
   setInterval(()=>{try{tick()}catch(e){console.warn('R208',e)}},3000);
 })();
 </script>
@@ -27881,7 +27881,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     else if(el)el.remove();
   }
   setInterval(()=>{try{quiet()}catch(e){console.warn('R214',e)}},6000);
-  window.rcadsR213={opening,all,flags};
+  window.rcadsR213={opening,all,flags,cardHtml};
   setInterval(()=>{try{tick()}catch(e){console.warn('R213',e)}},5000);
 })();
 </script>
@@ -28478,7 +28478,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD of the access list (record-by-record merge) -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS of the access list (record-by-record merge) -->
 <script id="rcadsR226Script">
 /* R226 — SAFE SYNC OF THE ACCESS LIST (people / owners / guards PINs, QRs, blocks)
    Before: the whole list was one cloud item → the device that saved last (an employee phone, a guard phone, the HR phone)
@@ -28525,7 +28525,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 })();
 </script>
 
-<!-- RCADS PATCH: R228 OT RECORD for everyone -->
+<!-- RCADS PATCH: R230 BRANCH SIGNALS for everyone -->
 <style id="rcadsR227Css">
 #r227Pin{position:fixed;inset:0;z-index:2147483400;background:rgba(40,22,10,.72);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px}
 #r227Pin .r227-box{width:100%;max-width:380px;background:#fffaf2;border-radius:18px;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.35);color:#3d2615;text-align:left}
@@ -28558,6 +28558,76 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   function flags(){const by={};recent().forEach(x=>{const k=x.code;(by[k]=by[k]||{name:x.name,code:x.code,n:0,m:0}).n++;by[k].m+=x.left});
     return Object.values(by).map(g=>({lvl:'yellow',txt:'OT worked but NOT approved — '+hm(g.m)+' ('+g.n+' day'+(g.n>1?'s':'')+') — HR decides',who:g.name+' • '+g.code,go:'r160HrSection'}))}
   window.rcadsR228={flags,list:recent};
+})();
+</script>
+
+<!-- RCADS PATCH: R230 BRANCH SIGNALS for Owners / Managers (details + guard alert only after choosing the branch) -->
+<style id="rcadsR230Css">
+#r230Sig{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
+#r230Sig .r230-h{font-weight:900;font-size:14px;color:#5b3519}#r230Sig .r230-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
+#r230Sig .r230-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#r230Sig .r230-b{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:9px;border-radius:12px;border:1px solid #eadbc6;background:#fff;color:#3d2615;font:inherit}
+#r230Sig .r230-b span{font-size:16px}#r230Sig .r230-b b{font-size:13px}#r230Sig .r230-b small{font-size:10px;color:#6b5646;line-height:1.3}
+#r230Sig .r230-b.red{border:2px solid #d32f2f;background:#fff1ef}#r230Sig .r230-b.yellow{border:2px solid #e0a800;background:#fffaea}#r230Sig .r230-b.green{border:1px solid #9fd3ad}
+#r230Sig .r230-b.sel{box-shadow:0 0 0 3px #5b3519}
+#r230Sig .r230-det{margin-top:10px;border-top:2px dashed #e3cfb3;padding-top:8px}#r230Sig .r230-dh{display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:13.5px;color:#5b3519}
+#r230Sig .r230-dh button{border:1px solid #c9a46a;background:#fff;border-radius:8px;padding:3px 10px;font-weight:900;color:#5b3519}
+#r230Sig .r208-bn,#r230Sig .r208-row b,#r230Sig .r213-bt{color:#3d2615}#r230Sig .r208-row small{color:#6b5646}
+#r208Owner,#r208Mgr,#r214Owner{display:none!important}
+#r230Sig .r230-b{display:block!important;width:100%!important;min-height:0!important;margin:0!important;box-sizing:border-box}#r230Sig .r230-b span,#r230Sig .r230-b b,#r230Sig .r230-b small{display:block!important;text-align:left}
+#r230Sig .r230-dh button{width:auto!important;flex:0 0 auto!important;min-height:0!important;margin:0!important}
+</style>
+<script id="rcadsR230Script">
+/* R230 — 🚦 BRANCH SIGNALS for Owners and Managers (all branches)
+   • Every branch shows a colour signal right away: 🔴 concern (straight duty, no guard, no opening yet) • 🟡 watch (relief due,
+     opening crew incomplete, opened late) • 🟢 OK — even before they choose the branch.
+   • The details and the ⚠ GUARD ALERT appear only when they choose that branch. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  const RANK={red:3,yellow:2,green:1};const DOT={red:'🔴',yellow:'🟡',green:'🟢'};
+  function guard(b){try{const s=window.rcadsR208.status(b);return s&&s.active?s:null}catch(e){return null}}
+  function opening(b){try{return (window.rcadsR213.all()||[]).filter(o=>o.b===b)}catch(e){return []}}
+  function sig(b){const why=[];const g=guard(b);if(g)g.alerts.forEach(a=>why.push({lvl:a.lvl,t:a.lvl==='red'?(/STRAIGHT/.test(a.txt)?'Straight duty':'No guard on duty'):'Guard relief due'}));
+    opening(b).forEach(o=>{if(o.lvl==='red')why.push({lvl:'red',t:'No opening yet — '+o.sd});else if(o.lvl==='yellow')why.push({lvl:'yellow',t:'Opening incomplete — '+o.sd});else if(o.lvl==='green')why.push({lvl:'yellow',t:'Opened late — '+o.sd})});
+    let lvl='green';why.forEach(w=>{if(RANK[w.lvl]>RANK[lvl])lvl=w.lvl});return {lvl,why}}
+  function who(){
+    const th=document.getElementById('topManagementHomeScreen');const root=th&&th.querySelector('.r100-content');
+    if(window.rcadsTopManagementSession&&root&&getComputedStyle(th).display!=='none')return {k:'OWNER_'+(window.rcadsTopManagementSession.ownerAccountKey||''),host:root,before:root.firstElementChild,tab:'home',focus:document.getElementById('r128OwnerFocusBranch')};
+    const mh=document.getElementById('managerHomeScreen');const ms=window.currentManagerSession;
+    if(ms&&mh&&!mh.classList.contains('hidden')){const hd=document.getElementById('rcadsR97ManagerDashboardHeader');return {k:'MGR_'+(ms.empCode||''),host:mh,before:hd&&hd.parentElement===mh?hd.nextElementSibling:mh.firstElementChild,tab:null,focus:document.getElementById('rcadsR97ManagerFocusBranch')}}
+    return null}
+  let SEL='',lastFocus='';
+  function popup(w,b){const g=guard(b);if(!g)return;const reds=g.alerts.filter(a=>a.lvl==='red');if(!reds.length||document.getElementById('r208Pop'))return;
+    const seenK='rcads_r208_seen_'+w.k;let seen={};try{seen=JSON.parse(localStorage.getItem(seenK)||'{}')||{}}catch(e){}
+    const fresh=reds.filter(a=>!seen[a.k]);if(!fresh.length)return;
+    const d=document.createElement('div');d.id='r208Pop';d.innerHTML='<div class="r208-pbox"><div class="r208-ph">⚠ GUARD ALERT • '+esc(U(bName(b)))+'</div>'+fresh.map(a=>'<div class="r208-pi">'+esc(a.txt)+'</div>').join('')+'<button type="button">OK, I SEE IT</button></div>';
+    document.body.appendChild(d);try{navigator.vibrate&&navigator.vibrate([300,150,300])}catch(e){}
+    d.querySelector('button').onclick=()=>{fresh.forEach(a=>seen[a.k]=Date.now());const keep={};Object.entries(seen).forEach(([k,t])=>{if(Date.now()-t<7*864e5)keep[k]=t});try{localStorage.setItem(seenK,JSON.stringify(keep))}catch(e){}d.remove()}}
+  function html(){
+    const B=branches().map(x=>Object.assign({b:x.code},sig(x.code)));
+    let h='<div class="r230-h">🚦 BRANCH SIGNALS — tap a branch</div><div class="r230-n">🔴 concern (straight duty, no guard, no opening yet) • 🟡 watch (relief due, crew incomplete, opened late) • 🟢 OK</div><div class="r230-grid">'
+      +B.map(x=>'<button type="button" class="r230-b '+x.lvl+(SEL===x.b?' sel':'')+'" data-r230="'+esc(x.b)+'"><span>'+DOT[x.lvl]+'</span><b>'+esc(bName(x.b))+'</b><small>'+(x.why.length?esc(x.why.map(w=>w.t).filter((t,i,a)=>a.indexOf(t)===i).join(' • ')):'OK')+'</small></button>').join('')+'</div>';
+    if(SEL){let det='';const g=guard(SEL);try{if(g)det+=window.rcadsR208.cardHtml([g],'GUARDS — '+U(bName(SEL)))}catch(e){}
+      const o=opening(SEL);try{if(o.length)det+=window.rcadsR213.cardHtml({title:'OPENING TODAY • '+U(bName(SEL)),quiet:true},o)}catch(e){}
+      h+='<div class="r230-det"><div class="r230-dh">📍 '+esc(U(bName(SEL)))+' <button type="button" data-r230-x="1">✕</button></div>'+(det||'<div class="r230-n">✓ No concern in this branch right now.</div>')+'</div>'}
+    return h}
+  function pick(w,b){SEL=b;const el=document.getElementById('r230Sig');if(el){el.dataset.h='';draw(el)}if(b)popup(w,b)}
+  function draw(el){if(el.querySelector('details[open]'))return;const h=html();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
+  function tick(){
+    const w=who();let el=document.getElementById('r230Sig');if(!w){if(el)el.remove();return}
+    if(!el){el=document.createElement('div');el.id='r230Sig';el.className='r230-card';
+      el.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;const ww=who();if(!ww)return;if(t.closest('[data-r230-x]')){pick(ww,'');return}const c=t.closest('[data-r230]');if(c){const b=c.getAttribute('data-r230');pick(ww,SEL===b?'':b)}})}
+    if(w.tab)el.setAttribute('data-r162-tab',w.tab);
+    if(w.before&&w.before!==el&&w.before.parentElement===w.host){if(el.nextElementSibling!==w.before)w.host.insertBefore(el,w.before)}else if(el.parentElement!==w.host)w.host.insertBefore(el,w.host.firstChild);
+    // the existing "Select branch being checked" also opens the signals of that branch
+    const f=w.focus;const fv=f?U(f.value):'';if(fv&&fv!==lastFocus&&branches().some(x=>x.code===fv)){lastFocus=fv;pick(w,fv);return}if(!fv)lastFocus='';
+    draw(el)}
+  setInterval(tick,2000);setTimeout(tick,800);
+  window.rcadsR230={sig,pick:b=>{const w=who();if(w)pick(w,b)}};
 })();
 </script>
 </body>
