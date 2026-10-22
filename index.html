@@ -1,4 +1,4 @@
-<!-- R230 BRANCH SIGNALS: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
+<!-- R231 BRANCH HEADS: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
 <!-- R157 SECURITY FIX: HR PIN no longer stored or shown in plain text; HR can change it. All other R156 behavior unchanged. -->
 <!-- R156 trial: transparent enrollment readiness; no backend enrollment or access grant. Based directly on R155. -->
 <!--
@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R230 BRANCH SIGNALS</title>
+<title>Rustica RCADS App — R231 BRANCH HEADS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21851,7 +21851,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
+<!-- RCADS PATCH: R231 BRANCH HEADS + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
 <style id="rcadsR160Css">
 #r160Gate{position:fixed;inset:0;z-index:2147483300;background:linear-gradient(160deg,#3d2615,#6b3f1d);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:28px 16px}
 html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
@@ -23372,7 +23372,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
+<!-- RCADS PATCH: R231 BRANCH HEADS (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
 <style id="rcadsR167Css">
 .r167-card{position:relative;overflow:hidden;background:#fff;border-radius:3.2mm;font-family:Arial,Helvetica,sans-serif;color:#3d2615;box-shadow:0 2px 10px rgba(0,0,0,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact;flex:0 0 auto}
 .r167-card.port{width:54mm;height:85.6mm}.r167-card.land{width:85.6mm;height:54mm}
@@ -23867,7 +23867,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
+<!-- RCADS PATCH: R231 BRANCH HEADS — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
 <style id="rcadsR170Css">
 #r170Blocked{position:fixed;inset:0;z-index:2147483400;background:linear-gradient(160deg,#3d2615,#1c0f07);display:flex;align-items:center;justify-content:center;padding:18px}
 .r170-card{max-width:380px;width:100%;background:#fffaf2;border-radius:16px;padding:22px 18px;text-align:center;color:#3d2615;border-top:6px solid #a1281f}
@@ -24713,9 +24713,9 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
+<!-- RCADS PATCH: R231 BRANCH HEADS (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
 <style id="rcadsR177Css">
-/* ===== R230 BRANCH SIGNALS ===== */
+/* ===== R231 BRANCH HEADS ===== */
 #simpleHrAdminModal#simpleHrAdminModal#simpleHrAdminModal .rcads-hr-main.r177-paged > *:not(.r177-on){display:none!important}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main{background:linear-gradient(180deg,#f6efe4 0%,#f3eadc 100%)}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.r177-hr #simpleHrAdminModal .rcads-hr-main > .r160-hr{border-radius:16px!important;box-shadow:0 4px 18px rgba(60,30,10,.08)!important;border:1px solid #e6d3bb!important}
@@ -25110,7 +25110,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
+<!-- RCADS PATCH: R231 BRANCH HEADS — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
 <style id="rcadsR181Css">
 /* ===== R181 attendance handshake ===== */
 .r181-card{background:#fffaf3;border:2px solid #c8862a;border-radius:16px;padding:12px;margin:10px 0;color:#3d2412;font-family:Arial,Helvetica,sans-serif;box-shadow:0 3px 12px rgba(91,53,25,.12)}
@@ -25503,7 +25503,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
+<!-- RCADS PATCH: R231 BRANCH HEADS — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
 <style id="rcadsR182Css">
 .r182-panel{background:#fff!important}
 .r182-h{font-weight:900;font-size:14px;color:#3d2412;margin-bottom:8px}
@@ -25632,7 +25632,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS — button visible again (HIDE & CLOSE panel + HR Database page) -->
+<!-- RCADS PATCH: R231 BRANCH HEADS — button visible again (HIDE & CLOSE panel + HR Database page) -->
 <style id="rcadsR183Css">
 #r183BranchCard{margin:10px 0;padding:12px 14px;border:1px solid #d7c29f;border-radius:12px;background:#fffaf2;font-family:inherit}
 #r183BranchCard .r183-t{font-size:14px;font-weight:900;color:#4c2b17;letter-spacing:.3px}
@@ -25681,7 +25681,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
+<!-- RCADS PATCH: R231 BRANCH HEADS — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
 <style id="rcadsR184Css">
 #r184PayrollCard{margin:8px 0 10px;padding:10px;border:1px solid #c9a77a;border-radius:11px;background:#fff8ec}
 #r184SendPayroll{width:100%;padding:13px;border:0;border-radius:10px;background:linear-gradient(135deg,#7a4a1f,#3a2210);color:#fff;font-weight:900;font-size:14px;letter-spacing:.3px;cursor:pointer}
@@ -25734,7 +25734,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
+<!-- RCADS PATCH: R231 BRANCH HEADS — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
 <style id="rcadsR185Css">
 .r185-hr .r185-h{font-size:18px;font-weight:900;color:#4c2b17;display:flex;align-items:center;gap:8px}
 .r185-hr .r185-h em{font-style:normal;background:#b3261e;color:#fff;border-radius:999px;padding:2px 9px;font-size:11px}
@@ -25977,7 +25977,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
+<!-- RCADS PATCH: R231 BRANCH HEADS — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
 <script id="rcadsR190Script">
 /* R190 — POSITIONS FROM RCPS.
    • RCPS → Employee Master → "Send positions to RCADS" makes an .xlsx with EMPCODE, name, dept and position (NO salary).
@@ -26311,7 +26311,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
+<!-- RCADS PATCH: R231 BRANCH HEADS — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
 <style id="rcadsR193Css">
 .r193-head{margin:12px 0;padding:12px;border-radius:14px;background:#fffaf2;border:1px solid #e6d3b8;color:#3d2615;font-size:12px;text-align:left}.r193-hh{font-weight:900;font-size:13px;color:#4c2b17}.r193-hn{font-size:11px;color:#6d5845;margin:6px 0;line-height:1.45}.r193-hf{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.r193-hf input,.r193-hf select{padding:8px;border:1px solid #cdbb9f;border-radius:8px;font-size:12.5px;width:100%;box-sizing:border-box}.r193-hf label{font-size:11px;font-weight:800;color:#6b4a2f;display:flex;flex-direction:column;gap:3px}.r193-hf label.r193-ck{grid-column:1/-1;flex-direction:row;align-items:center;font-weight:700;font-size:12px}.r193-hf input[type=checkbox],.r193-ha input[type=checkbox]{width:auto;padding:0;margin:0}.r193-hf select{height:36px}.r193-hf button{grid-column:1/-1;padding:11px;border:0;border-radius:10px;background:linear-gradient(135deg,#6f4a2a,#3d2414);color:#fff;font-weight:900}.r193-hr2{border-top:1px solid #eadbc6;padding:8px 0}.r193-ha{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}.r193-ha button{border:0;border-radius:7px;padding:6px 9px;background:#5b3519;color:#fff;font-weight:800;font-size:10.5px}.r193-ha button.ghost{background:#fff;color:#8f3028;border:1px solid #d9a199}
 .r193-ck{display:flex;gap:6px;align-items:center;font-size:11.5px;margin:2px 0}
@@ -26517,7 +26517,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
+<!-- RCADS PATCH: R231 BRANCH HEADS — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
 <style id="rcadsR194Css">
 .r194-emp{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r194-h{font-weight:900;font-size:13.5px;color:#7a3d00;margin-bottom:8px}.r194-h.ok{color:#2d6a36;margin:0}
@@ -27435,7 +27435,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
+<!-- RCADS PATCH: R231 BRANCH HEADS (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
 <style id="rcadsR202Css">
 .r202-hr .r202-up{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;background:#fffaf2;border:1px solid #e6d3bb;border-radius:12px;padding:12px;margin:10px 0}
 .r202-hr .r202-up label{display:flex;flex-direction:column;font-size:11px;font-weight:800;color:#5b3519;gap:4px}.r202-hr .r202-up label.w{grid-column:1/-1}
@@ -27599,7 +27599,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
+<!-- RCADS PATCH: R231 BRANCH HEADS (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
 <style id="rcadsR208Css">
 .r208-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r208-h{font-weight:900;font-size:13.5px;color:#5b3519}.r208-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
@@ -28478,7 +28478,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS of the access list (record-by-record merge) -->
+<!-- RCADS PATCH: R231 BRANCH HEADS of the access list (record-by-record merge) -->
 <script id="rcadsR226Script">
 /* R226 — SAFE SYNC OF THE ACCESS LIST (people / owners / guards PINs, QRs, blocks)
    Before: the whole list was one cloud item → the device that saved last (an employee phone, a guard phone, the HR phone)
@@ -28525,7 +28525,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS for everyone -->
+<!-- RCADS PATCH: R231 BRANCH HEADS for everyone -->
 <style id="rcadsR227Css">
 #r227Pin{position:fixed;inset:0;z-index:2147483400;background:rgba(40,22,10,.72);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px}
 #r227Pin .r227-box{width:100%;max-width:380px;background:#fffaf2;border-radius:18px;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.35);color:#3d2615;text-align:left}
@@ -28561,7 +28561,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 })();
 </script>
 
-<!-- RCADS PATCH: R230 BRANCH SIGNALS for Owners / Managers (details + guard alert only after choosing the branch) -->
+<!-- RCADS PATCH: R231 BRANCH HEADS for Owners / Managers (details + guard alert only after choosing the branch) -->
 <style id="rcadsR230Css">
 #r230Sig{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 #r230Sig .r230-h{font-weight:900;font-size:14px;color:#5b3519}#r230Sig .r230-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
@@ -28628,6 +28628,62 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     draw(el)}
   setInterval(tick,2000);setTimeout(tick,800);
   window.rcadsR230={sig,pick:b=>{const w=who();if(w)pick(w,b)}};
+})();
+</script>
+
+<!-- RCADS PATCH: R231 HEAD 1 / HEAD 2 per branch -->
+<style id="rcadsR231Css">
+#r231Card{margin:8px 0 14px;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615}
+#r231Card .r231-h{font-weight:900;font-size:16px;color:#4c2b17}#r231Card .r231-n{font-size:11px;color:#6d5845;margin:4px 0 8px}
+#r231Card .r231-b{background:#fff;border:1px solid #eadbc6;border-radius:12px;padding:9px;margin:7px 0}#r231Card .r231-bn{font-weight:900;font-size:13px;margin-bottom:5px}
+#r231Card .r231-g{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#r231Card label{display:block;font-size:10.5px;font-weight:900;color:#5b3519}#r231Card select{display:block;width:100%;margin-top:3px;padding:8px;border:1px solid #c8b38f;border-radius:9px;background:#fff;font-size:12px}
+#r231Card small{display:block;font-size:10px;font-weight:800;margin-top:2px}#r231Card small.ok{color:#21683a}#r231Card small.bad{color:#a1281f}
+#r231Card .r231-msg{font-size:11.5px;font-weight:800;color:#2d6a36;min-height:14px;margin-top:6px}
+@media(max-width:560px){#r231Card .r231-g{grid-template-columns:1fr}}
+</style>
+<script id="rcadsR231Script">
+/* R231 — HEAD 1 / HEAD 2 PER BRANCH (HR)
+   The old "⚙ Approver / Guard Access" cards hold ONE Kitchen Head 1, ONE Dining Head 1 … (the branch of the HR device).
+   Here HR picks the Heads of EVERY branch (e.g. Cabanatuan: Dining Head 1 = Ms. Judith while there is no Supervisor yet).
+   On the Head's own phone RCADS then opens the Head app (schedule upload, OT approval, opening alarm, guards …).
+   Only for people who already have their OWN personal PIN (QR) — never the shared approver PIN. */
+(function(){
+  'use strict';
+  const K='rcads_r231_branch_heads_v1';const U=c=>String(c||'').trim().toUpperCase();
+  const ROLES=[['kitchenHead1','KITCHEN HEAD 1'],['diningHead1','DINING HEAD 1'],['kitchenHead2','KITCHEN HEAD 2'],['diningHead2','DINING HEAD 2 (CAPTAIN WAITER)']];
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function load(){try{return JSON.parse(localStorage.getItem(K)||'{}')||{}}catch(e){return {}}}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}
+    return l.filter(e=>{try{return !(window.rcadsIsSeparated&&window.rcadsIsSeparated(e.code))}catch(_){return true}})}
+  function roleFor(emp){if(!emp||!emp.code)return '';const c=U(emp.code);const m=load();for(const b of Object.keys(m)){const r=m[b]||{};for(const [k] of ROLES)if(U(r[k])===c)return k}return ''}
+  function ownPin(code){try{return window.rcadsR224&&window.rcadsR224.status(code)==='ACTIVE'}catch(e){return false}}
+  function apply(k,emp){try{const a=simpleHrAccounts&&simpleHrAccounts[k];if(!a)return;a.identity=U(emp.code)+' - '+emp.name;a.active=true;a.employee=true}catch(e){}}
+  // the Head is recognised on his / her own phone
+  const prevFind=window.findAccessKeyForEmployee;
+  if(typeof prevFind==='function')window.findAccessKeyForEmployee=function(emp){const k=roleFor(emp);if(k&&ownPin(emp.code)){apply(k,emp);return k}return prevFind.apply(this,arguments)};
+  const prevCur=window.getCurrentApproverAssignment;
+  if(typeof prevCur==='function')window.getCurrentApproverAssignment=function(){try{const e=currentEmployee;const k=roleFor(e);if(k&&ownPin(e.code)){apply(k,e);return {key:k,item:simpleHrAccounts[k]}}}catch(x){}return prevCur.apply(this,arguments)};
+  // ---- HR card inside ⚙ Approver / Guard Access ----
+  function html(){const m=load();
+    return '<div class="r231-h">🏢 HEAD 1 / HEAD 2 OF EACH BRANCH</div><div class="r231-n">Choose the Heads of every branch here. If a branch has no Supervisor yet, choose the Manager / Asst. Manager as DINING HEAD 1. The person needs his / her OWN RCADS app (QR) first. Saved automatically.</div>'
+      +branches().map(b=>{const L=staff(b.code);const r=m[b.code]||{};
+        return '<div class="r231-b"><div class="r231-bn">'+esc(b.name)+'</div><div class="r231-g">'+ROLES.map(([k,lab])=>{const cur=U(r[k]);const ok=cur&&ownPin(cur);
+          return '<label>'+lab+'<select data-r231="'+esc(b.code)+'|'+k+'"><option value="">— not assigned —</option>'+L.map(e=>'<option value="'+esc(U(e.code))+'"'+(U(e.code)===cur?' selected':'')+'>'+esc(e.name)+' • '+esc(e.code)+(e.position?' • '+esc(e.position):'')+'</option>').join('')+'</select>'
+            +(cur?(ok?'<small class="ok">✓ has own app</small>':'<small class="bad">⚠ no own app yet — make his / her QR in HOME</small>'):'')+'</label>'}).join('')+'</div></div>'}).join('')+'<div class="r231-msg" id="r231Msg"></div>'}
+  function tick(){const sec=document.getElementById('rcadsApproverAccessSection');if(!sec)return;let el=document.getElementById('r231Card');
+    if(!el){el=document.createElement('div');el.id='r231Card';el.className='r231-card';const rows=document.getElementById('simpleHrAdminRows');if(rows&&rows.parentElement===sec)sec.insertBefore(el,rows);else sec.appendChild(el);
+      el.addEventListener('change',e=>{const s=e.target.closest&&e.target.closest('[data-r231]');if(!s)return;const [b,k]=s.getAttribute('data-r231').split('|');const m=load();m[b]=m[b]||{};
+        // one person = one Head role
+        const v=U(s.value);if(v)Object.keys(m).forEach(bb=>ROLES.forEach(([kk])=>{if(U((m[bb]||{})[kk])===v&&!(bb===b&&kk===k))m[bb][kk]=''}));
+        m[b][k]=v;m.updatedAt=new Date().toISOString();try{localStorage.setItem(K,JSON.stringify(m));rcadsCloudFlushQueue()}catch(x){}
+        const lg='rcads_r231_heads_log_v1';let a=[];try{a=JSON.parse(localStorage.getItem(lg)||'[]')||[]}catch(x){}a.push({at:m.updatedAt,branch:b,role:k,code:v});try{localStorage.setItem(lg,JSON.stringify(a.slice(-300)))}catch(x){}
+        el.dataset.h='';draw(el);const msg=document.getElementById('r231Msg');if(msg)msg.textContent='✓ Saved — '+b.replace(/_/g,' ')+' • '+(ROLES.find(r=>r[0]===k)||[,''])[1]+' = '+(v||'not assigned')})}
+    draw(el)}
+  function draw(el){if(el.contains(document.activeElement))return;const h=html();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
+  setInterval(()=>{try{tick()}catch(e){}},2500);
+  window.rcadsR231={load,roleFor};
 })();
 </script>
 </body>
