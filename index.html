@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R238 MANAGER ON DUTY</title>
+<title>Rustica RCADS App — R239 STALE GUARD FIX</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -23063,7 +23063,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     OWNER_KEYS.forEach(k=>{const n=ownerName(k);let role='';try{role=simpleHrAccounts[k].role||''}catch(e){}if(U(n).includes(q)||U(role).includes(q)||(q.length>=3&&('OWNER'.startsWith(q)||'BOSS'.startsWith(q)||'TOP MANAGEMENT'.startsWith(q))))out.unshift({t:'O',k,name:n,branch:'',pos:role||'Owner'})});
     return out.slice(0,14)}
   // a guard whose app was set INACTIVE / BLOCKED while he is still logged in → logged out at once (no TIME OUT entry is invented)
-  setInterval(()=>{try{const s=curGuardSlot();if(!s)return;const b=(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'SAN_RAFAEL');const r=gRec(gKey(b,s));
+  setInterval(()=>{try{let ce=null;try{ce=currentEmployee}catch(_){}const realGuard=document.body.classList.contains('guard-session-active')&&!ce&&!window.rcadsTopManagementSession;const personal=window.rcadsTopManagementSession||document.body.classList.contains('employee-simple-mode')||document.body.classList.contains('approver-only-mode');if(personal){const gh=document.getElementById('guardHomeScreen');if(!gh||gh.classList.contains('hidden')){try{sessionStorage.removeItem('rcads_active_guard_session');sessionStorage.removeItem('rcads_attendance_operator')}catch(_){}if(/^Guard \d+$/.test(String(window.currentGuardAccount||'')))window.currentGuardAccount=null;if(window.rcadsAttendanceOperator&&/^Guard \d+$/.test(String(window.rcadsAttendanceOperator)))window.rcadsAttendanceOperator='';document.body.classList.remove('guard-session-active')}return}if(!realGuard)return;const s=curGuardSlot();if(!s)return;const b=(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'SAN_RAFAEL');const r=gRec(gKey(b,s));
     if(!r||(r.status!=='INACTIVE'&&r.status!=='BLOCKED'&&r.status!=='DISABLED'))return;
     window.currentGuardAccount=null;window.rcadsAttendanceOperator='';try{sessionStorage.removeItem('rcads_active_guard_session');sessionStorage.removeItem('rcads_attendance_operator')}catch(e){}
     document.body.classList.remove('guard-session-active');document.getElementById('guardHomeScreen')?.classList.add('hidden');document.getElementById('selectScreen')?.classList.remove('hidden');try{updateGuardSessionBanner()}catch(e){}
