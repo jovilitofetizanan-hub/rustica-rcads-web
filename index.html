@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R242 MANAGERS STAY</title>
+<title>Rustica RCADS App — R243 QUICK UPDATE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -28824,6 +28824,31 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 <script id="rcadsR242Script">
 /* R242 — while a person is logged in on this phone, the main (HR) screen stays hidden */
 setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;const b=document.body.classList;if(!(b.contains('employee-simple-mode')||b.contains('approver-only-mode')))return;['selectScreen','normalScreen','pinScreen'].forEach(id=>{const x=document.getElementById(id);if(x&&!x.classList.contains('hidden'))x.classList.add('hidden')})}catch(_){}},500);
+</script>
+
+<!-- RCADS PATCH: R243 quick update -->
+<script id="rcadsR243Script">
+/* R243 — 🔄 NEW VERSION: RCADS checks GitHub by itself; one tap updates the phone / laptop (no more Ctrl+F5) */
+(function(){
+  'use strict';
+  function ver(t){const m=String(t||'').match(/—\s*(R\d+[^<]*)/);return m?m[1].trim():''}
+  const MINE=ver(document.title);let NEWV='';
+  async function hardUpdate(){
+    const b=document.getElementById('r243Bar');if(b)b.textContent='Updating RCADS…';
+    try{if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}}catch(e){}
+    try{if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()))}}catch(e){}
+    const u=location.pathname+'?v='+Date.now()+(location.hash||'');location.replace(u)}
+  window.rcadsUpdateNow=hardUpdate;
+  async function check(){
+    if(!/^https?:/.test(location.protocol)||!navigator.onLine)return;
+    try{const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});if(!r.ok)return;const t=await r.text();const m=t.match(/<title>([^<]*)<\/title>/i);const v=m?ver(m[1]):'';
+      if(v&&MINE&&v!==MINE){NEWV=v;show()}}catch(e){}}
+  function show(){let b=document.getElementById('r243Bar');if(!b){b=document.createElement('button');b.id='r243Bar';b.type='button';b.onclick=hardUpdate;document.documentElement.appendChild(b)}b.innerHTML='🔄 NEW RCADS VERSION — TAP TO UPDATE<small>'+NEWV.replace(/[<>&]/g,'')+'</small>'}
+  // ⚙ menu: 🔄 UPDATE RCADS
+  setInterval(()=>{try{document.querySelectorAll('.r162-menu').forEach(m=>{if(m.querySelector('[data-r243]'))return;const x=document.createElement('button');x.type='button';x.setAttribute('data-r243','1');x.textContent='🔄 UPDATE RCADS';x.onclick=hardUpdate;const v=m.querySelector('.r234-ver');m.insertBefore(x,v||null)})}catch(e){}},1500);
+  setTimeout(check,4000);setInterval(check,5*60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
+  const st=document.createElement('style');st.textContent='#r243Bar{position:fixed;left:50%;transform:translateX(-50%);top:8px;z-index:2147483600;border:0;border-radius:14px;padding:10px 16px;background:#2f6b3a;color:#fff;font-weight:900;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.35);max-width:92vw;cursor:pointer}#r243Bar small{display:block;font-size:10px;font-weight:700;opacity:.9;margin-top:2px}';document.head.appendChild(st);
+})();
 </script>
 </body>
 </html>
