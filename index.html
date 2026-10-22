@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R240 APPROVER STAYS</title>
+<title>Rustica RCADS App — R241 MANAGERS ALWAYS APPROVER</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -18195,7 +18195,7 @@ body.rcads-r131-approver-tools #rcadsR131BackToApprover{display:block}
   function render(){
     if(!document.body.classList.contains('approver-only-mode')||!currentEmployee)return;
     const a=assignment(); if(!a||!HEAD_KEYS.includes(a.key))return;
-    ensureApp(); const b=bindOwnBranch(a.key);
+    ensureApp(); let b=bindOwnBranch(a.key);try{const hb=window.rcadsHeadBranch&&window.rcadsHeadBranch(currentEmployee);if(hb)b=hb}catch(_){}
     document.getElementById('r131Branch').textContent=branchLabel(b);
     document.getElementById('r131CurrentBranch').textContent=branchLabel(b);
     document.getElementById('r131Name').textContent=currentEmployee.name||'HEAD APPROVER';
@@ -28684,7 +28684,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
   function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}
     return l.filter(e=>{try{return !(window.rcadsIsSeparated&&window.rcadsIsSeparated(e.code))}catch(_){return true}})}
-  function roleFor(emp){if(!emp||!emp.code)return '';try{if(window.rcadsMgrDutyBranch&&window.rcadsMgrDutyBranch(emp))return 'diningHead1'}catch(_){}const c=U(emp.code);const m=load();for(const b of Object.keys(m)){const r=m[b]||{};for(const [k] of ROLES)if(U(r[k])===c)return k}return ''}
+  function roleFor(emp){if(!emp||!emp.code)return '';try{if(window.rcadsMgrIsManager&&window.rcadsMgrIsManager(emp))return 'diningHead1'}catch(_){}const c=U(emp.code);const m=load();for(const b of Object.keys(m)){const r=m[b]||{};for(const [k] of ROLES)if(U(r[k])===c)return k}return ''}
   function ownPin(code){try{return window.rcadsR224&&window.rcadsR224.status(code)==='ACTIVE'}catch(e){return false}}
   const ORIG={};function unapply(emp){try{const id=U(emp.code)+' - '+emp.name;Object.keys(ORIG).forEach(k=>{const a=simpleHrAccounts[k];if(a&&String(a.identity||'').toUpperCase()===id.toUpperCase()){a.identity=ORIG[k];delete ORIG[k]}})}catch(e){}}function apply(k,emp){try{const a=simpleHrAccounts&&simpleHrAccounts[k];if(!a)return;if(!(k in ORIG))ORIG[k]=a.identity||'';a.identity=U(emp.code)+' - '+emp.name;a.active=true;a.employee=true}catch(e){}}
   // the Head is recognised on his / her own phone
@@ -28802,14 +28802,14 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     R.forEach(r=>{if(r.type==='IN'&&r.kind==='Start'&&r.dutyBranch)br=U(r.dutyBranch);else if(r.type==='OUT'&&!/break/i.test(r.kind||'')&&!/break/i.test(r.reason||''))br=''});return br};
   // the branch a Head works for today (Manager on duty → that branch)
   window.rcadsHeadBranch=function(x){return window.rcadsMgrDutyBranch(x)||''};
+  window.rcadsMgrIsManager=function(x){return MGR(empOf(x))};
   // Manager timed in but still in the employee app → offer to open the APPROVER 1 app
   setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}let el=document.getElementById('r238Bar');
     const br=e?window.rcadsMgrDutyBranch(e):'';const ap=document.body.classList.contains('approver-only-mode');
     if(br&&ap){const b=document.getElementById('r131Branch');const nm=((window.RUSTICA_BRANCHES||{})[br]||{}).name||br.replace(/_/g,' ');if(b&&b.textContent!==U(nm)+' BRANCH')b.textContent=U(nm)+' BRANCH'}
-    // duty ended (TIME OUT) while the Approver 1 app is still open
-    if(!br&&ap&&e&&MGR(e)&&!(()=>{try{return getCurrentApproverAssignment()}catch(_){return null}})()){const sh=document.querySelector('#rcadsR131ApproverApp .r131-shell');if(sh){if(!el){el=document.createElement('div');el.id='r238Bar';el.setAttribute('data-r162-tab','any');const hd=sh.querySelector(':scope > .r131-head');if(hd)hd.insertAdjacentElement('afterend',el);else sh.insertBefore(el,sh.firstChild)}
+    if(false&&!br&&ap&&e&&MGR(e)&&!(()=>{try{return getCurrentApproverAssignment()}catch(_){return null}})()){const sh=document.querySelector('#rcadsR131ApproverApp .r131-shell');if(sh){if(!el){el=document.createElement('div');el.id='r238Bar';el.setAttribute('data-r162-tab','any');const hd=sh.querySelector(':scope > .r131-head');if(hd)hd.insertAdjacentElement('afterend',el);else sh.insertBefore(el,sh.firstChild)}
       const h='<b>✓ DUTY ENDED</b><span>You are no longer the Dining Approver 1 of the branch.</span><button type="button" id="r238Go">BACK TO MY APP →</button>';if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h;el.querySelector('#r238Go').onclick=()=>{try{logout()}catch(_){}setTimeout(()=>location.reload(),300)}}}return}
-    if(!br||ap){if(el)el.remove();return}
+    if(true){if(el)el.remove();return}
     const panel=document.getElementById('employeeSimplePanel');if(!panel)return;
     if(!el){el=document.createElement('div');el.id='r238Bar';el.setAttribute('data-r162-tab','any');panel.insertBefore(el,panel.firstChild)}
     const nm=((window.RUSTICA_BRANCHES||{})[br]||{}).name||br.replace(/_/g,' ');
