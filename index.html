@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R243 QUICK UPDATE</title>
+<title>Rustica RCADS App — R254 LOANS ALREADY PAID</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25882,20 +25882,21 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const all=rosterFor(ctx.branch,c).filter(r=>!sepBefore(r.rc,c.from));
     [['Management','Mgmt','MANAGEMENT'],['Kitchen','Kitc','KITCHEN'],['Dining','Dini','DINING'],['Extra','Extra','EXTRA']].forEach(([dept,tag,title])=>{
       const list=all.filter(e=>String(e.dept||'').toLowerCase()===dept.toLowerCase());const isMgmt=dept==='Management';
-      const headers=isMgmt?['EMPCODE','COMPLETE NAME','POSITION','WORKED DAYS','ABSENT','LATE ([h]:mm)','UNDERTIME ([h]:mm)','APPROVED O.T.','INCENTIVE LEAVE','WORKED ON DAY OFF WITH PAY','SIGNATURE','MONTHLY RATE','SSS LOAN','PAG-IBIG LOAN','COMPANY LOAN & OTHERS','REMARKS']
+      const headers=isMgmt?['EMPCODE','COMPLETE NAME','POSITION','WORKED DAYS','DAY-OFF WITH PAY','PAID DAYS (15 − ABSENT)','ABSENT','LATE ([h]:mm)','UNDERTIME ([h]:mm)','INCENTIVE LEAVE','WORKED ON DAY OFF (DOUBLE PAY)','SIGNATURE','MONTHLY RATE','SSS LOAN','PAG-IBIG LOAN','COMPANY LOAN & OTHERS','REMARKS']
         :['EMPCODE','COMPLETE NAME','POSITION','WORKED DAYS','ABSENT','LATE ([h]:mm)','UNDERTIME ([h]:mm)','SPECIAL HOLIDAY','REGULAR HOLIDAY','APPROVED O.T.','INCENTIVE LEAVE','WORKED ON DAY OFF','SSS LOAN','PAG-IBIG LOAN','COMPANY LOAN & OTHERS','REMARKS'];
-      const aoa=[['COMPLETE DTR LOG - FORM ('+ctx.branchName.toUpperCase()+' - '+title+')'],['BRANCH:',ctx.branchName,'','MONTH:',dateLabel(c.from),'to MONTH:',dateLabel(c.to),'PREPARED BY:','Mr. Jovilito Fetizanan'],[''],headers];
+      const aoa=[['COMPLETE DTR LOG - FORM ('+ctx.branchName.toUpperCase()+' - '+title+')'],['BRANCH:',ctx.branchName,'','MONTH:',dateLabel(c.from),'to MONTH:',dateLabel(c.to),'PREPARED BY:','Mr. Jovilito Fetizanan'],[isMgmt?'MANAGEMENT: fixed monthly ÷ 30 days (360 days a year). Every cutoff = 15 paid days, even February or a 31-day month. Day off is paid (1 a week). PAID DAYS = 15 − ABSENT. Worked day off = double pay. No O.T. / holiday pay.':''],headers];
       list.forEach(e=>{
         const s=summary(e.rc,e,e.from,e.to),late=(Number(s.lateMinutes)||0)/1440,ut=(Number(s.undertimeMinutes)||0)/1440,ot=Math.round(((Number(s.approvedOtMinutes)||0)/60)*100)/100;
         let rem='';if(e.partial){rem=(e.tr&&e.from>c.from?'TRANSFERRED IN '+dateLabel(e.from):'')+(e.to<c.to?(rem?' • ':'')+'TRANSFERRED OUT '+dateLabel(addDays(e.to,1)):'');}
         const L=live().filter(t=>t.type==='LOAN'&&U(t.code)===e.rc&&t.start<=c.to&&loanEnd(t)>=c.from)[0];if(L)rem=(rem?rem+' • ':'')+'TEMPORARY TRANSFER TO '+bName(L.to).toUpperCase()+' '+dateLabel(L.start)+' - '+dateLabel(loanEnd(L));
-        aoa.push(isMgmt?[e.code,e.name,e.position,Number(s.workedDays)||0,Number(s.absent)||0,late,ut,ot||'','',Number(s.workedOnDayOff)||0,'','','','','',rem]
+        if(isMgmt&&s.mgmtPartial)rem=(rem?rem+' • ':'')+'NEW — STARTED '+dateLabel(s.mgmtFirstIn)+' (PAID = WORKED + DAY OFF)';
+        aoa.push(isMgmt?[e.code,e.name,e.position,Number(s.workedDays)||0,Number(s.paidDayOff)||0,(s.paidDays!=null?Number(s.paidDays):''),Number(s.absent)||0,late,ut,'',Number(s.workedOnDayOff)||0,'','','','','',rem]
           :[e.code,e.name,e.position,Number(s.workedDays)||0,Number(s.absent)||0,late,ut,Number(s.specialHoliday)||0,Number(s.regularHoliday)||0,ot||'','',Number(s.workedOnDayOff)||0,'','','',rem]);
       });
       aoa.push([''],[''],['PREPARED BY:'],['Mr. Jovilito Fetizanan'],['HR Operation Officer / Chef Consultant']);
-      const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:isMgmt?11:14}}];
-      for(let r=5;r<=4+list.length;r++){['F','G'].forEach(col=>{const cell=ws[col+r];if(cell){cell.t='n';cell.z='[h]:mm'}})}
-      ws['!cols']=[16,28,20,13,10,14,18,16,16,15,16,20,14,16,22,34].map(w=>({wch:w}));ws['!pageSetup']={orientation:'landscape',paperSize:5,fitToWidth:1,fitToHeight:0};
+      const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:isMgmt?16:14}}].concat(isMgmt?[{s:{r:2,c:0},e:{r:2,c:16}}]:[]);
+      for(let r=5;r<=4+list.length;r++){(isMgmt?['H','I']:['F','G']).forEach(col=>{const cell=ws[col+r];if(cell){cell.t='n';cell.z='[h]:mm'}})}
+      ws['!cols']=(isMgmt?[16,28,20,12,12,14,10,14,18,14,18,14,14,12,14,20,40]:[16,28,20,13,10,14,18,16,16,15,16,20,14,16,22,34]).map(w=>({wch:w}));ws['!pageSetup']={orientation:'landscape',paperSize:5,fitToWidth:1,fitToHeight:0};
       XLSX.utils.book_append_sheet(wb,ws,ctx.month+'_DTR Log ('+tag+' '+ctx.type+')');
     });
     // TRANSFERS sheet (lahat ng branch) — binabasa ng RCPS
@@ -26137,7 +26138,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       let rows=null;try{rows=parse(XLSX.read(new Uint8Array(e.target.result),{type:'array'}))}catch(err){rows=null}
       const pv=document.getElementById('r190Preview');
       if(!rows){pv.innerHTML='<div class="r185-empty">⚠ This is not the RCPS positions file. In RCPS → Employee Master, press <b>Send positions to RCADS</b> and choose that file.</div>';pending=null;return}
-      applyAll(true);pending={list:diff(rows),file:f.name};pv.innerHTML=previewHtml(pending.list,f.name);
+      applyAll(true);pending={list:diff(rows),file:f.name};pv.innerHTML=previewHtml(pending.list,f.name);try{const done=window.rcadsSaveRoster(rows.map(r=>Object.assign({b:branchOf(r.code,r.branchName)},r)),f.name);pv.insertAdjacentHTML('afterbegin','<div class="r185-empty" style="border-color:#2f6b3a;color:#21683a">✓ <b>LAST PAYROLL ROSTER SAVED</b> — '+esc(done.join(' • '))+'. The Schedule / ACS forms of the Approver 1 now follow this list (new people in, people who left out).</div>')}catch(_){}
     };rd.readAsArrayBuffer(f);
   }
   function apply(){
@@ -27476,6 +27477,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 .r202-btns{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;flex:none}.r202-btns button{width:auto!important}
 .r202-card{margin:10px 0;padding:12px;border-radius:14px;background:#f4fbf3;border:2px solid #4f8a4a;color:#23401f;text-align:left;font-size:12.5px}
 .r202-ch{font-weight:900;font-size:13.5px;display:flex;justify-content:space-between;align-items:center;gap:6px}.r202-cs{font-size:11px;color:#4d6b49;margin:4px 0 8px}
+.r249-new{margin:6px 0;padding:8px 10px;border-radius:10px;background:#fdecea;border:1px solid #d9827a;color:#8c1d14;font-weight:800;font-size:12px}
 .r202-card .r173-row{display:flex;gap:6px}.r202-card .r173-row input{flex:1;min-width:0;padding:9px;border:1px solid #b9d3b5;border-radius:9px}
 </style>
 <script id="rcadsR202Script">
@@ -27495,6 +27497,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function bName(c){if(!c||c==='ALL')return 'ALL BRANCHES';const b=branches().find(x=>x.code===c);return b?b.name:String(c).replace(/_/g,' ')}
   function fmtSize(n){return n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'}
   function fmtD(s){const d=new Date(s);return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+  function prefixOf(b){if(!b||b==='ALL')return null;const PF={SAN_RAFAEL:'SRF',CABANATUAN:'CAB',SAN_JUAN:'SJ',ANGELES:'ANG',SAN_FERNANDO:'SF'};if(PF[b])return PF[b];
+    try{const l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).map(e=>String(e.code||'').split('-')[0]).filter(Boolean);if(l.length){const c={};l.forEach(p=>c[p]=(c[p]||0)+1);return Object.keys(c).sort((x,y)=>c[y]-c[x])[0].toUpperCase()}}catch(e){}return null}
   const KINDS=[['PAYROLL','Payroll'],['PAYSLIP','Payslips'],['GOV','Gov’t benefits (SSS / PhilHealth / Pag-IBIG)'],['13TH','13th month pay'],['LASTPAY','Last pay'],['OTHERS','Others']];
   const kindLbl=k=>(KINDS.find(x=>x[0]===k)||[k,k])[1];
   const XLSX='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -27523,7 +27527,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const head='<div class="r160-hr-title">💰 PAYROLL FILES — for the HR ASSISTANT</div><div class="r160-hr-note">Upload here the payroll, payslips and gov’t-benefit reports exported from <b>RCPS</b> (PDF or Excel). They are kept on the Supabase server — not in the RCADS file, not on phones. Only <b>HR</b> (201 password) and the <b>HR ASSISTANT</b> (own PIN) can open them. The HR Assistant can send them to the branches (gov’t-benefit holder).</div>';
     if(!unlocked)return head+'<div class="r202-lock">🔒 Unlock <b>🗂 201 Files</b> first (same 201 password), then come back here. <button type="button" class="r160-mini" onclick="rcadsHrGo(\'r173HrSection\')">OPEN 201 FILES</button></div>';
     const bo='<option value="ALL">ALL BRANCHES</option>'+branches().map(b=>'<option value="'+esc(b.code)+'">'+esc(b.name)+'</option>').join('');
-    return head+'<div class="r202-up"><label>CUTOFF<input id="r202Period" value="'+esc(cutoffLabel())+'" placeholder="e.g. OCT 11-25, 2026"></label><label>BRANCH<select id="r202Branch">'+bo+'</select></label><label>WHAT<select id="r202Kind">'+KINDS.map(k=>'<option value="'+k[0]+'">'+esc(k[1])+'</option>').join('')+'</select></label><label>NOTE (optional)<input id="r202Note" placeholder="e.g. for SSS holder"></label><label class="w">FILE(S)<input type="file" id="r202File" multiple accept="application/pdf,.pdf,.xlsx,image/*"></label><button type="button" class="r160-btn" id="r202Upload">UPLOAD PAYROLL FILE</button><div class="r173-msg" id="r202Msg">'+esc(HR.msg)+'</div><small>PDF, Excel (.xlsx), JPG or PNG • up to 6 MB per file.</small></div>'
+    return head+'<div class="r202-up"><label>CUTOFF<input id="r202Period" value="'+esc(cutoffLabel())+'" placeholder="e.g. OCT 11-25, 2026"></label><label>BRANCH<select id="r202Branch">'+bo+'</select></label><label>WHAT<select id="r202Kind">'+KINDS.filter(k=>k[0]!=='GOV').map(k=>'<option value="'+k[0]+'">'+esc(k[1])+'</option>').join('')+'</select></label><label>NOTE (optional)<input id="r202Note" placeholder="e.g. for SSS holder"></label><label class="w">FILE(S)<input type="file" id="r202File" multiple accept="application/pdf,.pdf,.xlsx,image/*"></label><button type="button" class="r160-btn" id="r202Upload">UPLOAD PAYROLL FILE</button><div class="r173-msg" id="r202Msg">'+esc(HR.msg)+'</div><small>PDF, Excel (.xlsx), JPG or PNG • up to 6 MB per file.</small></div>'
       +'<div class="r202-top"><b>Files on the server</b><button type="button" class="r160-mini light" id="r202Refresh">↻ REFRESH</button></div><div id="r202List">'+(HR.rows?rowsHtml(HR.rows,'hr'):'<div class="r160-empty">Loading…</div>')+'</div>';
   }
   async function hrLoad(){try{const d=await hrRpc('rustica_payroll_list',{});HR.rows=d.rows||[]}catch(e){HR.rows=[];HR.msg=e.message}hrRender(true)}
@@ -27536,8 +27540,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       const say=(x,c)=>{m.className='r173-msg '+(c||'');m.textContent=x};
       if(!per){say('Enter the cutoff.','bad');return}if(!files.length){say('Choose the file.','bad');return}
       let ok=0;for(const f of files){const mime=mimeOf(f);if(!mime){say(f.name+': only PDF, Excel (.xlsx), JPG or PNG.','bad');return}if(f.size>MAX){say(f.name+': larger than 6 MB.','bad');return}
-        try{say('Uploading '+f.name+'…');await hrRpc('rustica_payroll_put',{p_period:per,p_branch:document.getElementById('r202Branch').value,p_kind:document.getElementById('r202Kind').value,p_file_name:f.name,p_mime:mime,p_data_b64:b64FromBuf(await f.arrayBuffer()),p_note:document.getElementById('r202Note').value.trim()||null});ok++}catch(err){say(f.name+': '+err.message,'bad');return}}
-      HR.msg='✓ '+ok+' file(s) uploaded. The HR Assistant can see them now.';await hrLoad();const m2=document.getElementById('r202Msg');if(m2)m2.className='r173-msg ok';return}
+        try{say('Uploading '+f.name+'…');await hrRpc('rustica_payroll_put',{p_period:per,p_branch:document.getElementById('r202Branch').value,p_kind:document.getElementById('r202Kind').value,p_file_name:f.name,p_mime:mime,p_data_b64:b64FromBuf(await f.arrayBuffer()),p_note:document.getElementById('r202Note').value.trim()||null,p_prefix:prefixOf(document.getElementById('r202Branch').value)});ok++}catch(err){say(f.name+': '+err.message,'bad');return}}
+      {const bb=document.getElementById('r202Branch').value,kk=document.getElementById('r202Kind').value;const who=[];if(kk!=='PAYSLIP')who.push('the HR Assistant');if(bb!=='ALL'&&(kk==='PAYROLL'||kk==='PAYSLIP'))who.push('the DINING HEAD 1 of '+bName(bb));HR.msg='✓ '+ok+' file(s) uploaded. '+(who.length?'Sent to '+who.join(' and ')+'.':'Only HR can see it (payslips of ALL BRANCHES go to nobody — choose the branch).')}await hrLoad();const m2=document.getElementById('r202Msg');if(m2)m2.className='r173-msg ok';return}
     const v=t.closest('[data-r202-view],[data-r202-send]');
     if(v){try{const id=v.getAttribute('data-r202-view')||v.getAttribute('data-r202-send');const f=await hrRpc('rustica_payroll_get',{p_id:id});if(v.hasAttribute('data-r202-view'))openBlob(f);else sendBlob(f)}catch(err){alert(err.message)}return}
     const d=t.closest('[data-r202-del]');
@@ -27560,10 +27564,19 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   let ME={code:'',pin:'',rows:null,busy:false};
   function staffRole(code){const r=(lsGet(STAFF_KEY,[])||[]).find(x=>U(x.code)===U(code));return r?r.role:''}
   async function rpc(n,b){if(typeof window.rcads201Rpc!=='function')throw new Error('201 module missing.');return window.rcads201Rpc(n,b)}
+  function isDH(){return ME.role==='DH1'}
+  function myBranchName(){const p=String(ME.code).split('-')[0];const PF={SRF:'SAN_RAFAEL',CAB:'CABANATUAN',SJ:'SAN_JUAN',ANG:'ANGELES',SF:'SAN_FERNANDO'};
+    if(PF[p])return bName(PF[p]);for(const b of branches()){try{if((window.rusticaManagerLoadBranchEmployeeMaster?.(b.code)||[]).some(e=>U(e.code)===ME.code))return b.name}catch(e){}}return p}
+  function newKey(){return 'r249_pay_seen_'+ME.code}
   function cardHtml(){
-    if(!ME.rows)return '<div class="r202-ch">💰 PAYROLL FILES • HR ASSISTANT</div><div class="r202-cs">View and send the payroll to the branches (gov’t-benefit holder). Enter your personal PIN.</div><div class="r173-row"><input type="password" inputmode="numeric" maxlength="8" id="r202Pin" placeholder="Personal PIN" autocomplete="off"><button type="button" class="r160-btn" id="r202Open">OPEN</button></div><div class="r173-msg bad" id="r202PMsg"></div>';
-    return '<div class="r202-ch">💰 PAYROLL FILES • HR ASSISTANT <button type="button" class="r160-mini light" id="r202Close">🔒 CLOSE</button></div><div class="r202-cs">CONFIDENTIAL — send only to the right person of each branch. Do not post in group chats.</div>'+rowsHtml(ME.rows,'hra');
+    const T=isDH()?'💰 PAYROLL • '+esc(myBranchName()).toUpperCase()+' • DINING HEAD 1':'💰 PAYROLL FILES • HR ASSISTANT';
+    const nw=ME.news?'<div class="r249-new">🔴 NEW PAYROLL FROM HR'+(ME.news.period?' — '+esc(ME.news.period):'')+' ('+ME.news.n+' file'+(ME.news.n>1?'s':'')+'). Enter your PIN to open.</div>':'';
+    if(!ME.rows)return '<div class="r202-ch">'+T+'</div>'+nw+'<div class="r202-cs">'+(isDH()?'The payroll / payslips of YOUR branch are sent here by HR automatically. Enter your personal PIN.':'Payroll of ALL branches (no payslips) — view and send to the gov’t-benefit holder. Enter your personal PIN.')+'</div><div class="r173-row"><input type="password" inputmode="numeric" maxlength="8" id="r202Pin" placeholder="Personal PIN" autocomplete="off"><button type="button" class="r160-btn" id="r202Open">OPEN</button></div><div class="r173-msg bad" id="r202PMsg"></div>';
+    return '<div class="r202-ch">'+T+' <button type="button" class="r160-mini light" id="r202Close">🔒 CLOSE</button></div><div class="r202-cs">CONFIDENTIAL — '+(isDH()?'for your branch only. Give each payslip only to its owner.':'send only to the right person of each branch.')+' Do not post in group chats.</div>'+(ME.rows.length?rowsHtml(ME.rows,'hra'):'<div class="r160-empty">No payroll file from HR yet.</div>');
   }
+  async function checkNew(){if(!ME.code||ME.rows||ME.checking)return;if(Date.now()-(ME.lastChk||0)<180000)return;ME.checking=true;ME.lastChk=Date.now();
+    try{const d=await rpc('rustica_payroll_staff_new',{p_code:ME.code});const seen=lsGet(newKey(),'');ME.news=(d&&d.latest&&d.latest>seen)?{period:d.period||'',n:d.n||1,latest:d.latest}:null}catch(e){ME.lastChk=Date.now()-150000}
+    ME.checking=false;const el=document.getElementById('r202Card');if(el)el.dataset.sig='';}
   function curEmp(){try{return currentEmployee||null}catch(e){return null}}
   function tickApp(){
     const e=curEmp();let host=null,tabbed=true;
@@ -27571,19 +27584,21 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(e&&panel&&document.body.classList.contains('employee-simple-mode'))host=panel;
     else if(e&&shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none')host=shell;
     let el=document.getElementById('r202Card');
-    if(!host||staffRole(e.code)!=='HRA'){if(el)el.remove();if(ME.code)ME={code:'',pin:'',rows:null,busy:false};return}
-    if(ME.code!==U(e.code))ME={code:U(e.code),pin:'',rows:null,busy:false};
+    const myRole=e?staffRole(e.code):'';
+    if(!host||(myRole!=='HRA'&&myRole!=='DH1')){if(el)el.remove();if(ME.code)ME={code:'',pin:'',rows:null,busy:false};return}
+    if(ME.code!==U(e.code)||ME.role!==myRole)ME={code:U(e.code),role:myRole,pin:'',rows:null,busy:false};
+    checkNew();
     if(!el){el=document.createElement('div');el.id='r202Card';el.className='r202-card';el.setAttribute('data-r162-tab','home');el.addEventListener('click',cardClick);el.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='r202Pin')openMine()})}
     const after=document.getElementById('r175StaffCard');
     if(after&&after.parentElement===host){if(after.nextElementSibling!==el)after.insertAdjacentElement('afterend',el)}else if(el.parentElement!==host){const nav=host.querySelector(':scope > .r162-nav');host.insertBefore(el,nav||null)}
     // leaving the home tab locks it again
     const act=host.getAttribute('data-r162-active');if(act&&act!=='home'&&ME.rows){ME.pin='';ME.rows=null}
-    const sig=ME.rows?'open:'+ME.rows.length:'lock';if(el.dataset.sig!==sig&&!ME.busy){el.dataset.sig=sig;el.innerHTML=cardHtml()}
+    const sig=ME.rows?'open:'+ME.rows.length:'lock:'+(ME.news?ME.news.latest:'');if(el.dataset.sig!==sig&&!ME.busy){el.dataset.sig=sig;el.innerHTML=cardHtml()}
   }
   async function openMine(){
     const pin=String((document.getElementById('r202Pin')||{}).value||'').trim();const m=document.getElementById('r202PMsg');if(!pin){if(m)m.textContent='Enter the PIN.';return}
     ME.busy=true;if(m){m.className='r173-msg';m.textContent='Opening…'}
-    try{const d=await rpc('rustica_payroll_staff_list',{p_code:ME.code,p_pin:pin});ME.pin=pin;ME.rows=d.rows||[]}catch(err){if(m){m.className='r173-msg bad';m.textContent=err.message}}
+    try{const d=await rpc('rustica_payroll_staff_list',{p_code:ME.code,p_pin:pin});ME.pin=pin;ME.rows=d.rows||[];const lt=ME.rows.reduce((m,r)=>r.uploaded_at>m?r.uploaded_at:m,'');if(lt)try{localStorage.setItem(newKey(),JSON.stringify(lt))}catch(_){}ME.news=null}catch(err){if(m){m.className='r173-msg bad';m.textContent=err.message}}
     ME.busy=false;tickApp();
   }
   async function cardClick(e){
@@ -27923,6 +27938,55 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 .r215-row button{background:#fff;border:1.5px solid #c9a46a;color:#5b3519;width:auto;margin:0}.r215-up{background:#5b3519;color:#fff;border:0}.r215-up.acs{background:#2f6b3a}
 .r215-msg{font-size:11.5px;font-weight:800;color:#2d6a36;min-height:14px}
 </style>
+
+<!-- RCADS PATCH: R244 Schedule / ACS forms follow the last payroll -->
+<script id="rcadsR244Script">
+/* R244 — SCHEDULE / ACS FORMS FOLLOW THE LAST PAYROLL OF EACH BRANCH
+   RCPS → Employee Master → "Send positions to RCADS" (made from the LAST PAYROLL of each branch, resigned / AWOL left out, no salary).
+   HR imports it in RCADS (👤 Positions from RCPS) → that list becomes the ROSTER of the branch:
+   the ⬇ TEMPLATE / ⬇ ACS TEMPLATE of every Kitchen / Dining Approver 1 is made from it (new people in, people who left out). */
+(function(){
+  'use strict';
+  const K='rcads_r244_payroll_roster_v1';const U=c=>String(c||'').trim().toUpperCase();
+  function load(){try{return JSON.parse(localStorage.getItem(K)||'{}')||{}}catch(e){return {}}}
+  window.rcadsSaveRoster=function(rows,file){const d=load();d.branches=d.branches||{};const by={};
+    (rows||[]).forEach(r=>{if(!r.b||!r.code)return;(by[r.b]=by[r.b]||[]).push({code:U(r.code),name:r.name,dept:r.dept,position:r.position})});
+    const now=new Date().toISOString();Object.keys(by).forEach(b=>{d.branches[b]={rows:by[b],basis:(rows.find(r=>r.b===b)||{}).basis||'',file:file||'',at:now}});
+    try{localStorage.setItem(K,JSON.stringify(d));rcadsCloudFlushQueue()}catch(e){}
+    return Object.keys(by).map(b=>b.replace(/_/g,' ')+': '+by[b].length)};
+  window.rcadsRosterFor=function(b){const r=(load().branches||{})[U(b)];return r&&r.rows&&r.rows.length?r.rows:null};
+  window.rcadsRosterInfo=function(b){const r=(load().branches||{})[U(b)];return r?{basis:r.basis,at:r.at,n:(r.rows||[]).length}:null};
+})();
+</script>
+
+<!-- RCADS PATCH: R245 Schedule / ACS form names from the DTR (active staff) -->
+<script id="rcadsR245Script">
+/* R245 — SCHEDULE / ACS FORM NAMES = staff who are REALLY ACTIVE: they have DTR (TIME IN) in the last 3 weeks in that branch.
+   + new employees added in the last 30 days (no DTR yet). Separated people are never included.
+   If a branch has no DTR yet in RCADS (just starting), the last payroll list (RCPS import) or the employee list is used. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();const DAYS=21;
+  function pad(n){return String(n).padStart(2,'0')}
+  function dk(d){d=new Date(d);return isNaN(d)?'':d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function since(n){return dk(new Date(Date.now()-n*864e5))}
+  function recs(code){try{return (window.getEmployeeAttendanceRecordsForDtr?getEmployeeAttendanceRecordsForDtr({code:U(code)}):[])||[]}catch(e){return []}}
+  function lastIn(code){let best='';recs(code).forEach(r=>{if(r&&r.type==='IN'){let k='';try{k=dtrDateKey(r.date)}catch(_){k=dk(r.date)}if(k>best)best=k}});return best}
+  function newOnes(b){let d={};try{d=JSON.parse(localStorage.getItem('rcads_r190_rcps_positions_v1')||'{}')||{}}catch(e){}const lim=Date.now()-30*864e5;
+    return new Set((d.rows||[]).filter(r=>r.kind==='NEW'&&U(r.branch)===U(b)&&Date.parse(r.at||0)>=lim).map(r=>U(r.code)))}
+  window.rcadsFormRoster=function(b,master){
+    const by=new Map();(master||[]).forEach(e=>{if(e&&e.code)by.set(U(e.code),e)});
+    try{(window.rcadsRosterFor&&window.rcadsRosterFor(b)||[]).forEach(e=>{if(e&&e.code&&!by.has(U(e.code)))by.set(U(e.code),e)})}catch(_){}
+    const all=[...by.values()].filter(e=>!(window.rcadsIsSeparated&&window.rcadsIsSeparated(e.code)));
+    const from=since(DAYS),nw=newOnes(b);
+    const active=all.filter(e=>lastIn(e.code)>=from||nw.has(U(e.code)));
+    if(active.filter(e=>!nw.has(U(e.code))).length)return {list:active,basis:'DTR',n:active.length};
+    const ok=e=>!(window.rcadsIsSeparated&&window.rcadsIsSeparated(e.code));
+    const pr=window.rcadsRosterFor&&window.rcadsRosterFor(b);
+    if(pr){const l=pr.filter(ok);return {list:l,basis:'PAYROLL',n:l.length}}
+    const m=(master||[]).filter(ok);return {list:m,basis:'MASTER',n:m.length}};
+})();
+</script>
 <script id="rcadsR215Script">
 /* R215 — SCHEDULE UPLOAD BY KITCHEN HEAD 1 / DINING HEAD 1 (separate files, separate departments)
    • ORIGINAL SCHEDULE — every SUNDAY, for the coming week (Mon–Sun). Kitchen Head 1 = Kitchen only, Dining Head 1 = Dining only.
@@ -28012,8 +28076,8 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     const [y]=mon.split('-');const M=iso=>new Date(iso+'T00:00').toLocaleDateString('en-US',{month:'short'}).toUpperCase()+' '+Number(iso.slice(8));
     const rows=[[`RUSTICA ${bName(b).toUpperCase()} — ${dept} ${kind==='ACS'?'ACS (APPROVED CHANGE OF SCHEDULE)':'WEEKLY SCHEDULE (ORIGINAL)'}`],[`DATE: ${M(mon)} - ${M(sun)}, ${y}`],
       ['EMPCODE','NAME','POSITION'].concat(...days.map(d=>kind==='ACS'?[d,'','']:[d,''])),['','',''].concat(...days.map(()=>kind==='ACS'?['IN','OUT','APRVD OT (hrs)']:['IN','OUT']))];
-    staff(b).filter(e=>deptOf(e)===dept&&!(window.rcadsIsSeparated&&window.rcadsIsSeparated(e.code))).sort((a,c)=>String(a.code).localeCompare(String(c.code),undefined,{numeric:true})).forEach(e=>rows.push([U(e.code),e.name||'',e.position||''].concat(...days.map(()=>kind==='ACS'?['','','']:['','']))));
-    rows.push([]);rows.push([kind==='ACS'?'Fill ONLY the changed days (new time IN / OUT, or OFF / LEAVE in the IN column) and the APPROVED OVERTIME in WHOLE hours (1, 2, 3 — no half hour; same as approved in RCADS). Leave the rest blank. Long break = scheduled hours minus 8 hours (automatic).':'Time like 7:00 AM / 4:00 PM. Day off: type OFF in the IN column.']);rows.push(['PREPARED BY: '+(dept==='KITCHEN'?'KITCHEN HEAD 1':'DINING HEAD 1')]);
+    (window.rcadsFormRoster?window.rcadsFormRoster(b,staff(b)).list:staff(b)).filter(e=>(window.rcadsFormDept?window.rcadsFormDept(e):deptOf(e))===dept&&!(window.rcadsIsSeparated&&window.rcadsIsSeparated(e.code))).sort((a,c)=>String(a.code).localeCompare(String(c.code),undefined,{numeric:true})).forEach(e=>rows.push([U(e.code),e.name||'',e.position||''].concat(...days.map(()=>kind==='ACS'?['','','']:['','']))));
+    rows.push([]);rows.push([kind==='ACS'?'Fill ONLY the changed days (new time IN / OUT, or OFF / LEAVE in the IN column) and the APPROVED OVERTIME in WHOLE hours (1, 2, 3 — no half hour; same as approved in RCADS). Leave the rest blank. Long break = scheduled hours minus 8 hours (automatic).':'Time like 7:00 AM / 4:00 PM. Day off: type OFF in the IN column. MANAGEMENT: exactly ONE day OFF a week (2 OFF = the 2nd is ABSENT; no OFF and worked 7 days = WORKED DAY OFF).']);rows.push(['PREPARED BY: '+(dept==='KITCHEN'?'KITCHEN HEAD 1':'DINING HEAD 1')]);
     const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:12},{wch:26},{wch:16}].concat(Array(kind==='ACS'?21:14).fill({wch:9}));
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,dept);XLSX.writeFile(wb,`${dept}_${kind}_${b}_${mon}.xlsx`);
   }
@@ -28032,10 +28096,10 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
       try{const L=lib();const x=L.filter(e=>e&&e.branch===b&&cat(e)===category&&e.fileName===file.name).sort((a,c)=>String(c.savedAt).localeCompare(String(a.savedAt)))[0];
         if(x){x.uploadedBy=by;x.kind=kind;rcadsSaveScheduleLibrary(L);try{rcadsCloudFlushQueue()}catch(e){}}
         // how many of the department's staff are in the file
-        const codes=new Set(staff(b).filter(e=>deptOf(e)===dept).map(e=>U(e.code)));let found=0,other=0;
+        const codes=new Set(staff(b).filter(e=>(window.rcadsFormDept?window.rcadsFormDept(e):deptOf(e))===dept).map(e=>U(e.code)));let found=0,other=0;
         (x&&x.weeklyBlocks||[]).forEach(w=>(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).forEach(r=>{const c=U(r[w.empIdx]);if(!/^[A-Z]{2,4}-/.test(c))return;if(codes.has(c))found++;else other++}));
         (x&&x.rowData||[]).forEach(r=>{const c=U(r['EMPLOYEE ID']);if(c){if(codes.has(c))found++;else other++}});
-        cache={};done(true,'✓ '+(kind==='ACS'?'ACS':'ORIGINAL SCHEDULE')+' saved • '+found+' '+dept.toLowerCase()+' row(s)'+(other?' • ⚠ '+other+' row(s) not in '+dept:'')+'. HR and the system can see it now.');
+        cache={};done(true,'✓ '+(kind==='ACS'?'ACS':'ORIGINAL SCHEDULE')+' saved • '+found+' '+dept.toLowerCase()+' row(s)'+(other?' • ⚠ '+other+' row(s) not in '+dept:'')+'. HR and the system can see it now.'+(window.rcadsMgmtOffWarn?window.rcadsMgmtOffWarn(b,dept):''));
       }catch(e){done(true,'✓ Saved.')}
     },250);
   }
@@ -28047,7 +28111,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   function line(x){return x?'✓ '+esc(x.fileName||'')+' • '+esc(new Date(x.savedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+(x.uploadedBy?' • '+esc(x.uploadedBy):''):'❌ not uploaded yet'}
   function cardHtml(c,s,msg){
     const sun=dow()===0;
-    return '<div class="r215-h">📅 SCHEDULE — '+esc(c.dept)+' • '+esc(bName(c.b))+'</div><div class="r215-n">Separate file for '+esc(c.dept)+' only • ORIGINAL every SUNDAY • ACS every SATURDAY and on the CUT-OFF day</div>'
+    return '<div class="r215-h">📅 SCHEDULE — '+esc(c.dept)+' • '+esc(bName(c.b))+'</div><div class="r215-n">Separate file for '+esc(c.dept)+' only • ORIGINAL every SUNDAY • ACS every SATURDAY and on the CUT-OFF day</div>'+(()=>{try{const r=window.rcadsFormRoster&&window.rcadsFormRoster(c.b,staff(c.b));if(!r)return '';const n=r.list.filter(e=>(window.rcadsFormDept?window.rcadsFormDept(e):deptOf(e))===c.dept).length;const i=window.rcadsRosterInfo&&window.rcadsRosterInfo(c.b);return '<div class="r215-n" style="color:#21683a;font-weight:800">👥 '+n+' names in the form — '+(r.basis==='DTR'?'staff with TIME IN in the last 3 weeks (active) + new employees':(r.basis==='PAYROLL'?'from the LAST PAYROLL'+(i&&i.basis?' ('+esc(i.basis)+')':'')+' (no DTR in RCADS yet)':'from the employee list (no DTR / payroll list yet)'))+'</div>'}catch(_){return ''}})()
       +'<div class="r215-box '+(s.cur?'ok':'bad')+'"><b>THIS WEEK '+fmt(s.mon)+' – '+fmt(addD(s.mon,6))+'</b><small>'+line(s.cur)+'</small></div>'
       +'<div class="r215-box '+(s.next?'ok':(sun?'bad':'wait'))+'"><b>NEXT WEEK '+fmt(s.nextMon)+' – '+fmt(addD(s.nextMon,6))+(sun&&!s.next?' • DUE TODAY (Sunday)':'')+'</b><small>'+line(s.next)+'</small></div>'
       +'<div class="r215-row"><button type="button" data-r215-t="ORIGINAL">⬇ TEMPLATE</button><label class="r215-up">📤 UPLOAD ORIGINAL SCHEDULE<input type="file" accept=".xlsx,.xls" data-r215-up="ORIGINAL" hidden></label></div>'
@@ -28848,6 +28912,333 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
   setInterval(()=>{try{document.querySelectorAll('.r162-menu').forEach(m=>{if(m.querySelector('[data-r243]'))return;const x=document.createElement('button');x.type='button';x.setAttribute('data-r243','1');x.textContent='🔄 UPDATE RCADS';x.onclick=hardUpdate;const v=m.querySelector('.r234-ver');m.insertBefore(x,v||null)})}catch(e){}},1500);
   setTimeout(check,4000);setInterval(check,5*60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
   const st=document.createElement('style');st.textContent='#r243Bar{position:fixed;left:50%;transform:translateX(-50%);top:8px;z-index:2147483600;border:0;border-radius:14px;padding:10px 16px;background:#2f6b3a;color:#fff;font-weight:900;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.35);max-width:92vw;cursor:pointer}#r243Bar small{display:block;font-size:10px;font-weight:700;opacity:.9;margin-top:2px}';document.head.appendChild(st);
+})();
+</script>
+
+<!-- RCADS PATCH: R246 Management in the forms + one day off a week -->
+<script id="rcadsR246Script">
+/* R246 — MANAGEMENT IN THE SCHEDULE FORMS + ONE DAY OFF A WEEK
+   • Management staff are always in the Kitchen / Dining Schedule & ACS forms (kitchen positions → KITCHEN, the rest → DINING;
+     owners / office staff are not).
+   • Management must have exactly ONE day OFF a week (Mon–Sun):
+       – 2 or more OFF days in a week → every OFF after the first is ABSENT (if not worked) in the DTR Summary.
+       – no OFF day and worked all 7 days → 1 WORKED DAY OFF in the DTR Summary.
+   • When a Head uploads a schedule, RCADS warns which Management person has no day off / 2 day offs. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  const KIT=/COOK|KITCHEN|DISH|PANTRY|CHEF|PREP|BAKER|BUTCHER|INVENTORY|UTILITY|STEWARD|GRILL|FRY/i;
+  window.rcadsFormDept=function(e){if(!e)return '';const d=U(e.dept),p=U(e.position);
+    if(d==='KITCHEN'||d==='DINING')return d;if(d==='EXTRA')return KIT.test(p)?'KITCHEN':'DINING';
+    if(d==='MANAGEMENT'){if(/TOPMGNT|TOP-MGNT/.test(U(e.code))||/OWNER|CEO|PRESIDENT|HR OPERATION|OFFICE CLERK|ADMIN/.test(p))return '';
+      return (/CHEF|COOK|DEPUTY|PANTRY|KITCHEN/.test(p)&&p.indexOf('SUPERVISOR')<0)?'KITCHEN':'DINING'}
+    return d};
+  function pad(n){return String(n).padStart(2,'0')}
+  function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function monOf(k){const d=new Date(k+'T00:00');const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return iso(d)}
+  function week(mon){const d=new Date(mon+'T00:00');return [0,1,2,3,4,5,6].map(i=>{const x=new Date(d);x.setDate(d.getDate()+i);return iso(x)})}
+  function sched(e,k){try{return getScheduleEntryForEmployeeDate(e,k)||{}}catch(_){return {}}}
+  function isOff(s){try{return s&&s.type==='STATUS'&&dtrIsDayOffStatus(s.status)}catch(_){return false}}
+  function hasSched(s){return s&&(s.type==='TIME'||s.type==='STATUS')}
+  function workedSet(e){const set=new Set();try{getEmployeeAttendanceRecordsForDtr(e).forEach(r=>{if(r&&r.type==='IN'){const k=dtrDateKey(r.date);if(k)set.add(k)}})}catch(_){}return set}
+  // ---- DTR Summary: Management one-day-off rule ----
+  const prev=window.calculateEmployeeDtrSummary;
+  if(typeof prev==='function')window.calculateEmployeeDtrSummary=function(emp,cutoff){
+    const s=prev.apply(this,arguments);
+    try{if(!s||!emp||!isManagementEmployee(emp))return s;s.specialHoliday=0;s.regularHoliday=0;s.approvedOtMinutes=0;try{s.approvedOtHHMM=dtrHHMM(0)}catch(_){} /* Management: no OT, no Special / Regular Holiday pay */
+      const keys=dtrDateRangeKeys(s.cutoff.from,s.cutoff.to);const inCut=new Set(keys);const W=workedSet(emp);
+      const mons=[...new Set(keys.map(monOf))];let extraAbs=0,noOff=0;const notes=[];
+      mons.forEach(m=>{const days=week(m);const S=days.map(k=>sched(emp,k));if(!S.some(hasSched))return;
+        const offs=days.filter((k,i)=>isOff(S[i]));
+        if(offs.length>=2)offs.slice(1).forEach(k=>{if(inCut.has(k)&&!W.has(k)){extraAbs++;notes.push(k+' 2nd DAY OFF = ABSENT')}});
+        if(!offs.length&&days.every(k=>W.has(k))&&inCut.has(days[6])){noOff++;notes.push('Week of '+m+' no day off = WORKED DAY OFF')}});
+      if(extraAbs||noOff){s.absent=(s.absent||0)+extraAbs;s.workedOnDayOff=(s.workedOnDayOff||0)+noOff;s.mgmtDayOffNotes=notes}}catch(_){}
+    return s};
+  // ---- warning after a schedule upload ----
+  function staffOf(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(_){}return l}
+  window.rcadsMgmtOffWarn=function(b,dept){try{
+    const t=new Date();const thisMon=monOf(iso(t));const nm=new Date(thisMon+'T00:00');nm.setDate(nm.getDate()+7);const nextMon=iso(nm);
+    const M=staffOf(b).filter(e=>U(e.dept)==='MANAGEMENT'&&window.rcadsFormDept(e)===dept&&!(window.rcadsIsSeparated&&window.rcadsIsSeparated(e.code)));const out=[];
+    [thisMon,nextMon].forEach(m=>{const days=week(m);M.forEach(e=>{const S=days.map(k=>sched(e,k));if(!S.some(hasSched))return;const n=S.filter(isOff).length;
+      if(n===0)out.push((e.name||e.code)+': NO day off ('+m.slice(5)+' week) → WORKED DAY OFF if he / she works 7 days');
+      else if(n>=2)out.push((e.name||e.code)+': '+n+' day OFF ('+m.slice(5)+' week) → only 1 allowed, the rest = ABSENT')})});
+    return out.length?' ⚠ MANAGEMENT DAY OFF: '+out.join(' • '):''}catch(_){return ''}};
+})();
+</script>
+
+<!-- RCADS PATCH: R248 Management pay days in the DTR Summary Log -->
+<script id="rcadsR248Script">
+/* R248 — MANAGEMENT PAY DAYS IN THE DTR SUMMARY LOG (fixed 30-day formula)
+   Management = fixed monthly salary. Every cutoff = 15 paid days (monthly ÷ 30 × 15), whether the cutoff has 13, 15 or 16 days
+   (February or a 31-day month: the same). Day off is PAID (1 a week). Only ABSENT lowers the pay.
+     DAY-OFF WITH PAY  = the 1 scheduled day off of each week that he / she did not work
+     ABSENT            = days of the cutoff not worked and not the paid day off (2nd day off in a week = absent)
+     PAID DAYS         = 15 − ABSENT            e.g. 12 worked + 2 day off → 1 absent → 14 paid days
+     WORKED ON DAY OFF = worked his / her day off (or no day off all week) → +1 day (double pay)
+   New employee (first time-in inside this cutoff): PAID DAYS = worked + day off (days before he / she started are not absent). */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function pad(n){return String(n).padStart(2,'0')}
+  function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function monOf(k){const d=new Date(k+'T00:00');const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return iso(d)}
+  function week(mon){const d=new Date(mon+'T00:00');return [0,1,2,3,4,5,6].map(i=>{const x=new Date(d);x.setDate(d.getDate()+i);return iso(x)})}
+  function sched(e,k){try{return getScheduleEntryForEmployeeDate(e,k)||{}}catch(_){return {}}}
+  function isOff(s){try{return !!s&&s.type==='STATUS'&&dtrIsDayOffStatus(s.status)}catch(_){return false}}
+  function hasSched(s){return !!s&&(s.type==='TIME'||s.type==='STATUS')}
+  function isNewHire(code){try{const d=JSON.parse(localStorage.getItem('rcads_r190_rcps_positions_v1')||'{}')||{};const lim=Date.now()-60*864e5;
+    return (d.rows||[]).some(r=>r&&r.kind==='NEW'&&U(r.code)===U(code)&&Date.parse(r.at||0)>=lim)}catch(_){return false}}
+  window.rcadsMgmtPay=function(emp,s){
+    const keys=dtrDateRangeKeys(s.cutoff.from,s.cutoff.to);
+    const W=new Set();let first='';
+    try{getEmployeeAttendanceRecordsForDtr(emp).forEach(r=>{if(r&&r.type==='IN'){const k=dtrDateKey(r.date);if(!k)return;W.add(k);if(!first||k<first)first=k}})}catch(_){}
+    const partial=!!first&&first>keys[0]&&isNewHire(emp.code);
+    const days=partial?keys.filter(k=>k>=first):keys;const inSet=new Set(days);
+    let worked=0,paidOff=0;days.forEach(k=>{if(W.has(k))worked++});
+    [...new Set(days.map(monOf))].forEach(m=>{
+      const wk=week(m),S=wk.map(k=>sched(emp,k));const offs=wk.filter((k,i)=>isOff(S[i]));
+      if(offs.length){const k=offs[0];if(inSet.has(k)&&!W.has(k))paidOff++;return}
+      // no schedule at all in this week (inside the cutoff) → 1 day not worked = the paid day off
+      const part=wk.filter(k=>inSet.has(k));
+      if(!part.some(k=>hasSched(sched(emp,k)))&&part.some(k=>!W.has(k)))paidOff++;
+    });
+    if(!worked)paidOff=0; // no time-in at all this cutoff → no paid day off, nothing to pay
+    const absent=Math.max(0,days.length-worked-paidOff);
+    const paidDays=partial?worked+paidOff:Math.max(0,15-absent);
+    return {paidDayOff:paidOff,absent,paidDays,partial,firstIn:first,cutoffDays:keys.length}};
+  const prev=window.calculateEmployeeDtrSummary;
+  if(typeof prev==='function')window.calculateEmployeeDtrSummary=function(emp,cutoff){
+    const s=prev.apply(this,arguments);
+    try{if(!s||!emp||!isManagementEmployee(emp))return s;
+      const p=window.rcadsMgmtPay(emp,s);
+      s.paidDayOff=p.paidDayOff;s.absent=p.absent;s.paidDays=p.paidDays;s.mgmtPartial=p.partial;s.mgmtFirstIn=p.firstIn;s.isMgmtPay=true;
+      s.mgmtNote=p.partial?'NEW — STARTED '+p.firstIn+': PAID = WORKED + DAY OFF':'FIXED 15 DAYS − ABSENT (30-DAY FORMULA)';
+    }catch(_){}
+    return s};
+})();
+</script>
+
+<!-- RCADS PATCH: R252 Loans and deductions (HR, per branch) -->
+<style id="rcadsR252Css">
+.r252-due{background:#eef6ff;border:1px solid #9cc0e6;border-radius:10px;padding:8px 10px;margin:8px 0;font-size:12px;color:#173a5e}
+.r252-row.stopped{opacity:.65}.r252-row.paid{background:#f2fbf1}.r252-row small.st{font-weight:800;color:#2d6a36}
+.r252-form label small{font-weight:600;color:#8a6a45;font-size:10px}
+</style>
+<script id="rcadsR252Script">
+/* R252 — 💳 LOANS & DEDUCTIONS (HR, per branch)
+   SSS LOAN / PAG-IBIG LOAN  → once a month (cutoff chosen by HR)  → DTR Summary Log "SSS LOAN" / "PAG-IBIG LOAN" → RCPS "Other Deduction"
+   COMPANY LOAN / CASHIER SHORTAGE → every payroll (or chosen cutoff) → "COMPANY LOAN & OTHERS" → RCPS "Company Loan & Others"
+   Kept on the Supabase server only — opened only on the HR device (HR key from the HR PIN, not the 201 password). Not saved in any phone.
+   When HR makes the DTR Summary Log, the loan columns are filled and the deduction of that cutoff is recorded
+   (making it again for the same cutoff replaces it — never deducted twice). */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&e.code&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  const peso=n=>'₱'+(Number(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const KIND={SSS:'SSS LOAN',PAGIBIG:'PAG-IBIG LOAN',COMPANY:'COMPANY LOAN',SHORTAGE:'CASHIER SHORTAGE'};
+  const DEF_ON={SSS:'11-25',PAGIBIG:'26-10',COMPANY:'EVERY',SHORTAGE:'EVERY'};
+  const ONL={'11-25':'11–25 cutoff (once a month)','26-10':'26–10 cutoff (once a month)','EVERY':'EVERY payroll'};
+  const R182=()=>window.rcadsR182||null;
+  const unlocked=()=>{const r=R182();return !!(r&&r.role()==='HR'&&r.key())};
+  async function rpc(name,body){const r=R182();if(!r||!r.key())throw new Error('This is not the HR device (no HR key).');
+    let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}if(!url||!anon)throw new Error('No Supabase settings.');
+    let res;try{res=await fetch(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify(Object.assign({p_branch_code:r.branch(),p_key:r.key()},body||{}))})}catch(e){throw new Error('No connection to Supabase.')}
+    let d=null;try{d=await res.json()}catch(e){}
+    if(!res.ok)throw new Error((d&&(d.message||d.hint))||('Server error '+res.status)+(res.status===404?' — run RCADS_R252_LOANS_SUPABASE.sql in Supabase':''));
+    if(!d||d.ok===false)throw new Error((d&&d.error)||'Server error');return d}
+  let LOANS=null,LOADED_AT=0,MSG='',selB='',editId='',loading=null;
+  async function load(force){if(!unlocked())return null;if(!force&&LOANS&&Date.now()-LOADED_AT<60000)return LOANS;
+    if(loading)return loading;loading=(async()=>{try{const d=await rpc('rustica_loan_list',{});LOANS=d.rows||[];LOADED_AT=Date.now()}catch(e){MSG=e.message}loading=null;return LOANS})();return loading}
+  function ctx(){try{return rcadsR158DtrExportContext()}catch(e){return null}}
+  function paidOf(l,exceptFrom){let n=Number(l.n_before)||0,s=Number(l.paid_before)||0;(l.pays||[]).forEach(p=>{if(p.from!==exceptFrom){n++;s+=Number(p.amount)||0}});return {n,s}}
+  // how much of this loan is deducted in the cutoff (c = {cutoff:{from,to}, type})
+  function dueOf(l,c){
+    const from=c.cutoff.from,to=c.cutoff.to;const posted=(l.pays||[]).find(p=>p.from===from);
+    if(l.status==='STOPPED')return 0;if(l.status==='PAID'&&!posted)return 0;   // PAID because of THIS cutoff → still counted when the file is made againif(String(l.start_date||'')>to)return 0;
+    if(l.deduct_on!=='EVERY'&&l.deduct_on!==c.type)return 0;
+    const p=paidOf(l,from);if(l.n_pay&&p.n>=Number(l.n_pay))return 0;
+    let a=Number(l.amort)||0;if(l.total!=null&&l.total!==''){const rem=Number(l.total)-p.s;if(rem<=0)return 0;a=Math.min(a,rem)}
+    return Math.round(a*100)/100}
+  function duesFor(branch,c){const out=[];(LOANS||[]).filter(l=>l.branch===branch).forEach(l=>{const a=dueOf(l,c);if(a>0)out.push({l,a})});return out}
+  window.rcadsLoanDues=function(branch,c){return duesFor(branch,c||ctx())};
+
+  /* ---------- DTR Summary Log: fill the loan columns ---------- */
+  const prevBuild=window.buildEditableDTRWorkbook;
+  if(typeof prevBuild==='function')window.buildEditableDTRWorkbook=function(){
+    const wb=prevBuild.apply(this,arguments);
+    try{if(!wb||!LOANS||typeof XLSX==='undefined')return wb;const c=ctx();if(!c)return wb;
+      const dues=duesFor(c.branch,c);const by={};dues.forEach(d=>{const k=U(d.l.emp_code);(by[k]=by[k]||[]).push(d)});
+      wb.SheetNames.filter(n=>/DTR Log/i.test(n)).forEach(n=>{const ws=wb.Sheets[n];const a=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        const hi=a.findIndex(r=>r&&U(r[0])==='EMPCODE');if(hi<0)return;const H=a[hi].map(U);
+        const cS=H.indexOf('SSS LOAN'),cP=H.indexOf('PAG-IBIG LOAN'),cC=H.indexOf('COMPANY LOAN & OTHERS'),cR=H.indexOf('REMARKS');
+        for(let i=hi+1;i<a.length;i++){const code=U(a[i][0]);const L=by[code];if(!code||!L)continue;
+          const sum=k=>L.filter(d=>k.includes(d.l.kind)).reduce((s,d)=>s+d.a,0);
+          const put=(col,v)=>{if(col<0||!v)return;XLSX.utils.sheet_add_aoa(ws,[[Math.round(v*100)/100]],{origin:{r:i,c:col}})};
+          put(cS,sum(['SSS']));put(cP,sum(['PAGIBIG']));put(cC,sum(['COMPANY','SHORTAGE']));
+          if(cR>=0){const note=L.map(d=>{const p=paidOf(d.l,c.cutoff.from);const of=d.l.n_pay?' ('+(p.n+1)+'/'+d.l.n_pay+')':(d.l.total?' (bal. '+peso(Math.max(0,Number(d.l.total)-p.s-d.a))+')':'');return KIND[d.l.kind]+' '+peso(d.a)+of}).join(' • ');
+            const old=String(a[i][cR]||'');XLSX.utils.sheet_add_aoa(ws,[[old?old+' • '+note:note]],{origin:{r:i,c:cR}})}}
+      });
+      if(unlocked())rpc('rustica_loan_post',{p_loan_branch:c.branch,p_from:c.cutoff.from,p_to:c.cutoff.to,p_rows:dues.map(d=>({loan_id:d.l.id,amount:d.a}))}).then(()=>{LOADED_AT=0;load(true).then(()=>render(true))}).catch(e=>console.warn('R252 post',e));
+    }catch(e){console.warn('R252 fill',e)}
+    return wb};
+  const prevExport=window.exportEditableDTRLog;
+  if(typeof prevExport==='function')window.exportEditableDTRLog=async function(){
+    const args=arguments,self=this;
+    if(unlocked()){try{await load(true)}catch(e){}}
+    else if(!confirm('💳 LOANS ARE NOT INCLUDED.\n\nThe SSS / Pag-IBIG / Company loan columns are filled only on the HR device.\n\nOK = make the file WITHOUT loans\nCancel = stop'))return;
+    return prevExport.apply(self,args)};
+
+  /* ---------- HR panel ---------- */
+  function empOpts(b){return staff(b).map(e=>'<option value="'+esc(U(e.code)+' • '+(e.name||''))+'">').join('')}
+  function formHtml(){const ed=editId&&(LOANS||[]).find(l=>l.id===editId);const v=ed||{kind:'SSS',deduct_on:'11-25',start_date:new Date().toISOString().slice(0,10)};
+    return '<div class="r202-up r252-form"><label>BRANCH<select id="r252B">'+branches().map(b=>'<option value="'+esc(b.code)+'"'+(b.code===selB?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select></label>'
+      +'<label class="w">EMPLOYEE (EMPCODE / name)<input id="r252E" list="r252EL" autocomplete="off" value="'+esc(ed?ed.emp_code+' • '+(ed.emp_name||''):'')+'"'+(ed?' disabled':'')+'><datalist id="r252EL">'+empOpts(selB)+'</datalist></label>'
+      +'<label>KIND<select id="r252K">'+Object.entries(KIND).map(([k,t])=>'<option value="'+k+'"'+(v.kind===k?' selected':'')+'>'+t+'</option>').join('')+'</select></label>'
+      +'<label>DEDUCTION EACH TIME (₱)<input id="r252A" type="number" min="0" step="0.01" value="'+esc(v.amort||'')+'"></label>'
+      +'<label>TOTAL TO PAY (₱) <small>company loan / shortage: required</small><input id="r252T" type="number" min="0" step="0.01" value="'+esc(v.total??'')+'"></label>'
+      +'<label>No. OF DEDUCTIONS <small>optional, e.g. 24</small><input id="r252N" type="number" min="1" step="1" value="'+esc(v.n_pay??'')+'"></label>'
+      +'<label>ALREADY PAID BEFORE RCADS (₱) <small>old loan: total paid so far</small><input id="r252PB" type="number" min="0" step="0.01" value="'+esc(Number(v.paid_before)||'')+'"></label>'
+      +'<label>DEDUCTIONS ALREADY MADE <small>e.g. 10 of 24</small><input id="r252NB" type="number" min="0" step="1" value="'+esc(Number(v.n_before)||'')+'"></label>'
+      +'<label>DEDUCT ON<select id="r252O">'+Object.entries(ONL).map(([k,t])=>'<option value="'+k+'"'+(v.deduct_on===k?' selected':'')+'>'+t+'</option>').join('')+'</select></label>'
+      +'<label>START<input id="r252S" type="date" value="'+esc(String(v.start_date||'').slice(0,10))+'"></label>'
+      +'<label class="w">NOTE (e.g. SSS loan no., shortage date)<input id="r252Note" value="'+esc(v.note||'')+'"></label>'
+      +'<button type="button" class="r160-btn" id="r252Save">'+(ed?'💾 SAVE CHANGES':'➕ ADD LOAN / DEDUCTION')+'</button>'+(ed?'<button type="button" class="r160-mini light" id="r252Cancel">CANCEL EDIT</button>':'')+'</div>'}
+  function listHtml(){const c=ctx();const L=(LOANS||[]).filter(l=>l.branch===selB);
+    const dues=c?duesFor(selB,c):[];const tot=k=>dues.filter(d=>k.includes(d.l.kind)).reduce((s,d)=>s+d.a,0);
+    const head=c&&c.branch===selB?'<div class="r252-due">THIS CUTOFF ('+esc(c.cutoff.from)+' to '+esc(c.cutoff.to)+'): SSS loan <b>'+peso(tot(['SSS']))+'</b> • Pag-IBIG loan <b>'+peso(tot(['PAGIBIG']))+'</b> • Company loan &amp; shortage <b>'+peso(tot(['COMPANY','SHORTAGE']))+'</b> — '+dues.length+' deduction(s). These go into the DTR Summary Log.</div>'
+      :'<div class="r252-due">The DTR Summary Log fills the loans of the branch and cutoff chosen in DTR export.</div>';
+    if(!L.length)return head+'<div class="r160-empty">No loan / deduction for '+esc(bName(selB))+' yet.</div>';
+    return head+L.map(l=>{const p=paidOf(l,'');const d=c&&c.branch===selB?dueOf(l,c):0;
+      const bal=l.total!=null&&l.total!==''?' • balance <b>'+peso(Math.max(0,Number(l.total)-p.s))+'</b> of '+peso(l.total):'';
+      const cnt=l.n_pay?' • '+p.n+'/'+l.n_pay+' deductions':' • '+p.n+' deduction(s) '+peso(p.s);
+      return '<div class="r202-file r252-row '+l.status.toLowerCase()+'"><div><b>'+esc(l.emp_name||l.emp_code)+' • '+KIND[l.kind]+'</b><small>'+esc(l.emp_code)+' • '+peso(l.amort)+' • '+ONL[l.deduct_on]+' • from '+esc(String(l.start_date).slice(0,10))+cnt+bal+(Number(l.paid_before)||Number(l.n_before)?' • before RCADS: '+(Number(l.n_before)||0)+' deduction(s) '+peso(l.paid_before):'')+(l.note?' • '+esc(l.note):'')+'</small>'
+        +'<small class="st">'+(l.status==='ACTIVE'?(d?'🟢 ACTIVE — '+peso(d)+' this cutoff':'🟢 ACTIVE'):l.status==='PAID'?'✅ FULLY PAID':'⏸ STOPPED')+'</small></div><div class="r202-btns">'
+        +'<button type="button" class="r160-mini light" data-r252-edit="'+l.id+'">EDIT</button>'
+        +(l.status==='ACTIVE'?'<button type="button" class="r160-mini light" data-r252-st="'+l.id+'|STOPPED">⏸ STOP</button><button type="button" class="r160-mini light" data-r252-st="'+l.id+'|PAID">✅ PAID</button>':'<button type="button" class="r160-mini light" data-r252-st="'+l.id+'|ACTIVE">▶ RESUME</button>')
+        +((l.pays||[]).length?'':'<button type="button" class="r160-mini red" data-r252-del="'+l.id+'">DELETE</button>')+'</div></div>'}).join('')}
+  function html(){const head='<div class="r160-hr-title">💳 LOANS &amp; DEDUCTIONS — per branch</div><div class="r160-hr-note"><b>SSS loan</b> and <b>Pag-IBIG loan</b> = once a month (choose the cutoff) → <b>Other Deduction</b> in the payroll / payslip. <b>Company loan</b> and <b>Cashier shortage</b> = every payroll → <b>Company Loan &amp; Others</b>. RCADS fills them in the <b>DTR Summary Log</b> for RCPS and records each deduction (making the file again for the same cutoff does NOT deduct twice). Kept on the server only — opened only on this HR device, not in any phone.</div>';
+    if(!unlocked())return head+'<div class="r202-lock">🔒 Loans open only on the <b>HR device</b> (HR key from the HR PIN). This device has no HR key.</div>';
+    return head+formHtml()+'<div class="r173-msg '+(MSG.startsWith('✓')?'ok':'bad')+'" id="r252Msg">'+esc(MSG)+'</div><div class="r202-top"><b>'+esc(bName(selB))+'</b><button type="button" class="r160-mini light" id="r252Ref">↻ REFRESH</button></div><div id="r252List">'+(LOANS?listHtml():'<div class="r160-empty">Loading…</div>')+'</div>'}
+  function render(force){const s=document.getElementById('r252HrSection');if(!s)return;if(!force&&s.contains(document.activeElement))return;const h=html();if(force||s.dataset.h!==h){s.dataset.h=h;s.innerHTML=h}}
+  function codeOf(v){const c=U(String(v||'').split('•')[0]);const e=staff(selB).find(x=>U(x.code)===c)||staff(selB).find(x=>U(x.name)===U(v));return e?{code:U(e.code),name:e.name||''}:null}
+  async function click(e){const t=e.target;if(!t.closest)return;
+    if(t.closest('#r252Ref')){MSG='';await load(true);render(true);return}
+    if(t.closest('#r252Cancel')){editId='';render(true);return}
+    const ed=t.closest('[data-r252-edit]');if(ed){editId=ed.getAttribute('data-r252-edit');MSG='';render(true);document.getElementById('r252HrSection').scrollIntoView({behavior:'smooth'});return}
+    if(t.closest('#r252Save')){const g=id=>(document.getElementById(id)||{}).value||'';const old=editId&&(LOANS||[]).find(l=>l.id===editId);
+      const who=old?{code:old.emp_code,name:old.emp_name}:codeOf(g('r252E'));if(!who){MSG='Choose the employee from the list of '+bName(selB)+'.';render(true);return}
+      const row={id:editId||'',branch:old?old.branch:selB,emp_code:who.code,emp_name:who.name,kind:g('r252K'),amort:g('r252A'),total:g('r252T'),n_pay:g('r252N'),deduct_on:g('r252O'),start_date:g('r252S'),note:g('r252Note').trim(),paid_before:g('r252PB'),n_before:g('r252NB')};
+      try{await rpc('rustica_loan_save',{p_row:row});MSG='✓ Saved: '+(who.name||who.code)+' • '+KIND[row.kind]+' '+peso(row.amort)+' ('+ONL[row.deduct_on]+').';editId='';await load(true)}catch(err){MSG=err.message}render(true);return}
+    const st=t.closest('[data-r252-st]');if(st){const [id,s]=st.getAttribute('data-r252-st').split('|');if(s!=='ACTIVE'&&!confirm(s==='PAID'?'Mark as FULLY PAID? It will not be deducted anymore.':'STOP this deduction? It will not be deducted until you RESUME it.'))return;
+      try{await rpc('rustica_loan_status',{p_id:id,p_status:s});MSG='';await load(true)}catch(err){MSG=err.message}render(true);return}
+    const dl=t.closest('[data-r252-del]');if(dl){if(!confirm('Delete this loan / deduction?'))return;try{await rpc('rustica_loan_delete',{p_id:dl.getAttribute('data-r252-del')});MSG='';await load(true)}catch(err){MSG=err.message}render(true);return}
+  }
+  function change(e){const t=e.target;if(t.id==='r252B'){selB=t.value;editId='';render(true);return}
+    if(t.id==='r252K'){const o=document.getElementById('r252O');if(o&&!editId)o.value=DEF_ON[t.value]||'EVERY'}}
+  let was=false;
+  function mount(){
+    const admin=document.getElementById('simpleHrAdminModal');if(!admin||getComputedStyle(admin).display==='none'){if(LOANS&&!unlocked())LOANS=null;was=false;return}
+    const main=admin.querySelector('.rcads-hr-main');if(!main)return;const nav=admin.querySelector('.rcads-hr-nav');
+    if(nav&&!document.getElementById('r252HrNavBtn')){const bt=document.createElement('button');bt.id='r252HrNavBtn';bt.type='button';bt.setAttribute('onclick',"rcadsHrGo('r252HrSection')");bt.textContent='💳 Loans';const a=document.getElementById('r202HrNavBtn');if(a&&a.parentElement===nav)a.insertAdjacentElement('afterend',bt);else nav.appendChild(bt)}
+    let sec=document.getElementById('r252HrSection');
+    if(!sec){sec=document.createElement('div');sec.id='r252HrSection';sec.className='rcads-dashboard-section r160-hr r202-hr r252-hr';const p=document.getElementById('r202HrSection');if(p&&p.parentElement===main)p.insertAdjacentElement('afterend',sec);else main.appendChild(sec);sec.addEventListener('click',click);sec.addEventListener('change',change)}
+    if(!selB){const c=ctx();selB=(c&&c.branch)||(branches()[0]||{}).code||''}
+    const un=unlocked();if(un&&!was){was=true;load(true).then(()=>render(true))}else if(!un&&was){was=false;LOANS=null}
+    render(false);
+  }
+  window.rcadsR252={load,dues:duesFor,get loans(){return LOANS}};
+  setInterval(()=>{try{mount()}catch(e){console.warn('R252',e)}},1000);
+})();
+</script>
+
+<!-- RCADS PATCH: R253 Owners monitor who is paying company loans (view only) -->
+<style id="rcadsR253Css">
+.r253-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c8862a;color:#3d2615;text-align:left;font-size:12.5px}
+.r253-h{font-weight:900;font-size:13.5px;color:#4c2b17;margin-bottom:6px}.r253-n{font-size:11.5px;color:#6d5845;margin:4px 0 8px}
+.r253-msg{background:#fdecea;border:1px solid #d9827a;color:#8c1d14;border-radius:9px;padding:7px 9px;margin:6px 0;font-weight:700;font-size:11.5px}
+.r253-btn{width:100%!important;padding:11px;border:0;border-radius:11px;background:#4c2b17;color:#fff;font-weight:900;font-size:13px}
+.r253-top{display:flex!important;gap:6px;align-items:center;margin:4px 0 8px}#r253Owner .r253-top button.r253-mini{flex:0 0 auto!important;width:auto!important;min-width:0!important;margin:0!important}#r253Owner .r253-top select{flex:1 1 auto!important;width:auto!important}.r253-top select{flex:1 1 auto!important;width:auto!important;min-width:0;margin:0!important;padding:8px;border:1px solid #d8bfa1;border-radius:9px;background:#fff;font-weight:700}
+.r253-mini{width:auto!important;padding:7px 10px!important;border:1px solid #d8bfa1!important;border-radius:9px!important;background:#fff!important;color:#4c2b17!important;font-weight:800!important;font-size:11px!important}
+.r253-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 10px}.r253-sum div{background:#fff;border:1px solid #eadbc6;border-radius:10px;padding:7px;text-align:center}
+.r253-sum b{display:block;font-size:13px;color:#4c2b17}.r253-sum span{font-size:9.5px;color:#7a6250}
+.r253-bh{font-weight:900;color:#5b3519;margin:10px 0 4px;font-size:12.5px;border-bottom:1px solid #eadbc6;padding-bottom:3px}
+.r253-r{background:#fff;border:1px solid #eadbc6;border-radius:10px;padding:8px 10px;margin:5px 0;cursor:pointer}.r253-r.stopped{opacity:.6}.r253-r.paid{background:#f2fbf1}
+.r253-l1{display:flex;justify-content:space-between;gap:6px;align-items:center}.r253-l1 em{font-style:normal;font-size:10px;font-weight:900;border-radius:999px;padding:2px 8px}
+.r253-l1 em.ok{background:#e8f4e5;color:#2d6a36}.r253-l1 em.done{background:#dff3dc;color:#1d5a26}.r253-l1 em.stop{background:#eee;color:#555}
+.r253-l2{font-size:11px;color:#4d3a2b;margin-top:3px}.r253-l3{font-size:10px;color:#8a6a45;margin-top:3px}
+.r253-bar{height:6px;background:#f0e4d3;border-radius:999px;margin-top:5px;overflow:hidden}.r253-bar i{display:block;height:100%;background:#4f8a4a}
+.r253-hist{margin-top:6px;border-top:1px dashed #e0cdb3;padding-top:5px;font-size:11px}.r253-hist div{display:flex;justify-content:space-between;padding:2px 0}.r253-note{color:#7a6250;font-style:italic}
+.r253-foot{font-size:10px;color:#8a6a45;margin-top:8px;text-align:center}
+</style>
+<script id="rcadsR253Script">
+/* R253 — 💳 COMPANY LOAN MONITOR FOR THE OWNERS (view only)
+   In the Top Management app: who is paying COMPANY LOANS, per branch (SSS / Pag-IBIG loans and shortages are not shown) —
+   deduction each time, how many paid, how much paid, balance, last deduction. Nothing can be changed here (HR only).
+   Read from the server only with the owner phone's key; nothing is kept in the phone. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  const peso=n=>'₱'+(Number(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const KIND={SSS:'SSS LOAN',PAGIBIG:'PAG-IBIG LOAN',COMPANY:'COMPANY LOAN',SHORTAGE:'CASHIER SHORTAGE'};
+  const ONL={'11-25':'11–25 cutoff','26-10':'26–10 cutoff','EVERY':'every payroll'};
+  function fd(s){const d=new Date(String(s).slice(0,10)+'T00:00');return isNaN(d)?String(s||''):d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+  let ST={rows:null,msg:'',busy:false,br:'ALL',open:''};
+  async function load(){const R=window.rcadsR182;const key=R&&R.key&&R.key();
+    if(!key){ST.msg='This phone has no RCADS key yet. Ask HR for a new OWNER QR.';return}
+    let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}
+    ST.busy=true;ST.msg='Loading…';draw(true);
+    try{const r=await fetch(url+'/rest/v1/rpc/rustica_loan_owner_list',{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify({p_key:key})});
+      const d=await r.json().catch(()=>null);if(!r.ok)throw new Error((d&&d.message)||'Server error '+r.status);if(!d||d.ok===false)throw new Error((d&&d.error)||'Server error');ST.rows=d.rows||[];ST.msg=''}
+    catch(e){ST.msg=/Failed to fetch|NetworkError/i.test(e.message)?'No internet connection.':e.message}
+    ST.busy=false;draw(true)}
+  function stat(l){const n=(Number(l.n_before)||0)+(l.pays||[]).length,s=(Number(l.paid_before)||0)+(l.pays||[]).reduce((a,p)=>a+(Number(p.amount)||0),0);const last=(l.pays||[]).slice(-1)[0];
+    const bal=l.total!=null&&l.total!==''?Math.max(0,Number(l.total)-s):null;return {n,s,last,bal}}
+  function bodyHtml(){
+    if(!ST.rows)return '<div class="r253-n">Tap <b>OPEN</b> to see who is paying a COMPANY LOAN in every branch.</div>'+(ST.msg?'<div class="r253-msg">'+esc(ST.msg)+'</div>':'')+'<button type="button" class="r253-btn" id="r253Open"'+(ST.busy?' disabled':'')+'>💳 OPEN COMPANY LOAN MONITOR</button>';
+    const all=ST.rows;const bs=[...new Set(all.map(l=>l.branch))];
+    const L=all.filter(l=>l.kind==='COMPANY'&&(ST.br==='ALL'||l.branch===ST.br));
+    const act=L.filter(l=>l.status==='ACTIVE');
+    const sumB=act.reduce((a,l)=>{const s=stat(l);return a+(s.bal||0)},0);const paid=L.reduce((a,l)=>a+stat(l).s,0);
+    let h='<div class="r253-top"><select id="r253Br"><option value="ALL">ALL BRANCHES</option>'+bs.map(b=>'<option value="'+esc(b)+'"'+(b===ST.br?' selected':'')+'>'+esc(bName(b))+'</option>').join('')+'</select><button type="button" class="r253-mini" id="r253Ref">↻</button><button type="button" class="r253-mini" id="r253Close">🔒 CLOSE</button></div>'
+      +'<div class="r253-sum"><div><b>'+act.length+'</b><span>still paying</span></div><div><b>'+peso(paid)+'</b><span>paid so far</span></div><div><b>'+peso(sumB)+'</b><span>balance still to pay</span></div></div>';
+    if(!L.length)return h+'<div class="r253-n">No company loan recorded yet.</div>';
+    const byB={};L.forEach(l=>{(byB[l.branch]=byB[l.branch]||[]).push(l)});
+    Object.keys(byB).forEach(b=>{h+='<div class="r253-bh">'+esc(bName(b))+'</div>';
+      byB[b].sort((a,c)=>(a.status==='ACTIVE'?0:1)-(c.status==='ACTIVE'?0:1)||String(a.emp_name).localeCompare(String(c.emp_name))).forEach(l=>{const s=stat(l);
+        const prog=l.n_pay?s.n+' of '+l.n_pay+' paid':s.n+' deduction'+(s.n===1?'':'s');
+        const pct=l.total?Math.min(100,Math.round(s.s/Number(l.total)*100)):(l.n_pay?Math.min(100,Math.round(s.n/Number(l.n_pay)*100)):0);
+        const st=l.status==='ACTIVE'?'<em class="ok">🟢 PAYING</em>':l.status==='PAID'?'<em class="done">✅ FULLY PAID</em>':'<em class="stop">⏸ STOPPED</em>';
+        h+='<div class="r253-r '+l.status.toLowerCase()+'" data-r253-x="'+esc(l.id)+'"><div class="r253-l1"><b>'+esc(l.emp_name||l.emp_code)+'</b>'+st+'</div>'
+          +'<div class="r253-l2">'+KIND[l.kind]+' • '+peso(l.amort)+' '+ONL[l.deduct_on]+' • '+prog+' • paid <b>'+peso(s.s)+'</b>'+(s.bal!=null?' • balance <b>'+peso(s.bal)+'</b>':'')+'</div>'
+          +((l.total||l.n_pay)?'<div class="r253-bar"><i style="width:'+pct+'%"></i></div>':'')
+          +'<div class="r253-l3">Last deduction: '+(s.last?esc(fd(s.last.from))+' – '+esc(fd(s.last.to))+' ('+peso(s.last.amount)+')':'none yet')+' • tap for history</div>'
+          +(ST.open===l.id?'<div class="r253-hist">'+((l.pays||[]).slice().reverse().map(p=>'<div><span>'+esc(fd(p.from))+' – '+esc(fd(p.to))+'</span><b>'+peso(p.amount)+'</b></div>').join('')||'<div>No deduction yet.</div>')+(Number(l.paid_before)?'<div><span>Paid before RCADS ('+(Number(l.n_before)||0)+' deductions)</span><b>'+peso(l.paid_before)+'</b></div>':'')+(l.note?'<div class="r253-note">Note: '+esc(l.note)+'</div>':'')+'</div>':'')+'</div>'})});
+    return h+'<div class="r253-foot">VIEW ONLY — only HR can add or change company loans.</div>'}
+  function draw(force){const el=document.getElementById('r253Owner');if(!el)return;const h='<div class="r253-h">💳 COMPANY LOAN MONITOR • WHO IS PAYING</div>'+bodyHtml();if(force||el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
+  function tick(){
+    const th=document.getElementById('topManagementHomeScreen');const root=th&&th.querySelector('.r100-content');let el=document.getElementById('r253Owner');
+    if(!(window.rcadsTopManagementSession&&root&&getComputedStyle(th).display!=='none')){if(el)el.remove();ST={rows:null,msg:'',busy:false,br:'ALL',open:''};return}
+    if(!el){el=document.createElement('div');el.id='r253Owner';el.className='r253-card';
+      el.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+        if(t.closest('#r253Open')||t.closest('#r253Ref')){load();return}
+        if(t.closest('#r253Close')){ST.rows=null;ST.open='';draw(true);return}
+        if(t.closest('#r253Br'))return;
+        const x=t.closest('[data-r253-x]');if(x){const id=x.getAttribute('data-r253-x');ST.open=ST.open===id?'':id;draw(true)}});
+      el.addEventListener('change',e=>{if(e.target.id==='r253Br'){ST.br=e.target.value;ST.open='';draw(true)}})}
+    const hasMore=!!th.querySelector('[data-r162-go="more"]');el.setAttribute('data-r162-tab',hasMore?'more':'home');
+    if(el.parentElement!==root){const nav=root.querySelector(':scope > .r162-nav');root.insertBefore(el,nav||null)}
+    // leaving the tab / app closes it again (nothing stays on the screen)
+    const act=root.getAttribute('data-r162-active')||th.getAttribute('data-r162-active');if(ST.rows&&act&&act!==el.getAttribute('data-r162-tab')){ST.rows=null;ST.open=''}
+    draw(false)}
+  setInterval(()=>{try{tick()}catch(e){console.warn('R253',e)}},1500);
+  window.rcadsR253={load};
 })();
 </script>
 </body>
