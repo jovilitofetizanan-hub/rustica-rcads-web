@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R234 VERSION SHOWN</title>
+<title>Rustica RCADS App — R238 MANAGER ON DUTY</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -18199,7 +18199,7 @@ body.rcads-r131-approver-tools #rcadsR131BackToApprover{display:block}
     document.getElementById('r131Branch').textContent=branchLabel(b);
     document.getElementById('r131CurrentBranch').textContent=branchLabel(b);
     document.getElementById('r131Name').textContent=currentEmployee.name||'HEAD APPROVER';
-    document.getElementById('r131Role').textContent=roleLabel(a.key).toUpperCase();
+    {const pos=String(currentEmployee.position||'').trim().toUpperCase().replace(/\s*\.\s*/g,'. ').replace(/\.\s+$/,'.');const rl=(/1$/.test(a.key)?'APPROVER 1':(/2$/.test(a.key)?'APPROVER 2':roleLabel(a.key).toUpperCase()));document.getElementById('r131Role').textContent=(pos&&pos!==rl?pos+' / ':'')+rl;}
     document.getElementById('r131Code').textContent=currentEmployee.code||'';
     document.getElementById('r131DiningTools')?.classList.toggle('show',isDining(a.key));
     if(!activePane) window.rcadsR131ApproverShow('');
@@ -25361,7 +25361,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const st=shiftState(p.c);const name=v.emp.name||p.c;
     const flags=[p.geo==='OUT'?'⚠ GPS: OUTSIDE THE BRANCH':(p.geo==='OK'?'✓ GPS: at the branch':'GPS: not checked'),String(p.ph||'').indexOf('BORROWED')===0?'👥 BORROWED PHONE ('+esc(p.ph.split(':')[1]||'')+')':'',v.branch&&curBranch()&&v.branch!==curBranch()?'⚠ OTHER BRANCH ('+bName(v.branch)+')':'',v.loan?'👥 TEMPORARY TRANSFER from '+bName(v.loan.from)+' until '+(window.rcadsR185?rcadsR185.fmt(v.loan.until):v.loan.until):'',v.loanEnded&&v.loanEnded.to===curBranch()?'⚠ TEMPORARY TRANSFER ENDED ('+(window.rcadsR185?rcadsR185.fmt(rcadsR185.loanEnd(v.loanEnded)):v.loanEnded.until)+') — should be at '+bName(v.loanEnded.from)+' now':''].filter(Boolean);
     const head='<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span><em>'+flags.map(esc).join(' • ').replace(/&amp;/g,'&')+'</em></div>';
-    const base={handshake:'MUTUAL QR',guardToken:p.g,geo:p.geo,phone:p.ph||'OWN',authorizedBy:gl};
+    const base={handshake:'MUTUAL QR',guardToken:p.g,geo:p.geo,phone:p.ph||'OWN',authorizedBy:gl,dutyBranch:curBranch()};
     if(st.state==='NONE'){
       const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'IN',kind:'Start',date:s.date.toISOString(),time:s.time},base));
       resultBox('r181GuardRes',head+'<b class="big ok">✓ TIME IN • '+esc(s.time)+'</b><span>Recorded. (Mutual scan ✓)</span>','ok');return;
@@ -27854,7 +27854,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     // Dining / Kitchen Head 1 (approver app) or Managers
     try{const a=typeof getCurrentApproverAssignment==='function'?getCurrentApproverAssignment():null;
       if(a&&document.body.classList.contains('approver-only-mode')){
-        if(a.key==='diningHead1'||a.key==='kitchenHead1'){const e=currentEmployee;let br='';for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(br)return {who:a.key+'_'+U(e.code),title:(a.key==='kitchenHead1'?'KITCHEN':'DINING')+' OPENING • '+bName(br),list:[[br,a.key==='kitchenHead1'?'Kitchen':'Dining']],host:'ap'}}
+        if(a.key==='diningHead1'||a.key==='kitchenHead1'){const e=currentEmployee;let br=(window.rcadsHeadBranch&&window.rcadsHeadBranch(e))||'';if(!br)for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(br)return {who:a.key+'_'+U(e.code),title:(a.key==='kitchenHead1'?'KITCHEN':'DINING')+' OPENING • '+bName(br),list:[[br,a.key==='kitchenHead1'?'Kitchen':'Dining']],host:'ap'}}
         if(a.key==='restaurantManager'||a.key==='cateringManager')return {who:a.key,title:'OPENING • ALL BRANCHES',list:branches().flatMap(x=>[[x.code,'Kitchen'],[x.code,'Dining']]),host:'ap'};
       }}catch(e){}
     const ms=window.currentManagerSession;const mh=document.getElementById('managerHomeScreen');
@@ -28042,7 +28042,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 
   /* ---------- Head 1 card ---------- */
   function ctx(){try{const a=typeof getCurrentApproverAssignment==='function'?getCurrentApproverAssignment():null;if(!a||!document.body.classList.contains('approver-only-mode'))return null;
-    if(a.key!=='kitchenHead1'&&a.key!=='diningHead1')return null;const e=currentEmployee;let br='';for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(!br)return null;
+    if(a.key!=='kitchenHead1'&&a.key!=='diningHead1')return null;const e=currentEmployee;let br=(window.rcadsHeadBranch&&window.rcadsHeadBranch(e))||'';if(!br)for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(!br)return null;
     return {b:br,dept:a.key==='kitchenHead1'?'KITCHEN':'DINING',by:(a.key==='kitchenHead1'?'KITCHEN HEAD 1':'DINING HEAD 1')+' • '+(e.name||e.code)}}catch(e){return null}}
   function line(x){return x?'✓ '+esc(x.fileName||'')+' • '+esc(new Date(x.savedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+(x.uploadedBy?' • '+esc(x.uploadedBy):''):'❌ not uploaded yet'}
   function cardHtml(c,s,msg){
@@ -28197,7 +28197,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 
   /* ---- Head 1 card ---- */
   function ctx(){try{const a=typeof getCurrentApproverAssignment==='function'?getCurrentApproverAssignment():null;if(!a||!document.body.classList.contains('approver-only-mode'))return null;
-    if(a.key!=='kitchenHead1'&&a.key!=='diningHead1')return null;const e=currentEmployee;let br='';for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(!br)return null;
+    if(a.key!=='kitchenHead1'&&a.key!=='diningHead1')return null;const e=currentEmployee;let br=(window.rcadsHeadBranch&&window.rcadsHeadBranch(e))||'';if(!br)for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(!br)return null;
     return {b:br,dept:a.key==='kitchenHead1'?'KITCHEN':'DINING',by:(a.key==='kitchenHead1'?'KITCHEN HEAD 1':'DINING HEAD 1')+' • '+(e.name||e.code),me:U(e.code)}}catch(e){return null}}
   let MSG='';
   function cardHtml(c){
@@ -28349,7 +28349,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     if(shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none'){
       let a=null;try{a=getCurrentApproverAssignment()}catch(_){}const k=a&&a.key||'';
       const lbl={diningHead1:'DINING HEAD 1',diningHead2:'CAPTAIN WAITER (DINING HEAD 2)',restaurantManager:'RESTAURANT MANAGER',cateringManager:'CATERING MANAGER'}[k];
-      if(lbl||POS_OK.test(e.position||''))return {label:(lbl||(/SUPERVISOR/i.test(e.position||'')?'DINING HEAD 1 (SUPERVISOR)':U(e.position)))+' • '+(e.name||e.code),all:/MANAGER/.test(lbl||'')&&!/ASST|ASSISTANT/i.test(e.position||''),branch:b,host:shell,tab:'home'};
+      if(lbl||POS_OK.test(e.position||''))return {label:(lbl||(/SUPERVISOR/i.test(e.position||'')?'DINING HEAD 1 (SUPERVISOR)':U(e.position)))+' • '+(e.name||e.code),all:/MANAGER/.test((lbl||'')+' '+(e.position||''))&&!/ASST|ASSISTANT/i.test(e.position||''),branch:b,host:shell,tab:'home'};
     }
     const panel=document.getElementById('employeeSimplePanel');
     if(panel&&document.body.classList.contains('employee-simple-mode')&&POS_OK.test(e.position||''))return {label:(/SUPERVISOR/i.test(e.position||'')?'DINING HEAD 1 (SUPERVISOR)':U(e.position))+' • '+(e.name||e.code),all:false,branch:b,host:panel,tab:'home'};
@@ -28451,7 +28451,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     if(shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none'){
       let a=null;try{a=getCurrentApproverAssignment()}catch(_){}const k=a&&a.key||'';
       const lbl={diningHead1:'DINING HEAD 1',diningHead2:'CAPTAIN WAITER (DINING HEAD 2)',restaurantManager:'RESTAURANT MANAGER',cateringManager:'CATERING MANAGER'}[k];
-      if(lbl||POS_OK.test(e.position||''))return {label:(lbl||(/SUPERVISOR/i.test(e.position||'')?'DINING HEAD 1 (SUPERVISOR)':U(e.position)))+' • '+(e.name||e.code),code:U(e.code),mgr:/MANAGER/.test(lbl||'')||MGR.test(e.position||''),all:/MANAGER/.test(lbl||'')&&!/ASST|ASSISTANT/i.test(e.position||''),branch:b,host:shell,tab:'home'};
+      if(lbl||POS_OK.test(e.position||''))return {label:(lbl||(/SUPERVISOR/i.test(e.position||'')?'DINING HEAD 1 (SUPERVISOR)':U(e.position)))+' • '+(e.name||e.code),code:U(e.code),mgr:/MANAGER/.test(lbl||'')||MGR.test(e.position||''),all:/MANAGER/.test((lbl||'')+' '+(e.position||''))&&!/ASST|ASSISTANT/i.test(e.position||''),branch:b,host:shell,tab:'home'};
     }
     const panel=document.getElementById('employeeSimplePanel');
     if(panel&&document.body.classList.contains('employee-simple-mode')&&POS_OK.test(e.position||''))return {label:(/SUPERVISOR/i.test(e.position||'')?'DINING HEAD 1 (SUPERVISOR)':U(e.position))+' • '+(e.name||e.code),code:U(e.code),mgr:MGR.test(e.position||''),all:false,branch:b,host:panel,tab:'home'};
@@ -28678,23 +28678,23 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 (function(){
   'use strict';
   const K='rcads_r231_branch_heads_v1';const U=c=>String(c||'').trim().toUpperCase();
-  const ROLES=[['kitchenHead1','KITCHEN HEAD 1'],['diningHead1','DINING HEAD 1'],['kitchenHead2','KITCHEN HEAD 2'],['diningHead2','DINING HEAD 2 (CAPTAIN WAITER)']];
+  const ROLES=[['kitchenHead1','KITCHEN — APPROVER 1'],['diningHead1','DINING — APPROVER 1'],['kitchenHead2','KITCHEN — APPROVER 2'],['diningHead2','DINING — APPROVER 2']];
   function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
   function load(){try{return JSON.parse(localStorage.getItem(K)||'{}')||{}}catch(e){return {}}}
   function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
   function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}
     return l.filter(e=>{try{return !(window.rcadsIsSeparated&&window.rcadsIsSeparated(e.code))}catch(_){return true}})}
-  function roleFor(emp){if(!emp||!emp.code)return '';const c=U(emp.code);const m=load();for(const b of Object.keys(m)){const r=m[b]||{};for(const [k] of ROLES)if(U(r[k])===c)return k}return ''}
+  function roleFor(emp){if(!emp||!emp.code)return '';try{if(window.rcadsMgrDutyBranch&&window.rcadsMgrDutyBranch(emp))return 'diningHead1'}catch(_){}const c=U(emp.code);const m=load();for(const b of Object.keys(m)){const r=m[b]||{};for(const [k] of ROLES)if(U(r[k])===c)return k}return ''}
   function ownPin(code){try{return window.rcadsR224&&window.rcadsR224.status(code)==='ACTIVE'}catch(e){return false}}
-  function apply(k,emp){try{const a=simpleHrAccounts&&simpleHrAccounts[k];if(!a)return;a.identity=U(emp.code)+' - '+emp.name;a.active=true;a.employee=true}catch(e){}}
+  const ORIG={};function unapply(emp){try{const id=U(emp.code)+' - '+emp.name;Object.keys(ORIG).forEach(k=>{const a=simpleHrAccounts[k];if(a&&String(a.identity||'').toUpperCase()===id.toUpperCase()){a.identity=ORIG[k];delete ORIG[k]}})}catch(e){}}function apply(k,emp){try{const a=simpleHrAccounts&&simpleHrAccounts[k];if(!a)return;if(!(k in ORIG))ORIG[k]=a.identity||'';a.identity=U(emp.code)+' - '+emp.name;a.active=true;a.employee=true}catch(e){}}
   // the Head is recognised on his / her own phone
   const prevFind=window.findAccessKeyForEmployee;
   if(typeof prevFind==='function')window.findAccessKeyForEmployee=function(emp){const k=roleFor(emp);if(k&&ownPin(emp.code)){apply(k,emp);return k}return prevFind.apply(this,arguments)};
   const prevCur=window.getCurrentApproverAssignment;
-  if(typeof prevCur==='function')window.getCurrentApproverAssignment=function(){try{const e=currentEmployee;const k=roleFor(e);if(k&&ownPin(e.code)){apply(k,e);return {key:k,item:simpleHrAccounts[k]}}}catch(x){}return prevCur.apply(this,arguments)};
+  if(typeof prevCur==='function')window.getCurrentApproverAssignment=function(){try{const e=currentEmployee;const k=roleFor(e);if(k&&ownPin(e.code)){apply(k,e);return {key:k,item:simpleHrAccounts[k]}}if(e)unapply(e)}catch(x){}return prevCur.apply(this,arguments)};
   // ---- HR card inside ⚙ Approver / Guard Access ----
   function html(){const m=load();
-    return '<div class="r231-h">🏢 HEAD 1 / HEAD 2 OF EACH BRANCH</div><div class="r231-n">Choose the Heads of every branch here. If a branch has no Supervisor yet, choose the Manager / Asst. Manager as DINING HEAD 1. The person needs his / her OWN RCADS app (QR) first. Saved automatically.</div>'
+    return '<div class="r231-h">🏢 APPROVER 1 / APPROVER 2 OF EACH BRANCH</div><div class="r231-n">Choose the Approver 1 / Approver 2 (Department Head of the day) of every branch. Absent? Choose another person any time — it takes effect right away. No Supervisor yet? Choose the Manager / Asst. Manager. The person needs his / her OWN RCADS app (QR) first. Saved automatically.</div>'
       +branches().map(b=>{const L=staff(b.code);const r=m[b.code]||{};
         return '<div class="r231-b"><div class="r231-bn">'+esc(b.name)+'</div><div class="r231-g">'+ROLES.map(([k,lab])=>{const cur=U(r[k]);const ok=cur&&ownPin(cur);
           return '<label>'+lab+'<select data-r231="'+esc(b.code)+'|'+k+'"><option value="">— not assigned —</option>'+L.map(e=>'<option value="'+esc(U(e.code))+'"'+(U(e.code)===cur?' selected':'')+'>'+esc(e.name)+' • '+esc(e.code)+(e.position?' • '+esc(e.position):'')+'</option>').join('')+'</select>'
@@ -28746,6 +28746,76 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     const gh=document.getElementById('guardHomeScreen');if(gh&&!gh.querySelector('.r234-ver')){const d=document.createElement('div');d.className='r234-ver';d.textContent='RCADS '+v;gh.appendChild(d)}
   }catch(e){}},1000);
   const st=document.createElement('style');st.textContent='.r234-ver{margin-top:12px;text-align:center;font-size:10px;font-weight:800;color:#9a8470;letter-spacing:.5px;opacity:.9}.r162-menu .r234-ver{margin:6px 8px 4px;font-size:9.5px}';document.head.appendChild(st);
+})();
+</script>
+
+<!-- RCADS PATCH: R235 Rustica logo on every app -->
+<style id="rcadsR235Css">
+.r235-brandline{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto 4px}
+.r235-logo{width:62px;height:62px;object-fit:contain;flex:0 0 auto;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.r235-copy{text-align:left}.r235-copy .r131-brand{line-height:1}.r235-copy .r131-system{margin-top:3px}
+.r235-gate-logo{display:block;width:84px;height:84px;object-fit:contain;margin:0 auto 6px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+@media(max-width:360px){.r235-logo{width:50px;height:50px}.r235-copy .r131-system{font-size:8.5px}}
+</style>
+<script id="rcadsR235Script">
+/* R235 — RUSTICA LOGO on every RCADS app (Owner → Manager → Heads → Employees → Guards) + the right name in the top header */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function logo(){const i=document.querySelector('.phone > .header .brand-logo')||document.querySelector('img.brand-logo');return i?i.getAttribute('src'):''}
+  function img(cls){const s=logo();if(!s)return null;const i=document.createElement('img');i.className=cls;i.alt='Rustica Restaurant logo';i.src=s;return i}
+  function staffName(code){try{for(const b of Object.keys(window.RUSTICA_BRANCHES||RUSTICA_BRANCHES||{})){const e=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).find(x=>U(x.code)===U(code));if(e)return e.name}}catch(e){}try{const e=Object.values(employees||{}).find(x=>U(x.code)===U(code));if(e)return e.name}catch(e){}return ''}
+  let orig=null;
+  function tick(){
+    // 1) Head / Approver app header
+    document.querySelectorAll('.r131-head').forEach(h=>{if(h.querySelector('.r235-brandline'))return;const b=h.querySelector(':scope > .r131-brand'),s=h.querySelector(':scope > .r131-system');const i=img('r235-logo');if(!i||!b)return;
+      const line=document.createElement('div');line.className='r235-brandline';const copy=document.createElement('div');copy.className='r235-copy';h.insertBefore(line,b);line.appendChild(i);line.appendChild(copy);copy.appendChild(b);if(s)copy.appendChild(s)});
+    // 2) PIN / QR screens (employee, owner, guard)
+    document.querySelectorAll('#r160Gate .r160-card').forEach(c=>{if(c.querySelector('.r235-gate-logo'))return;const b=c.querySelector('.r160-brand');const i=img('r235-gate-logo');if(!i)return;c.insertBefore(i,b||c.firstChild)});
+    // 3) top header: show who is using this phone (guard / manager) instead of the HR name
+    const box=document.querySelector('.phone > .header .header-owner-below');if(!box)return;const nm=box.querySelector('.name'),rl=box.querySelector('.role');if(!nm||!rl)return;
+    if(!orig)orig={n:nm.textContent,r:rl.textContent};
+    let n=orig.n,r=orig.r;
+    const g=String(window.currentGuardAccount||'');
+    if(document.body.classList.contains('guard-session-active')&&/^Guard \d+$/.test(g)){let full='';try{full=rcadsGuardFullNameForLabel(g)}catch(e){}n=(full&&full!==g)?full:g;r='SECURITY GUARD • '+g.toUpperCase()}
+    else{const ms=window.currentManagerSession,mh=document.getElementById('managerHomeScreen');if(ms&&mh&&!mh.classList.contains('hidden')){n=staffName(ms.empCode)||ms.empCode||'Manager';r=String(ms.role||'MANAGER').toUpperCase()}}
+    if(nm.textContent!==n)nm.textContent=n;if(rl.textContent!==r)rl.textContent=r}
+  setInterval(()=>{try{tick()}catch(e){}},1000);
+})();
+</script>
+
+<!-- RCADS PATCH: R238 Manager on duty = Dining Approver 1 -->
+<script id="rcadsR238Script">
+/* R238 — MANAGER ON FULL DUTY = DINING APPROVER 1 of the branch where he / she TIMED IN today
+   (together with the assigned Dining Approver 1 — two approvers that day is OK).
+   The branch comes from the guard who recorded the TIME IN. After TIME OUT he / she is Manager only again. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  const MGR=e=>e&&/\bMANAGER\b/i.test(e.position||'')&&!/ASST|ASSISTANT/i.test(e.position||'');
+  function pad(n){return String(n).padStart(2,'0')}
+  function dk(d){d=new Date(d);return isNaN(d)?'':d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function empOf(x){if(!x)return null;if(typeof x==='object')return x;try{for(const b of Object.keys(window.RUSTICA_BRANCHES||RUSTICA_BRANCHES||{})){const e=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).find(q=>U(q.code)===U(x));if(e)return e}}catch(e){}return null}
+  // branch where this Manager is on duty right now ('' = not on duty)
+  window.rcadsMgrDutyBranch=function(x){const e=empOf(x);if(!MGR(e))return '';let s=null;try{s=JSON.parse(localStorage.getItem('rustica_srf_local_attendance_'+U(e.code))||'null')}catch(_){}
+    const t=dk(new Date());const R=((s&&s.records)||[]).filter(r=>dk(r.date)===t);let br='';
+    R.forEach(r=>{if(r.type==='IN'&&r.kind==='Start'&&r.dutyBranch)br=U(r.dutyBranch);else if(r.type==='OUT'&&!/break/i.test(r.kind||'')&&!/break/i.test(r.reason||''))br=''});return br};
+  // the branch a Head works for today (Manager on duty → that branch)
+  window.rcadsHeadBranch=function(x){return window.rcadsMgrDutyBranch(x)||''};
+  // Manager timed in but still in the employee app → offer to open the APPROVER 1 app
+  setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}let el=document.getElementById('r238Bar');
+    const br=e?window.rcadsMgrDutyBranch(e):'';const ap=document.body.classList.contains('approver-only-mode');
+    if(br&&ap){const b=document.getElementById('r131Branch');const nm=((window.RUSTICA_BRANCHES||{})[br]||{}).name||br.replace(/_/g,' ');if(b&&b.textContent!==U(nm)+' BRANCH')b.textContent=U(nm)+' BRANCH'}
+    // duty ended (TIME OUT) while the Approver 1 app is still open
+    if(!br&&ap&&e&&MGR(e)&&!(()=>{try{return getCurrentApproverAssignment()}catch(_){return null}})()){const sh=document.querySelector('#rcadsR131ApproverApp .r131-shell');if(sh){if(!el){el=document.createElement('div');el.id='r238Bar';el.setAttribute('data-r162-tab','any');const hd=sh.querySelector(':scope > .r131-head');if(hd)hd.insertAdjacentElement('afterend',el);else sh.insertBefore(el,sh.firstChild)}
+      const h='<b>✓ DUTY ENDED</b><span>You are no longer the Dining Approver 1 of the branch.</span><button type="button" id="r238Go">BACK TO MY APP →</button>';if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h;el.querySelector('#r238Go').onclick=()=>{try{logout()}catch(_){}setTimeout(()=>location.reload(),300)}}}return}
+    if(!br||ap){if(el)el.remove();return}
+    const panel=document.getElementById('employeeSimplePanel');if(!panel)return;
+    if(!el){el=document.createElement('div');el.id='r238Bar';el.setAttribute('data-r162-tab','any');panel.insertBefore(el,panel.firstChild)}
+    const nm=((window.RUSTICA_BRANCHES||{})[br]||{}).name||br.replace(/_/g,' ');
+    const h='<b>📍 ON DUTY AT '+U(nm)+'</b><span>You are DINING APPROVER 1 of this branch today.</span><button type="button" id="r238Go">OPEN MY APPROVER 1 APP →</button>';
+    if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h;el.querySelector('#r238Go').onclick=()=>{try{logout()}catch(_){}setTimeout(()=>location.reload(),300)}}}catch(e){}},2000);
+  const st=document.createElement('style');st.textContent='#r238Bar{margin:8px 0;padding:12px;border-radius:14px;background:#2f6b3a;color:#fff;text-align:center}#r238Bar b{display:block;font-size:14px}#r238Bar span{display:block;font-size:11px;margin:3px 0 8px}#r238Bar button{width:100%;padding:11px;border:0;border-radius:10px;background:#fff;color:#2f6b3a;font-weight:900}';document.head.appendChild(st);
 })();
 </script>
 </body>
