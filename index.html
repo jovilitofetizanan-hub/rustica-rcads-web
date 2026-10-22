@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R233 SCHEDULE IN MORE</title>
+<title>Rustica RCADS App — R234 VERSION SHOWN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -28731,6 +28731,21 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     if(!hd){hd=document.createElement('div');hd.id='r233MoreHead';hd.setAttribute('data-r162-tab','more');hd.innerHTML='☰ MORE<small>Weekly schedule & ACS upload</small>'}
     if(hd.nextElementSibling!==el)host.insertBefore(hd,el);
     if(b)b.classList.toggle('on',host.getAttribute('data-r162-active')==='more')}catch(e){}},1000);
+})();
+</script>
+
+<!-- RCADS PATCH: R234 version shown on phones -->
+<script id="rcadsR234Script">
+/* R234 — the version is shown on every phone: at the bottom of the PIN / QR screen and in the ⚙ menu */
+(function(){
+  'use strict';
+  function ver(){const t=String(document.title||'');const i=t.indexOf('—');return (i>=0?t.slice(i+1):t).trim()}
+  setInterval(()=>{try{const v=ver();if(!v)return;
+    const card=document.querySelector('#r160Gate .r160-card');if(card&&!card.querySelector('.r234-ver')){const d=document.createElement('div');d.className='r234-ver';d.textContent='RCADS '+v;card.appendChild(d)}
+    document.querySelectorAll('.r162-menu').forEach(m=>{if(!m.querySelector('.r234-ver')){const d=document.createElement('div');d.className='r234-ver';d.textContent='RCADS '+v;m.appendChild(d)}});
+    const gh=document.getElementById('guardHomeScreen');if(gh&&!gh.querySelector('.r234-ver')){const d=document.createElement('div');d.className='r234-ver';d.textContent='RCADS '+v;gh.appendChild(d)}
+  }catch(e){}},1000);
+  const st=document.createElement('style');st.textContent='.r234-ver{margin-top:12px;text-align:center;font-size:10px;font-weight:800;color:#9a8470;letter-spacing:.5px;opacity:.9}.r162-menu .r234-ver{margin:6px 8px 4px;font-size:9.5px}';document.head.appendChild(st);
 })();
 </script>
 </body>
