@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R239 STALE GUARD FIX</title>
+<title>Rustica RCADS App — R240 APPROVER STAYS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -28691,7 +28691,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   const prevFind=window.findAccessKeyForEmployee;
   if(typeof prevFind==='function')window.findAccessKeyForEmployee=function(emp){const k=roleFor(emp);if(k&&ownPin(emp.code)){apply(k,emp);return k}return prevFind.apply(this,arguments)};
   const prevCur=window.getCurrentApproverAssignment;
-  if(typeof prevCur==='function')window.getCurrentApproverAssignment=function(){try{const e=currentEmployee;const k=roleFor(e);if(k&&ownPin(e.code)){apply(k,e);return {key:k,item:simpleHrAccounts[k]}}if(e)unapply(e)}catch(x){}return prevCur.apply(this,arguments)};
+  function stk(){try{return JSON.parse(sessionStorage.getItem('r240_sticky_head')||'null')}catch(_){return null}}function setStk(v){try{if(v)sessionStorage.setItem('r240_sticky_head',JSON.stringify(v));else sessionStorage.removeItem('r240_sticky_head')}catch(_){}}function takenByOther(st){const m=load();for(const b of Object.keys(m)){const r=m[b]||{};if(r[st.key]&&U(r[st.key])!==U(st.code)&&b===st.branch)return true}return false}if(typeof prevCur==='function')window.getCurrentApproverAssignment=function(){try{const e=currentEmployee;const k=roleFor(e);if(k&&ownPin(e.code)){apply(k,e);let br='';try{br=(window.rcadsHeadBranch&&window.rcadsHeadBranch(e))||''}catch(_){}if(!br){const m=load();for(const b of Object.keys(m)){if(U((m[b]||{})[k])===U(e.code))br=b}}setStk({code:U(e.code),key:k,branch:br});return {key:k,item:simpleHrAccounts[k]}}const st=stk();if(e&&st&&st.code===U(e.code)&&!(window.rcadsMgrDutyBranch&&/MANAGER/i.test(e.position||'')&&!/ASST|ASSISTANT/i.test(e.position||''))&&!takenByOther(st)){apply(st.key,e);return {key:st.key,item:simpleHrAccounts[st.key]}}if(e)unapply(e)}catch(x){}return prevCur.apply(this,arguments)};document.addEventListener('click',ev=>{try{const t=ev.target;if(t&&t.closest&&t.closest('[onclick*="logout"],[data-r162-logout],[data-r162-menu="logout"]'))setStk(null)}catch(_){}},true);
   // ---- HR card inside ⚙ Approver / Guard Access ----
   function html(){const m=load();
     return '<div class="r231-h">🏢 APPROVER 1 / APPROVER 2 OF EACH BRANCH</div><div class="r231-n">Choose the Approver 1 / Approver 2 (Department Head of the day) of every branch. Absent? Choose another person any time — it takes effect right away. No Supervisor yet? Choose the Manager / Asst. Manager. The person needs his / her OWN RCADS app (QR) first. Saved automatically.</div>'
@@ -28818,5 +28818,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   const st=document.createElement('style');st.textContent='#r238Bar{margin:8px 0;padding:12px;border-radius:14px;background:#2f6b3a;color:#fff;text-align:center}#r238Bar b{display:block;font-size:14px}#r238Bar span{display:block;font-size:11px;margin:3px 0 8px}#r238Bar button{width:100%;padding:11px;border:0;border-radius:10px;background:#fff;color:#2f6b3a;font-weight:900}';document.head.appendChild(st);
 })();
 </script>
+
+<style id="rcadsR240Css">body.employee-simple-mode #selectScreen,body.approver-only-mode #selectScreen,body.guard-session-active #selectScreen,body.employee-simple-mode #normalScreen,body.approver-only-mode #normalScreen{display:none!important}</style>
 </body>
 </html>
