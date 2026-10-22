@@ -1,4 +1,4 @@
-<!-- R231 BRANCH HEADS: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
+<!-- R232 CLOUD HOME: DTR LOG export fixed (A:O, payroll sheet names), 5-branch Employee Master from payroll workbooks. -->
 <!-- R157 SECURITY FIX: HR PIN no longer stored or shown in plain text; HR can change it. All other R156 behavior unchanged. -->
 <!-- R156 trial: transparent enrollment readiness; no backend enrollment or access grant. Based directly on R155. -->
 <!--
@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R231 BRANCH HEADS</title>
+<title>Rustica RCADS App — R232 CLOUD HOME</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -14350,6 +14350,33 @@ function rcadsRefreshHrDashboard(){
 }
 
 </script>
+<script id="rcadsR232Script">
+/* R232 — ONE CLOUD "HOME" PER PHONE (the branch of its device key)
+   Before: when a phone showed another branch (e.g. Ms. Judith of CABANATUAN), RCADS asked Supabase for the CABANATUAN data
+   with a key that belongs to SAN RAFAEL → refused → "The QR is not in RCADS yet". Now every cloud call of a phone always uses
+   the branch of its own device key; the branch on the screen only decides WHAT is shown. */
+(function(){
+  'use strict';
+  const SK='r182_device_branch'; // not synced (no rcads_/rustica_ prefix)
+  const U=c=>String(c||'').trim().toUpperCase();
+  function codes(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.keys(s||{})}
+  window.rcadsSyncBranch=function(){try{return U(localStorage.getItem(SK))||''}catch(e){return ''}};
+  window.rcadsSetSyncBranch=function(b){try{if(b)localStorage.setItem(SK,U(b));else localStorage.removeItem(SK)}catch(e){}};
+  const prev=window.centralRpc;if(typeof prev!=='function')return;
+  let probing=null;
+  async function probe(){if(probing)return probing;probing=(async()=>{
+    const cur=(()=>{try{return U(RUSTICA_CENTRAL_DB.branch)}catch(e){return ''}})();const list=['SAN_RAFAEL',cur].concat(codes()).filter((x,i,a)=>x&&a.indexOf(x)===i);
+    for(const b of list){try{await prev('rustica_rcads_ping',{p_branch_code:b,p_sync_secret:RUSTICA_CENTRAL_DB.syncSecret});window.rcadsSetSyncBranch(b);return b}catch(e){}}
+    return ''})();const r=await probing;probing=null;return r}
+  window.centralRpc=async function(name,body){
+    body=body||{};if(!('p_sync_secret' in body)||!('p_branch_code' in body))return prev.apply(this,arguments);
+    let sb=window.rcadsSyncBranch();
+    if(sb){return prev.call(this,name,Object.assign({},body,{p_branch_code:sb}))}
+    try{const r=await prev.apply(this,arguments);try{if(RUSTICA_CENTRAL_DB.syncSecret)window.rcadsSetSyncBranch(body.p_branch_code)}catch(e){}return r}
+    catch(err){const b=await probe();if(b&&b!==U(body.p_branch_code))return prev.call(this,name,Object.assign({},body,{p_branch_code:b}));throw err}};
+})();
+</script>
+
 
 
 
@@ -21851,7 +21878,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
+<!-- RCADS PATCH: R232 CLOUD HOME + ONE-TIME ACTIVATION CODE + OWN PIN (PBKDF2 HASH) 2026-10-18 -->
 <style id="rcadsR160Css">
 #r160Gate{position:fixed;inset:0;z-index:2147483300;background:linear-gradient(160deg,#3d2615,#6b3f1d);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:28px 16px}
 html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
@@ -22945,7 +22972,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   function gSetStatus(b,s,status,by){const db=read();db.guards=db.guards||{};const k=gKey(b,s);const r=db.guards[k]||{key:k,branch:U(b),slot:s,name:gName(b,s)};r.status=status;r.statusBy=by||'';r.statusAt=new Date().toISOString();if(status==='ACTIVE'&&!r.pinHash)return {ok:false,msg:'He has no PIN yet — make a QR.'};db.guards[k]=r;if(!save(db))return {ok:false,msg:'Could not save.'};gLog({t:status,branch:U(b),slot:s,name:gName(b,s),by});return {ok:true}}
   async function gSetupFree(b,s,name,by){const st=await setupFields();st.f.setupExpires=new Date(Date.now()+3*864e5).toISOString();const k=gKey(b,s);const db=read();db.guards=db.guards||{};const old=db.guards[k]||{};
     db.guards[k]=Object.assign({key:k,branch:U(b),slot:s,name:name||gName(b,s)||'',history:old.history||[],lastLoginAt:old.lastLoginAt||'',issuedBy:by||''},st.f);if(!save(db))return null;pinCache['GUARD:'+k]={k:'x',pin:'',setup:st.code};return st.code}
-  async function gTicket(label,b,s){let tk='',err='';b=U(b);try{const R=window.rcadsR182;const same=!R||!R.branch||U(R.branch())===b;if(R&&R.canIssue()&&same)tk=await R.issueTicket(label,'GUARD-'+b+'-'+s);else if(R&&R.guardTicket2)tk=await R.guardTicket2(label,b);else if(R&&R.guardTicket)tk=await R.guardTicket(label);else err='update RCADS'}catch(e){err=e.message}return {tk,err}}
+  async function gTicket(label,b,s){let tk='',err='';b=U(b);try{const R=window.rcadsR182;if(R&&R.canIssue())tk=await R.issueTicket(label,'GUARD-'+b+'-'+s);else if(R&&R.guardTicket2)tk=await R.guardTicket2(label);else if(R&&R.guardTicket)tk=await R.guardTicket(label);else err='update RCADS'}catch(e){err=e.message}return {tk,err}}
   function gQrBox(b,s,name,code,tk,err,note){
     let o=document.getElementById('r179Qr');if(!o){o=document.createElement('div');o.id='r179Qr';document.documentElement.appendChild(o)}
     o.innerHTML='<div class="r179-box"><div class="r179-h">🛡 '+esc(gSlotLbl(s))+' — SCAN WITH YOUR OWN PHONE</div><div class="r179-who"><b>'+esc(name||gSlotLbl(s))+'</b><span>'+esc(gSlotLbl(s))+' • '+esc(bName(U(b)))+'</span></div>'
@@ -23372,7 +23399,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
+<!-- RCADS PATCH: R232 CLOUD HOME (ATM size) — HR design upload, employee photo/signature/emergency contact, HR approval, 5-month / 1-year validity, print at actual size; Owners have no weekly view limit 2026-10-18 -->
 <style id="rcadsR167Css">
 .r167-card{position:relative;overflow:hidden;background:#fff;border-radius:3.2mm;font-family:Arial,Helvetica,sans-serif;color:#3d2615;box-shadow:0 2px 10px rgba(0,0,0,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact;flex:0 0 auto}
 .r167-card.port{width:54mm;height:85.6mm}.r167-card.land{width:85.6mm;height:54mm}
@@ -23867,7 +23894,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
+<!-- RCADS PATCH: R232 CLOUD HOME — auto-disable app/PIN/Guard TIME IN/Rustica ID for resigned, terminated, AWOL; attendance kept + FINAL ATTENDANCE Excel for last salary / 13th month 2026-10-18 -->
 <style id="rcadsR170Css">
 #r170Blocked{position:fixed;inset:0;z-index:2147483400;background:linear-gradient(160deg,#3d2615,#1c0f07);display:flex;align-items:center;justify-content:center;padding:18px}
 .r170-card{max-width:380px;width:100%;background:#fffaf2;border-radius:16px;padding:22px 18px;text-align:center;color:#3d2615;border-top:6px solid #a1281f}
@@ -24713,9 +24740,9 @@ body.r162-has-nav{padding-bottom:78px!important}
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
+<!-- RCADS PATCH: R232 CLOUD HOME (greeting, KPIs, quick links, one page per menu) + 👁 TEST LOGIN / PREVIEW of Owners, Managers, Guards, Approvers and every employee (sandbox: nothing saved) -->
 <style id="rcadsR177Css">
-/* ===== R231 BRANCH HEADS ===== */
+/* ===== R232 CLOUD HOME ===== */
 #simpleHrAdminModal#simpleHrAdminModal#simpleHrAdminModal .rcads-hr-main.r177-paged > *:not(.r177-on){display:none!important}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main{background:linear-gradient(180deg,#f6efe4 0%,#f3eadc 100%)}
 body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.r177-hr #simpleHrAdminModal .rcads-hr-main > .r160-hr{border-radius:16px!important;box-shadow:0 4px 18px rgba(60,30,10,.08)!important;border:1px solid #e6d3bb!important}
@@ -25110,7 +25137,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
+<!-- RCADS PATCH: R232 CLOUD HOME — TIME IN/OUT = Guard only, mutual QR scan (employee scans Guard QR → Guard scans signed PASS QR) • BREAK OUT/IN = Kitchen Head 1, Dining Head 1, 2 Managers • Borrowed phone login • old manual path OFF unless HR allows -->
 <style id="rcadsR181Css">
 /* ===== R181 attendance handshake ===== */
 .r181-card{background:#fffaf3;border:2px solid #c8862a;border-radius:16px;padding:12px;margin:10px 0;color:#3d2412;font-family:Arial,Helvetica,sans-serif;box-shadow:0 3px 12px rgba(91,53,25,.12)}
@@ -25503,7 +25530,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
+<!-- RCADS PATCH: R232 CLOUD HOME — shared sync secret removed from RCADS; HR device enrolled with HR PIN on the server; other phones get a one-time key inside the 📲 QR; HR can BLOCK devices and retire the old secret -->
 <style id="rcadsR182Css">
 .r182-panel{background:#fff!important}
 .r182-h{font-weight:900;font-size:14px;color:#3d2412;margin-bottom:8px}
@@ -25534,7 +25561,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function set(k,v){try{if(v)localStorage.setItem(k,v);else localStorage.removeItem(k)}catch(e){}}
   function key(){return get(KEY)}
   function role(){return get(ROLE)}
-  function branch(){try{return RUSTICA_CENTRAL_DB.branch||'SAN_RAFAEL'}catch(e){return 'SAN_RAFAEL'}}
+  function branch(){try{return (window.rcadsSyncBranch&&window.rcadsSyncBranch())||RUSTICA_CENTRAL_DB.branch||'SAN_RAFAEL'}catch(e){return 'SAN_RAFAEL'}}
   function setKey(k,r,label){set(KEY,k);set(ROLE,k?r:'');set(LABEL,k?(label||''):'');try{RUSTICA_CENTRAL_DB.syncSecret=k||''}catch(e){}}
   // the HTML default no longer has a secret; make sure the live config uses this device's key
   try{if(key())RUSTICA_CENTRAL_DB.syncSecret=key()}catch(e){}
@@ -25548,9 +25575,9 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(d&&d.ok===false)throw new Error(String(d.error||'failed').replace(/^[A-Z_]+:\s*/,''));
     return d;
   }
-  async function enrollHr(pin){const d=await rpc('rustica_rcads_enroll_hr',{p_branch_code:branch(),p_hr_pin:String(pin||''),p_label:'HR • '+devLabel()});setKey(d.key,'HR','HR • '+devLabel());return d}
+  async function enrollHr(pin){const eb=branch();const d=await rpc('rustica_rcads_enroll_hr',{p_branch_code:eb,p_hr_pin:String(pin||''),p_label:'HR • '+devLabel()});setKey(d.key,'HR','HR • '+devLabel());try{window.rcadsSetSyncBranch&&window.rcadsSetSyncBranch(eb)}catch(e){}return d}
   async function issueTicket(label,emp){if(role()!=='HR'||!key())throw new Error('This device is not enrolled as HR');const d=await rpc('rustica_rcads_issue_ticket',{p_branch_code:branch(),p_key:key(),p_label:label||'',p_emp_code:emp||'',p_hours:168});return d.ticket}
-  async function redeem(t){const d=await rpc('rustica_rcads_redeem_ticket',{p_ticket:t,p_label:devLabel()});setKey(d.key,'DEVICE',(d.label||'')+' • '+devLabel());return d}
+  async function redeem(t){const d=await rpc('rustica_rcads_redeem_ticket',{p_ticket:t,p_label:devLabel()});setKey(d.key,'DEVICE',(d.label||'')+' • '+devLabel());try{window.rcadsSetSyncBranch&&window.rcadsSetSyncBranch(d.branch_code)}catch(e){}return d}
   async function guardTicket(label){if(!key())throw new Error('This phone has no device key');const d=await rpc('rustica_rcads_guard_ticket',{p_branch_code:branch(),p_key:key(),p_label:label||''});return d.ticket}
   async function guardTicket2(label,target){if(!key())throw new Error('This phone has no device key');try{const d=await rpc('rustica_rcads_guard_ticket2',{p_branch_code:branch(),p_key:key(),p_label:label||'',p_target:target||branch()});return d.ticket}catch(e){if(/not set up|could not find/i.test(e.message)&&(!target||target===branch()))return guardTicket(label);throw e}}
   async function setGuardIssuers(codes){const d=await rpc('rustica_rcads_set_guard_issuers',{p_branch_code:branch(),p_key:key(),p_codes:codes||[]});return d}
@@ -25632,7 +25659,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS — button visible again (HIDE & CLOSE panel + HR Database page) -->
+<!-- RCADS PATCH: R232 CLOUD HOME — button visible again (HIDE & CLOSE panel + HR Database page) -->
 <style id="rcadsR183Css">
 #r183BranchCard{margin:10px 0;padding:12px 14px;border:1px solid #d7c29f;border-radius:12px;background:#fffaf2;font-family:inherit}
 #r183BranchCard .r183-t{font-size:14px;font-weight:900;color:#4c2b17;letter-spacing:.3px}
@@ -25681,7 +25708,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
+<!-- RCADS PATCH: R232 CLOUD HOME — IPASA SA PAYROLL button (file read by Rustica Payroll "Import from RCADS") -->
 <style id="rcadsR184Css">
 #r184PayrollCard{margin:8px 0 10px;padding:10px;border:1px solid #c9a77a;border-radius:11px;background:#fff8ec}
 #r184SendPayroll{width:100%;padding:13px;border:0;border-radius:10px;background:linear-gradient(135deg,#7a4a1f,#3a2210);color:#fff;font-weight:900;font-size:14px;letter-spacing:.3px;cursor:pointer}
@@ -25734,7 +25761,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
+<!-- RCADS PATCH: R232 CLOUD HOME — HIRAM (loan, payroll stays at mother branch) / PERMANENTE (new branch + EMPCODE by date); DTR export follows; TRANSFERS sheet for RCPS -->
 <style id="rcadsR185Css">
 .r185-hr .r185-h{font-size:18px;font-weight:900;color:#4c2b17;display:flex;align-items:center;gap:8px}
 .r185-hr .r185-h em{font-style:normal;background:#b3261e;color:#fff;border-radius:999px;padding:2px 9px;font-size:11px}
@@ -25977,7 +26004,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
+<!-- RCADS PATCH: R232 CLOUD HOME — HR imports the RCPS positions file (no salary); positions update + new employees added; synced -->
 <script id="rcadsR190Script">
 /* R190 — POSITIONS FROM RCPS.
    • RCPS → Employee Master → "Send positions to RCADS" makes an .xlsx with EMPCODE, name, dept and position (NO salary).
@@ -26311,7 +26338,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
+<!-- RCADS PATCH: R232 CLOUD HOME — Barangay + NBI/Police before training (Guard cannot TIME IN without them), 7-day training + allowance reminder, PASSED → Extra; new 201 requirement list -->
 <style id="rcadsR193Css">
 .r193-head{margin:12px 0;padding:12px;border-radius:14px;background:#fffaf2;border:1px solid #e6d3b8;color:#3d2615;font-size:12px;text-align:left}.r193-hh{font-weight:900;font-size:13px;color:#4c2b17}.r193-hn{font-size:11px;color:#6d5845;margin:6px 0;line-height:1.45}.r193-hf{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.r193-hf input,.r193-hf select{padding:8px;border:1px solid #cdbb9f;border-radius:8px;font-size:12.5px;width:100%;box-sizing:border-box}.r193-hf label{font-size:11px;font-weight:800;color:#6b4a2f;display:flex;flex-direction:column;gap:3px}.r193-hf label.r193-ck{grid-column:1/-1;flex-direction:row;align-items:center;font-weight:700;font-size:12px}.r193-hf input[type=checkbox],.r193-ha input[type=checkbox]{width:auto;padding:0;margin:0}.r193-hf select{height:36px}.r193-hf button{grid-column:1/-1;padding:11px;border:0;border-radius:10px;background:linear-gradient(135deg,#6f4a2a,#3d2414);color:#fff;font-weight:900}.r193-hr2{border-top:1px solid #eadbc6;padding:8px 0}.r193-ha{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center}.r193-ha button{border:0;border-radius:7px;padding:6px 9px;background:#5b3519;color:#fff;font-weight:800;font-size:10.5px}.r193-ha button.ghost{background:#fff;color:#8f3028;border:1px solid #d9a199}
 .r193-ck{display:flex;gap:6px;align-items:center;font-size:11.5px;margin:2px 0}
@@ -26517,7 +26544,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
+<!-- RCADS PATCH: R232 CLOUD HOME — trainee signs in the app (allowance waived if training not finished), HR signature automatic, Guard blocks TIME IN until signed -->
 <style id="rcadsR194Css">
 .r194-emp{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r194-h{font-weight:900;font-size:13.5px;color:#7a3d00;margin-bottom:8px}.r194-h.ok{color:#2d6a36;margin:0}
@@ -27435,7 +27462,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
+<!-- RCADS PATCH: R232 CLOUD HOME (201 upload all branches, no delete / contract) + 💰 PAYROLL FILES (server only, HR + HR Assistant) -->
 <style id="rcadsR202Css">
 .r202-hr .r202-up{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;background:#fffaf2;border:1px solid #e6d3bb;border-radius:12px;padding:12px;margin:10px 0}
 .r202-hr .r202-up label{display:flex;flex-direction:column;font-size:11px;font-weight:800;color:#5b3519;gap:4px}.r202-hr .r202-up label.w{grid-column:1/-1}
@@ -27599,7 +27626,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
+<!-- RCADS PATCH: R232 CLOUD HOME (HR / Owners / Managers / Dining Head 1) + STRAIGHT DUTY / NO RELIEVER alerts + branch-aware guard logs -->
 <style id="rcadsR208Css">
 .r208-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 .r208-h{font-weight:900;font-size:13.5px;color:#5b3519}.r208-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
@@ -28478,7 +28505,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS of the access list (record-by-record merge) -->
+<!-- RCADS PATCH: R232 CLOUD HOME of the access list (record-by-record merge) -->
 <script id="rcadsR226Script">
 /* R226 — SAFE SYNC OF THE ACCESS LIST (people / owners / guards PINs, QRs, blocks)
    Before: the whole list was one cloud item → the device that saved last (an employee phone, a guard phone, the HR phone)
@@ -28525,7 +28552,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS for everyone -->
+<!-- RCADS PATCH: R232 CLOUD HOME for everyone -->
 <style id="rcadsR227Css">
 #r227Pin{position:fixed;inset:0;z-index:2147483400;background:rgba(40,22,10,.72);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px}
 #r227Pin .r227-box{width:100%;max-width:380px;background:#fffaf2;border-radius:18px;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.35);color:#3d2615;text-align:left}
@@ -28561,7 +28588,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 })();
 </script>
 
-<!-- RCADS PATCH: R231 BRANCH HEADS for Owners / Managers (details + guard alert only after choosing the branch) -->
+<!-- RCADS PATCH: R232 CLOUD HOME for Owners / Managers (details + guard alert only after choosing the branch) -->
 <style id="rcadsR230Css">
 #r230Sig{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c9a46a;color:#3d2615;text-align:left;font-size:12.5px}
 #r230Sig .r230-h{font-weight:900;font-size:14px;color:#5b3519}#r230Sig .r230-n{font-size:10.5px;color:#7a6250;margin:3px 0 8px}
