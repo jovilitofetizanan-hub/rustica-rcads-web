@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R264 HEADS SEND BACK DTR</title>
+<title>Rustica RCADS App — R266 SHARE DTR FILES</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -29678,6 +29678,51 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
     if(!HR.at||Date.now()-HR.at>120000)hrLoad();hrDraw(false)}
   setInterval(()=>{try{hrTick()}catch(e){console.warn('R264 HR',e)}},2500);
   window.rcadsR264={buildDtr,downloadDtr,who};
+})();
+</script>
+
+<!-- RCADS PATCH: R265 every DTR Summary Log button makes SEPARATE Excel files -->
+<script id="rcadsR265Script">
+/* R265 — "SHARE / DOWNLOAD DTR LOG" and "SHARE TO APPS" now make the same separate files as 📤 SEND TO RCPS
+   (Management / Kitchen / Dining / Extra / Transfers — original layout, legal size, loans filled on the HR device). */
+(function(){
+  'use strict';
+  const go=function(){try{return window.exportEditableDTRLog()}catch(e){alert('Could not create the file: '+e.message)}};
+  window.shareEditableDTRLog=go;
+  window.shareDtrLogToApps=go;
+})();
+</script>
+
+<!-- RCADS PATCH: R266 SHARE the separate DTR Summary Log files (Messenger / Viber / e-mail) -->
+<script id="rcadsR266Script">
+/* R266 — "SHARE FINAL DTR LOG SUMMARY" / "SHARE / DOWNLOAD DTR LOG": makes the separate files
+   (Management / Kitchen / Dining / Extra / Transfers, original layout, legal size, loans on the HR device)
+   and opens the phone / PC SHARE menu (Messenger, Viber, Gmail …) so HR can send them to the branch.
+   If this device cannot share files, they are downloaded instead. */
+(function(){
+  'use strict';
+  const TAG=nm=>nm==='TRANSFERS'?'TRANSFERS':(/Mgmt/i.test(nm)?'MANAGEMENT':/Kitc/i.test(nm)?'KITCHEN':/Dini/i.test(nm)?'DINING':/Extra/i.test(nm)?'EXTRA':nm.replace(/\W+/g,'_'));
+  const XT='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  async function share(){
+    try{
+      if(typeof XLSX==='undefined'||!window.rcadsDtrStyledBlob){alert('The Excel library did not load. Connect to the internet and open RCADS again.');return}
+      try{if(window.rcadsR252&&window.rcadsR252.load)await window.rcadsR252.load(true)}catch(_){}
+      const wb=window.buildEditableDTRWorkbook();if(!wb)return;
+      const base=String((window.getDTRExportFileName&&window.getDTRExportFileName())||'DTR_LOG.xlsx').replace(/\.xlsx$/i,'');
+      const files=[];
+      wb.SheetNames.forEach(nm=>{const ws=wb.Sheets[nm];if(nm==='TRANSFERS'){const rr=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});if(rr.length<=2)return}
+        files.push(new File([window.rcadsDtrStyledBlob({SheetNames:[nm],Sheets:{[nm]:ws}})],base+'_'+TAG(nm)+'.xlsx',{type:XT}))});
+      let ctx={};try{ctx=rcadsR158DtrExportContext()}catch(_){}
+      if(navigator.canShare&&navigator.canShare({files})){
+        try{await navigator.share({files,title:'DTR Summary Log',text:'RCADS DTR Summary Log • '+(ctx.branchName||'')+' • '+((ctx.cutoff&&ctx.cutoff.from)||'')+' to '+((ctx.cutoff&&ctx.cutoff.to)||'')+' • Please check and send back in your RCADS app.'});return}
+        catch(e){if(e&&e.name==='AbortError')return}}
+      files.forEach((f,i)=>setTimeout(()=>{const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)},i*900));
+      setTimeout(()=>alert('This device cannot share files directly, so the '+files.length+' DTR files were DOWNLOADED.\nSend them to the branch from your Downloads folder (Messenger / Viber / e-mail).'),files.length*900+300);
+    }catch(e){alert('Could not share the DTR Summary Log: '+e.message)}
+  }
+  window.shareEditableDTRLog=share;
+  window.shareDtrLogToApps=share;
+  window.rcadsShareDtrFiles=share;
 })();
 </script>
 </body>
