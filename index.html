@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R262 SEPARATE DTR FILES</title>
+<title>Rustica RCADS App — R264 HEADS SEND BACK DTR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -29319,6 +29319,21 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
 })();
 </script>
 
+<!-- RCADS PATCH: R263 Admin schedule -->
+<script id="rcadsR263Script">
+/* R263 — ADMIN SCHEDULE (Office Clerk / Admin) — same as RCPS ADM.ORIG.SCHED / ACS.ADMIN.
+   Office Clerk / Admin staff (not Owners, not the HR Operation Officer) go to the ADMIN form instead of Kitchen / Dining.
+   HR downloads it in ▦ Schedule Upload → 📄 SCHEDULE FORMS and uploads it there (category ADMIN). */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  const prev=window.rcadsFormDept;
+  if(typeof prev==='function')window.rcadsFormDept=function(e){
+    if(!e)return '';const p=U(e.position),d=U(e.dept);
+    if(/OFFICE CLERK|\bADMIN/.test(p)&&!/OWNER|CEO|PRESIDENT|HR OPERATION/.test(p)&&!/TOPMGNT|TOP-MGNT/.test(U(e.code))&&(d==='MANAGEMENT'||d==='DINING'||d==='EXTRA'))return 'ADMIN';
+    return prev.apply(this,arguments)};
+})();
+</script>
 <!-- RCADS PATCH: R259 HR schedule forms for all branches -->
 <style id="rcadsR259Css">.r259-card{margin:0 0 10px;padding:10px;border-radius:12px;background:#fffaf2;border:2px solid #c8862a;text-align:left}
 .r259-h{font-weight:900;color:#4c2b17;font-size:13px}.r259-n{font-size:11px;color:#6d5845;margin:4px 0 8px;line-height:1.4}
@@ -29337,12 +29352,13 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
   function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
   const M=iso=>{const d=new Date(iso+'T00:00');return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})};
   function wk(mon){const d=new Date(mon+'T00:00');d.setDate(d.getDate()+6);return M(mon)+' – '+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+  function hasAdmin(c){try{let l=(window.rusticaManagerLoadBranchEmployeeMaster&&window.rusticaManagerLoadBranchEmployeeMaster(c)||[]);if(c==='SAN_RAFAEL'){try{l=l.concat(Object.values(employees||{}))}catch(e){}}return l.some(e=>e&&window.rcadsFormDept&&window.rcadsFormDept(e)==='ADMIN')}catch(e){return false}}
   function html(){
     const R=window.rcadsR215;if(!R)return '';
     let s0=null;try{s0=R.status(branches()[0].code,'KITCHEN')}catch(e){}
-    const head='<div class="r259-h">📄 SCHEDULE FORMS FOR THE BRANCHES</div><div class="r259-n">Download and send to the <b>Kitchen Head 1</b> / <b>Dining Head 1</b> of each branch. Names = staff with TIME IN in the branch DTR + Management (new staff in, people who left out). '
+    const head='<div class="r259-h">📄 SCHEDULE FORMS FOR THE BRANCHES</div><div class="r259-n">Download and send to the <b>Kitchen Head 1</b> / <b>Dining Head 1</b> of each branch. <b>ADMIN</b> (Office Clerk / Admin) = HR uploads it below (category ADMIN). Names = staff with TIME IN in the branch DTR + Management (new staff in, people who left out). '
       +(s0?'<b>SCHEDULE</b> = next week ('+esc(wk(s0.nextMon))+') — send every <b>Saturday</b>, they upload it on Sunday. <b>ACS</b> = this week ('+esc(wk(s0.mon))+').':'')+'</div>';
-    return head+'<div class="r259-t">'+branches().map(b=>'<div class="r259-r"><b>'+esc(b.name)+'</b>'+['KITCHEN','DINING'].map(d=>'<span><i>'+d+'</i><button type="button" data-r259="'+b.code+'|'+d+'|ORIG">⬇ SCHEDULE</button><button type="button" class="l" data-r259="'+b.code+'|'+d+'|ACS">⬇ ACS</button></span>').join('')+'</div>').join('')+'</div>';
+    return head+'<div class="r259-t">'+branches().map(b=>'<div class="r259-r"><b>'+esc(b.name)+'</b>'+['KITCHEN','DINING'].concat(hasAdmin(b.code)?['ADMIN']:[]).map(d=>'<span><i>'+d+'</i><button type="button" data-r259="'+b.code+'|'+d+'|ORIG">⬇ SCHEDULE</button><button type="button" class="l" data-r259="'+b.code+'|'+d+'|ACS">⬇ ACS</button></span>').join('')+'</div>').join('')+'</div>';
   }
   function tick(){
     const p=document.getElementById('hrScheduleUploadPanel');if(!p||!window.rcadsR215)return;
@@ -29428,7 +29444,7 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
       {name:'xl/workbook.xml',text:wbx},{name:'xl/_rels/workbook.xml.rels',text:rel},{name:'xl/styles.xml',text:SCHED_SPEC.styles},{name:'xl/theme/theme1.xml',text:SCHED_SPEC.theme});
     return zipStore(files)}
   function save(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500)}
-  var SHEET={KITCHEN:['KIT.ORIG.SCHED','ACS KITCHEN'],DINING:['DIN.ORIG.SCHED','ACS DINING']};
+  var SHEET={KITCHEN:['KIT.ORIG.SCHED','ACS KITCHEN'],DINING:['DIN.ORIG.SCHED','ACS DINING'],ADMIN:['ADM.ORIG.SCHED','ACS.ADMIN']};
   window.rcadsOrigSchedForm=function(b,dept,mon,kind){
     var p=String(mon).split('-').map(Number),monday=new Date(p[0],p[1]-1,p[2]),acs=kind==='ACS';
     var blob=build(b,[{name:SHEET[dept][acs?1:0],dept:dept,acs:acs,emps:roster(b,dept)}],monday);
@@ -29515,6 +29531,153 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
     const restore=()=>{XLSX.writeFile=orig};
     let r;try{r=prevExport.apply(this,arguments)}catch(e){restore();throw e}
     if(r&&typeof r.then==='function')return r.finally(restore);restore();return r};
+})();
+</script>
+
+<!-- RCADS PATCH: R264 forms + DTR Summary Log for Heads / Managers / HR Assistant, send back to HR -->
+<style id="rcadsR264Css">.r264-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #c8862a;color:#3d2615;text-align:left;font-size:12.5px}
+.r264-h{font-weight:900;font-size:13.5px;color:#4c2b17;margin-bottom:6px}.r264-n{font-size:11px;color:#6d5845;margin:4px 0 6px;line-height:1.4}
+.r264-sec{font-weight:900;font-size:11.5px;color:#5b3519;margin:10px 0 4px;border-top:1px solid #eadbc6;padding-top:8px}.r264-sec small{font-weight:600;color:#7a6250}
+.r264-br{font-weight:800;margin:4px 0}.r264-card select,.r264-card input:not([type=file]){display:block;width:100%!important;box-sizing:border-box;margin:4px 0;padding:9px;border:1px solid #d8bfa1;border-radius:9px;background:#fff;font-size:13px}
+.r264-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0}.r264-row span{display:inline-flex;gap:4px;align-items:center}.r264-row i{font-style:normal;font-size:10px;font-weight:900;color:#7a6250;min-width:52px}
+.r264-card button,.r264-up{width:auto!important;padding:8px 10px!important;border-radius:9px!important;border:0!important;background:#4c2b17!important;color:#fff!important;font-size:11.5px!important;font-weight:800!important;margin:0!important;cursor:pointer;display:inline-block}
+.r264-card button.l{background:#fff!important;color:#4c2b17!important;border:1px solid #c8a46a!important}.r264-card button.ok{background:#2f6b3a!important}.r264-up{background:#9b5a1a!important}
+.r264-msg{margin-top:6px;font-weight:800;color:#2f6b3a;font-size:12px}
+.r264-t{border-collapse:collapse;margin:6px 0;font-size:11.5px}.r264-t th,.r264-t td{border:1px solid #eadbc6;padding:4px 8px;text-align:center}.r264-t td:first-child{text-align:left;font-weight:700}
+.r264-item{background:#fff;border:1px solid #eadbc6;border-radius:10px;padding:7px 9px;margin:5px 0}.r264-item b{display:block;font-size:12px}.r264-item small{display:block;color:#7a6250;font-size:10.5px;margin:2px 0 4px}</style>
+<script id="rcadsR264Script">
+/* R264 — FORMS + DTR SUMMARY LOG IN THE APPS OF THE HEADS, MANAGERS AND HR ASSISTANT
+   • Kitchen Head 1 / Dining Head 1 (own branch, own department) and the 2 Managers (all branches, all departments):
+       ⬇ SCHEDULE / ⬇ ACS forms (original layout) and ⬇ DTR SUMMARY LOG of the chosen cutoff (same file HR makes, no loans),
+       then 📤 SEND BACK TO HR: "✅ CHECKED — OK" or 📎 the CORRECTED Excel file.
+   • HR Assistant: the ADMIN schedule / ACS forms.
+   • HR (▤ DTR / Export): 📥 SENT BACK BY THE BRANCHES — who checked what; corrected files download WITH the loans filled in. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&e.code&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function lbl(f,t){const a=new Date(f+'T00:00'),b=new Date(t+'T00:00');return M[a.getMonth()]+' '+a.getDate()+' – '+M[b.getMonth()]+' '+b.getDate()+', '+b.getFullYear()}
+  function pad(n){return String(n).padStart(2,'0')}
+  function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function cutoffs(){const out=[];const t=new Date();for(let i=-1;i<5;i++){const d=new Date(t.getFullYear(),t.getMonth()-i,1);const y=d.getFullYear(),m=d.getMonth();
+      out.push({from:iso(new Date(y,m,26)),to:iso(new Date(y,m+1,10))});out.push({from:iso(new Date(y,m,11)),to:iso(new Date(y,m,25))})}
+    const today=iso(t);return out.filter(c=>c.from<=today).sort((a,b)=>b.from.localeCompare(a.from)).slice(0,8)}
+  function curCutoff(){const today=iso(new Date());return cutoffs().find(c=>c.from<=today&&c.to>=today)||cutoffs()[0]}
+  function lastDone(){const today=iso(new Date());return cutoffs().find(c=>c.to<today)||curCutoff()}
+  const DEPT_TAG={MANAGEMENT:'Mgmt',KITCHEN:'Kitc',DINING:'Dini',EXTRA:'Extra'};
+  function save(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+  function b64(buf){const a=new Uint8Array(buf);let s='';for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)}
+  function unb64(s){const bin=atob(s);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a}
+  async function rpc(name,body){let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}if(!url||!anon)throw new Error('No Supabase settings.');
+    let r;try{r=await fetch(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('No internet connection.')}
+    let d=null;try{d=await r.json()}catch(e){}if(!r.ok)throw new Error((d&&(d.message||d.hint))||('Server error '+r.status)+(r.status===404?' — run RCADS_R264_DTR_CHECKS_SUPABASE.sql':''));if(!d||d.ok===false)throw new Error((d&&d.error)||'Server error');return d}
+
+  /* ---------- DTR Summary Log for a branch + cutoff (same builder HR uses) ---------- */
+  function buildDtr(b,c){
+    const oCtx=window.rcadsR158DtrExportContext,oCut=window.getSavedHrCutoffPeriod;
+    window.getSavedHrCutoffPeriod=()=>({from:c.from,to:c.to});
+    window.rcadsR158DtrExportContext=function(){const x=oCtx.apply(this,arguments);x.cutoff={from:c.from,to:c.to};x.branch=b;x.branchName=bName(b);return x};
+    try{return {wb:window.buildEditableDTRWorkbook(),ctx:window.rcadsR158DtrExportContext()}}finally{window.rcadsR158DtrExportContext=oCtx;window.getSavedHrCutoffPeriod=oCut}
+  }
+  function downloadDtr(b,c,depts){
+    if(typeof XLSX==='undefined'||!window.rcadsDtrStyledBlob){alert('The Excel library did not load. Connect to the internet and open RCADS again.');return}
+    const {wb,ctx}=buildDtr(b,c);if(!wb)return;let k=0;
+    wb.SheetNames.forEach(nm=>{const d=Object.keys(DEPT_TAG).find(x=>new RegExp('\\('+DEPT_TAG[x]+'\\b').test(nm));if(!d||!depts.includes(d))return;
+      const blob=window.rcadsDtrStyledBlob({SheetNames:[nm],Sheets:{[nm]:wb.Sheets[nm]}});
+      setTimeout(()=>save(blob,'RCADS_'+b+'_DTR_LOG_'+ctx.month+'_'+ctx.type+'_'+c.from+'_to_'+c.to+'_'+d+'.xlsx'),k++*900)});
+  }
+
+  /* ---------- who is using the app ---------- */
+  function who(){
+    let e=null;try{e=currentEmployee}catch(_){}if(!e||!e.code)return null;
+    const app=document.getElementById('rcadsR131ApproverApp'),shell=app&&app.querySelector('.r131-shell');
+    const appr=shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none';
+    const panel=document.getElementById('employeeSimplePanel');const host=appr?shell:(panel&&document.body.classList.contains('employee-simple-mode')?panel:null);if(!host)return null;
+    let homeB='';for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){homeB=x.code;break}}
+    if(window.rcadsMgrIsManager&&window.rcadsMgrIsManager(e))return {kind:'MGR',e,host,branches:branches().map(x=>x.code),forms:['KITCHEN','DINING'],dtr:['MANAGEMENT','KITCHEN','DINING','EXTRA'],label:'MANAGER'};
+    let hk='',hb='';try{const m=JSON.parse(localStorage.getItem('rcads_r231_branch_heads_v1')||'{}')||{};Object.keys(m).forEach(k=>{const x=m[k]||{};if(U(x.kitchenHead1)===U(e.code)){hk='kitchenHead1';hb=k}else if(U(x.diningHead1)===U(e.code)){hk='diningHead1';hb=k}})}catch(_){}
+    if(!hk&&appr){try{const a=getCurrentApproverAssignment();if(a&&(a.key==='kitchenHead1'||a.key==='diningHead1')){hk=a.key;hb=(window.rcadsHeadBranch&&window.rcadsHeadBranch(e))||homeB}}catch(_){}}
+    if(hk){const dep=hk==='kitchenHead1'?'KITCHEN':'DINING';return {kind:'HEAD',e,host,branches:[hb||homeB],forms:[dep],dtr:[dep],label:dep==='KITCHEN'?'KITCHEN HEAD 1':'DINING HEAD 1'}}
+    let role='';try{role=((JSON.parse(localStorage.getItem('rcads_r175_201staff_v1')||'[]')||[]).find(x=>U(x.code)===U(e.code))||{}).role||''}catch(_){}
+    if(role==='HRA')return {kind:'HRA',e,host,branches:branches().map(x=>x.code),forms:['ADMIN'],dtr:[],label:'HR ASSISTANT'};
+    return null;
+  }
+  let ST={b:'',cut:'',msg:'',busy:false,sig:''};
+  function cardHtml(w){
+    const s0=window.rcadsR215&&window.rcadsR215.status?(()=>{try{return window.rcadsR215.status(w.branches[0],w.forms[0]==='ADMIN'?'DINING':w.forms[0])}catch(e){return null}})():null;
+    const bsel=w.branches.length>1?'<select id="r264B">'+w.branches.map(c=>'<option value="'+c+'"'+(c===ST.b?' selected':'')+'>'+esc(bName(c))+'</option>').join('')+'</select>':'<div class="r264-br">'+esc(bName(ST.b))+'</div>';
+    let h='<div class="r264-h">📄 FORMS &amp; DTR SUMMARY LOG • '+esc(w.label)+'</div>'+bsel;
+    h+='<div class="r264-sec">SCHEDULE FORMS'+(s0?' <small>Schedule = next week ('+esc(lbl(s0.nextMon,iso(new Date(new Date(s0.nextMon+'T00:00').getTime()+6*864e5))))+') • ACS = this week</small>':'')+'</div><div class="r264-row">'
+      +w.forms.map(d=>'<span><i>'+d+'</i><button type="button" data-r264f="'+d+'|ORIG">⬇ SCHEDULE</button><button type="button" class="l" data-r264f="'+d+'|ACS">⬇ ACS</button></span>').join('')+'</div>';
+    if(w.dtr.length){const C=cutoffs();
+      h+='<div class="r264-sec">DTR SUMMARY LOG</div><select id="r264C">'+C.map(c=>{const v=c.from+'|'+c.to;return '<option value="'+v+'"'+(v===ST.cut?' selected':'')+'>'+lbl(c.from,c.to)+'</option>'}).join('')+'</select>'
+        +'<div class="r264-row"><button type="button" id="r264D">⬇ DOWNLOAD DTR SUMMARY LOG ('+w.dtr.map(d=>d.slice(0,1)+d.slice(1).toLowerCase()).join(', ')+')</button></div>'
+        +'<div class="r264-n">Check it. If it is correct, send ✅ CHECKED. If you corrected it in Excel, attach the corrected file.</div>'
+        +'<select id="r264Dept">'+w.dtr.map(d=>'<option>'+d+'</option>').join('')+'</select>'
+        +'<input id="r264Note" placeholder="Note to HR (optional)" autocomplete="off">'
+        +'<div class="r264-row"><button type="button" class="ok" id="r264Ok"'+(ST.busy?' disabled':'')+'>✅ CHECKED — OK, SEND TO HR</button><label class="r264-up">📎 SEND CORRECTED FILE<input type="file" id="r264File" accept=".xlsx" hidden></label></div>'}
+    return h+'<div class="r264-msg">'+esc(ST.msg)+'</div>';
+  }
+  async function sendBack(w,status,file){
+    const R=window.rcadsR182;const key=R&&R.key&&R.key();if(!key){ST.msg='This phone has no RCADS key. Ask HR for a new personal QR.';draw(true);return}
+    const [from,to]=ST.cut.split('|');const dept=(document.getElementById('r264Dept')||{}).value||w.dtr[0];const note=((document.getElementById('r264Note')||{}).value||'').trim();
+    ST.busy=true;ST.msg='Sending…';draw(true);
+    try{let data='',fn='';if(file){if(file.size>6*1024*1024)throw new Error('The file is larger than 6 MB.');data=b64(await file.arrayBuffer());fn=file.name}
+      await rpc('rustica_dtr_check_put',{p_key:key,p_branch:ST.b,p_dept:dept,p_from:from,p_to:to,p_status:status,p_note:note,p_file_name:fn,p_data_b64:data,p_name:(w.e.name||w.e.code)+' • '+w.label});
+      ST.msg='✓ Sent to HR: '+dept+' • '+bName(ST.b)+' • '+lbl(from,to)+(status==='CHECKED'?' • CHECKED OK':' • corrected file '+fn)}
+    catch(e){ST.msg=e.message}ST.busy=false;draw(true)}
+  function draw(force){const el=document.getElementById('r264Card');const w=who();if(!el||!w)return;const h=cardHtml(w);if(force||el.dataset.h!==h){if(!force&&el.contains(document.activeElement))return;el.dataset.h=h;el.innerHTML=h}}
+  function tick(){
+    const w=who();let el=document.getElementById('r264Card');
+    if(!w){if(el)el.remove();return}
+    if(!ST.b||!w.branches.includes(ST.b))ST.b=w.branches[0];if(!ST.cut){const c=lastDone();ST.cut=c.from+'|'+c.to}
+    if(!el){el=document.createElement('div');el.id='r264Card';el.className='r264-card';
+      el.addEventListener('change',e=>{const t=e.target;if(t.id==='r264B'){ST.b=t.value;ST.msg='';draw(true)}else if(t.id==='r264C'){ST.cut=t.value;ST.msg='';draw(true)}
+        else if(t.id==='r264File'&&t.files&&t.files[0]){const f=t.files[0];t.value='';const ww=who();if(ww&&confirm('Send the CORRECTED file "'+f.name+'" to HR?'))sendBack(ww,'CORRECTED',f)}});
+      el.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;const ww=who();if(!ww)return;
+        const f=t.closest('[data-r264f]');if(f){const [d,k]=f.getAttribute('data-r264f').split('|');try{const s=window.rcadsR215.status(ST.b,d==='ADMIN'?'DINING':d);window.rcadsOrigSchedForm(ST.b,d,k==='ACS'?s.mon:s.nextMon,k)}catch(err){alert('Could not make the form: '+err.message)}return}
+        if(t.closest('#r264D')){const [from,to]=ST.cut.split('|');try{downloadDtr(ST.b,{from,to},ww.dtr)}catch(err){alert('Could not make the DTR Summary Log: '+err.message)}return}
+        if(t.closest('#r264Ok')){const d=(document.getElementById('r264Dept')||{}).value;if(confirm('Send to HR: '+d+' • '+bName(ST.b)+' • CHECKED — OK?'))sendBack(ww,'CHECKED',null)}})}
+    const hasMore=!!w.host.querySelector('.r162-nav [data-r162-go="more"]');el.setAttribute('data-r162-tab',hasMore?'more':'home');
+    if(el.parentElement!==w.host){const nav=w.host.querySelector(':scope > .r162-nav');w.host.insertBefore(el,nav||null)}
+    draw(false);
+  }
+  setInterval(()=>{try{tick()}catch(e){console.warn('R264',e)}},2000);
+
+  /* ---------- HR: 📥 SENT BACK BY THE BRANCHES ---------- */
+  let HR={rows:null,cut:'',msg:'',at:0};
+  function hrKey(){const R=window.rcadsR182;return R&&R.role&&R.role()==='HR'&&R.key()?{b:R.branch(),k:R.key()}:null}
+  async function hrLoad(){const k=hrKey();if(!k){HR.msg='Only on the HR device.';return}try{const d=await rpc('rustica_dtr_check_list',{p_branch_code:k.b,p_key:k.k,p_from:HR.cut.split('|')[0]||null});HR.rows=d.rows||[];HR.msg=''}catch(e){HR.msg=e.message}HR.at=Date.now();hrDraw(true)}
+  function fillLoans(wb,b,c){try{const dues=window.rcadsLoanDues?window.rcadsLoanDues(b,{cutoff:{from:c.from,to:c.to},type:Number(c.from.slice(8,10))===11?'11-25':'26-10'}):[];const by={};dues.forEach(d=>{(by[U(d.l.emp_code)]=by[U(d.l.emp_code)]||[]).push(d)});
+    wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n];const a=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});const hi=a.findIndex(r=>r&&U(r[0])==='EMPCODE');if(hi<0)return;const H=a[hi].map(U);
+      const cS=H.indexOf('SSS LOAN'),cP=H.indexOf('PAG-IBIG LOAN'),cC=H.indexOf('COMPANY LOAN & OTHERS');
+      for(let i=hi+1;i<a.length;i++){const L=by[U(a[i][0])];if(!L)continue;const sum=k=>L.filter(d=>k.includes(d.l.kind)).reduce((s,d)=>s+d.a,0);
+        [[cS,['SSS']],[cP,['PAGIBIG']],[cC,['COMPANY','SHORTAGE']]].forEach(([col,k])=>{const v=sum(k);if(col>=0&&v)XLSX.utils.sheet_add_aoa(ws,[[Math.round(v*100)/100]],{origin:{r:i,c:col}})})}})}catch(e){console.warn('R264 loans',e)}return wb}
+  async function hrOpen(id,row){const k=hrKey();if(!k)return;try{const d=await rpc('rustica_dtr_check_get',{p_branch_code:k.b,p_key:k.k,p_id:id});const wb=XLSX.read(unb64(d.data_b64),{type:'array'});
+      try{if(window.rcadsR252&&window.rcadsR252.load)await window.rcadsR252.load(true)}catch(_){}
+      fillLoans(wb,row.branch,{from:row.from,to:row.to});const blob=window.rcadsDtrStyledBlob?window.rcadsDtrStyledBlob(wb):new Blob([XLSX.write(wb,{type:'array',bookType:'xlsx'})]);
+      save(blob,String(d.file_name||'DTR.xlsx').replace(/\.xlsx$/i,'')+'_WITH_LOANS.xlsx')}catch(e){alert(e.message)}}
+  function hrHtml(){const C=cutoffs();if(!HR.cut){const c=lastDone();HR.cut=c.from+'|'+c.to}
+    let h='<div class="r264-h">📥 SENT BACK BY THE BRANCHES (DTR SUMMARY LOG)</div><div class="r264-n">Kitchen / Dining Head 1 and the Managers check the DTR Summary Log in their own RCADS and send it back here: ✅ CHECKED or 📎 a corrected file (downloaded here WITH the loans filled in).</div>'
+      +'<div class="r264-row"><select id="r264HC">'+C.map(c=>{const v=c.from+'|'+c.to;return '<option value="'+v+'"'+(v===HR.cut?' selected':'')+'>'+lbl(c.from,c.to)+'</option>'}).join('')+'</select><button type="button" class="l" id="r264HR">↻</button></div>';
+    if(HR.msg)h+='<div class="r264-msg">'+esc(HR.msg)+'</div>';if(!HR.rows)return h+'<div class="r264-n">Loading…</div>';
+    const D=['MANAGEMENT','KITCHEN','DINING','EXTRA'];
+    h+='<table class="r264-t"><tr><th></th>'+D.map(d=>'<th>'+d.slice(0,4)+'</th>').join('')+'</tr>'+branches().map(b=>'<tr><td>'+esc(b.name)+'</td>'+D.map(d=>{const r=HR.rows.find(x=>x.branch===b.code&&x.dept===d);return '<td>'+(r?(r.status==='CHECKED'?'✅':'📎'):'—')+'</td>'}).join('')+'</tr>').join('')+'</table>';
+    h+=HR.rows.map(r=>'<div class="r264-item"><b>'+(r.status==='CHECKED'?'✅ CHECKED':'📎 CORRECTED')+' • '+esc(bName(r.branch))+' • '+esc(r.dept)+'</b><small>'+esc(r.by_name||r.by_code)+' • '+esc(new Date(r.at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+(r.note?' • “'+esc(r.note)+'”':'')+'</small>'+(r.file_name?'<button type="button" data-r264o="'+r.id+'">⬇ '+esc(r.file_name)+' (with loans)</button>':'')+'</div>').join('')||'<div class="r264-n">Nothing sent back yet for this cutoff.</div>';
+    return h}
+  function hrDraw(force){const el=document.getElementById('r264Hr');if(!el)return;if(!force&&el.contains(document.activeElement))return;const h=hrHtml();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
+  function hrTick(){const p=document.getElementById('hrDtrExportPanel');const admin=document.getElementById('simpleHrAdminModal');if(!p||!admin||getComputedStyle(admin).display==='none'||!hrKey())return;
+    let el=document.getElementById('r264Hr');
+    if(!el){el=document.createElement('div');el.id='r264Hr';el.className='r264-card';const c=document.getElementById('r184PayrollCard');if(c&&c.parentElement)c.insertAdjacentElement('afterend',el);else p.insertBefore(el,p.firstChild);
+      el.addEventListener('change',e=>{if(e.target.id==='r264HC'){HR.cut=e.target.value;HR.rows=null;hrDraw(true);hrLoad()}});
+      el.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;if(t.closest('#r264HR')){hrLoad();return}const o=t.closest('[data-r264o]');if(o){const r=(HR.rows||[]).find(x=>x.id===o.getAttribute('data-r264o'));if(r)hrOpen(r.id,r)}})}
+    if(!HR.at||Date.now()-HR.at>120000)hrLoad();hrDraw(false)}
+  setInterval(()=>{try{hrTick()}catch(e){console.warn('R264 HR',e)}},2500);
+  window.rcadsR264={buildDtr,downloadDtr,who};
 })();
 </script>
 </body>
