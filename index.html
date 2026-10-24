@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R266 SHARE DTR FILES</title>
+<title>Rustica RCADS App — R267 CHOOSE BRANCH</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -29725,5 +29725,31 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
   window.rcadsShareDtrFiles=share;
 })();
 </script>
+
+<!-- RCADS PATCH: R267 choose the BRANCH on the SEND TO RCPS card -->
+<script id="rcadsR267Script">
+/* R267 — BRANCH dropdown next to the CUTOFF on HR → ▤ DTR / Export (SEND TO RCPS / EXPORT / SHARE).
+   All DTR Summary Log buttons, the loans and the label under the button follow the chosen branch. */
+(function(){
+  'use strict';
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  let SEL='';try{SEL=sessionStorage.getItem('r267_dtr_branch')||''}catch(_){}
+  const orig=window.rcadsR158DtrExportContext;
+  if(typeof orig==='function')window.rcadsR158DtrExportContext=function(){const x=orig.apply(this,arguments);
+    if(SEL&&x&&x.branch!==SEL&&branches().some(b=>b.code===SEL)){x.branch=SEL;const b=branches().find(q=>q.code===SEL);x.branchName=b?b.name:SEL}return x};
+  function tick(){
+    const box=document.getElementById('r258Cut');if(!box)return;
+    let w=document.getElementById('r267Wrap');
+    if(!w){w=document.createElement('label');w.id='r267Wrap';w.innerHTML='BRANCH<select id="r267B"></select>';box.insertBefore(w,box.firstChild);
+      w.querySelector('select').addEventListener('change',e=>{SEL=e.target.value;try{sessionStorage.setItem('r267_dtr_branch',SEL)}catch(_){}
+        const m=document.getElementById('r258Msg');if(m)m.textContent='✓ Branch: '+e.target.options[e.target.selectedIndex].text+'. Now press 📤 SEND TO RCPS or SHARE.'})}
+    let cur='';try{cur=orig().branch}catch(_){}if(!SEL)SEL=cur;
+    const s=w.querySelector('select');const sig=branches().map(b=>b.code).join(',')+'|'+SEL;
+    if(s.dataset.sig!==sig){s.dataset.sig=sig;s.innerHTML=branches().map(b=>'<option value="'+b.code+'"'+(b.code===SEL?' selected':'')+'>'+b.name+'</option>').join('')}
+  }
+  setInterval(()=>{try{tick()}catch(e){console.warn('R267',e)}},1500);
+})();
+</script>
+<style id="rcadsR267Css">#r267Wrap{display:block;font-size:11px;font-weight:900;color:#5b3519;margin-bottom:8px}#r267Wrap select{display:block;width:100%;margin-top:4px;padding:10px;border:2px solid #c8862a;border-radius:9px;font-size:14px;font-weight:800;background:#fffaf2;color:#3a2210}</style>
 </body>
 </html>
