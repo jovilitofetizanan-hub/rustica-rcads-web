@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R255 NEW RUSTICA ID</title>
+<title>Rustica RCADS App — R259 HR SCHEDULE FORMS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21625,7 +21625,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
     try{
       const p=await getPos();
       const d=dist(cfg.lat,cfg.lng,p.coords.latitude,p.coords.longitude),acc=p.coords.accuracy||0,rad=Number(cfg.radius)||50;
-      res.distance=Math.round(d);res.accuracy=Math.round(acc);res.ok=d<=rad;
+      res.distance=Math.round(d);res.accuracy=Math.round(acc);res.ok=d<=rad+Math.min(acc,10);
       res.state=res.ok?'INSIDE RUSTICA PREMISES ✓ ('+res.distance+' m from branch point, GPS ±'+res.accuracy+' m)':'RED FLAG — OUTSIDE PREMISES ('+res.distance+' m away, limit '+rad+' m)';
       if(!res.ok&&acc>rad)res.state+=' • LOW GPS ACCURACY ±'+res.accuracy+' m — go near a window/outside and scan again';
     }catch(e){
@@ -25297,6 +25297,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(r.status!=='ACTIVE')return {ok:false,msg:p.c+': access is '+r.status+'.'};
     let good=false;try{good=(await hmac(r.pinHash,canon(p)))===p.s}catch(e){}
     if(!good)return {ok:false,msg:'FAKE or altered QR (RED FLAG). Do not record.'};
+    if(p.t==='PASS'&&p.geo!=='OK'&&p.geo!=='NS')return {ok:false,msg:'⛔ NOT AT THE BRANCH — GPS: '+(p.geo==='OUT'?'OUTSIDE the branch':'location OFF / not checked')+'. Do not record. The employee must turn ON Location, stand in front of you, and scan your QR again.'};
     const age=Date.now()-Number(p.ts);if(!(age<=MAX_AGE&&age>-60000))return {ok:false,msg:'The QR has expired (2 minutes only). Ask the employee to refresh it.'};
     if(isSep(p.c))return {ok:false,msg:p.c+' is already SEPARATED. Attendance not allowed.'};try{const tg=window.rcadsR193&&window.rcadsR193.gate(p.c);if(tg)return {ok:false,msg:tg}}catch(e){}
     const f=findEmp(p.c);const R5=window.rcadsR185;const L5=R5&&R5.activeLoan(p.c);const wb5=L5?L5.to:((R5&&R5.branchAt(p.c))||(f?f.branch:p.b));return {ok:true,p,emp:f?f.emp:{code:p.c,name:p.c},branch:wb5,loan:L5||null,loanEnded:(!L5&&R5&&R5.recentLoanEnded(p.c))||null};
@@ -25304,7 +25305,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   async function geoCheck(code,name){try{if(typeof window.rcadsR159VerifyLocation==='function'){const r=await window.rcadsR159VerifyLocation({id:'EMP_'+code,code,name,role:'EMPLOYEE'});return r&&r.ok===true?'OK':(r&&r.ok===false?'OUT':'NA')}}catch(e){}return 'NA'}
   async function onGuardScanned(raw,who){
     const g=parseGuardQr(raw);if(!g.ok){alert(g.msg);return}
-    const code=who.code;const geo=await geoCheck(code,who.name);
+    const code=who.code;let geo='NA',gr=null;
+    try{if(typeof window.rcadsR159VerifyLocation==='function')gr=await window.rcadsR159VerifyLocation({id:'EMP_'+code,code,name:who.name,role:'EMPLOYEE'})}catch(e){}
+    if(gr&&gr.ok===true)geo='OK';else if(gr&&/LOCATION NOT SET/i.test(gr.state||''))geo='NS';
+    else{alert('⛔ TIME IN / OUT NOT ALLOWED\n\n'+((gr&&gr.state)||'Location is OFF or not available.')+'\n\nYou must be AT THE BRANCH, in front of the guard.\nTurn ON Location (allow it for this app), go near the guard, then scan again.');return}
     try{const txt=await makePayload(code,who.branch||g.branch,'PASS',g,geo,who.ph);PASS={code,txt,until:Date.now()+PASS_MS,geo,guard:g.label};renderPassAll()}
     catch(e){alert(e.message)}
   }
@@ -25316,7 +25320,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     let h='<div class="r181-h">📲 ATTENDANCE <span class="r181-st '+st.state.toLowerCase()+'">'+stTxt+'</span></div>';
     if(PASS&&PASS.code===who.code&&Date.now()<PASS.until){
       const left=Math.ceil((PASS.until-Date.now())/1000);
-      h+='<div class="r181-pass"><div class="r181-ok">✓ YOU SCANNED THE QR OF '+esc(PASS.guard.toUpperCase())+'</div><div class="r181-qr">'+qrSvg(PASS.txt)+'</div><b>SHOW THIS TO THE GUARD TO SCAN</b><small>Still valid for <span data-r181-left>'+left+'</span>s • GPS: '+({OK:'✓ at the branch',OUT:'⚠ OUTSIDE the branch',NA:'not checked'}[PASS.geo])+'</small></div>';
+      h+='<div class="r181-pass"><div class="r181-ok">✓ YOU SCANNED THE QR OF '+esc(PASS.guard.toUpperCase())+'</div><div class="r181-qr">'+qrSvg(PASS.txt)+'</div><b>SHOW THIS TO THE GUARD TO SCAN</b><small>Still valid for <span data-r181-left>'+left+'</span>s • GPS: '+({OK:'✓ at the branch',OUT:'⚠ OUTSIDE the branch',NA:'not checked',NS:'branch location not set (HR)'}[PASS.geo])+'</small></div>';
     }else{
       h+='<button type="button" class="r181-big" data-r181-scanguard>📷 SCAN THE GUARD’S QR<small>for TIME IN / TIME OUT</small></button>';
       h+='<details class="r181-brk"'+(st.state==='WORKING'||st.state==='BREAK'?' open':'')+'><summary>☕ BREAK QR — show to the Kitchen/Dining Head 1 or Manager</summary><div class="r181-qr small" data-r181-bq="'+esc(who.code)+'">'+(breakCache[who.code]&&Date.now()-breakCache[who.code].at<60000?qrSvg(breakCache[who.code].txt):'<i>…</i>')+'</div><small>Changes every minute. BREAK OUT / BREAK IN is with the Head 1 or Manager only.</small></details>';
@@ -25864,7 +25868,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
           const cfg=geoCfg()[target];const res={at:new Date().toISOString(),branch:target,who:who.name||'',code,role:who.role||'',ok:null,distance:null,accuracy:null,state:''};
           if(!cfg||!isFinite(cfg.lat)||!isFinite(cfg.lng)){res.state='LOCATION NOT SET for '+bName(target);return res}
           const p=await new Promise((ok,no)=>{if(!navigator.geolocation)return no({code:-1});navigator.geolocation.getCurrentPosition(ok,no,{enableHighAccuracy:true,timeout:15000,maximumAge:0})});
-          const d=distM(cfg.lat,cfg.lng,p.coords.latitude,p.coords.longitude),rad=Number(cfg.radius)||50;res.distance=Math.round(d);res.accuracy=Math.round(p.coords.accuracy||0);res.ok=d<=rad;
+          const d=distM(cfg.lat,cfg.lng,p.coords.latitude,p.coords.longitude),rad=Number(cfg.radius)||50;res.distance=Math.round(d);res.accuracy=Math.round(p.coords.accuracy||0);res.ok=d<=rad+Math.min(acc,10);
           res.state=(res.ok?'INSIDE '+bName(target).toUpperCase()+' ✓':'RED FLAG — OUTSIDE '+bName(target).toUpperCase())+' ('+res.distance+' m)'+(L?' • TEMPORARY':'');return res;
         }
       }catch(e){if(e&&e.code!=null)return {ok:false,state:'RED FLAG — LOCATION OFF / NOT AVAILABLE'}}
@@ -29277,5 +29281,78 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
 .r255 .r255-hrname{border-top:.2mm solid #3d2615;padding-top:.3mm}
 .r255 .r255-hrname b{display:block;font-size:1.75mm}.r255 .r255-hrname small{display:block;font-size:1.3mm;color:#5b4433}
 </style>
+
+<!-- RCADS PATCH: R258 choose the cutoff on SEND TO RCPS -->
+<style id="rcadsR258Css">#r258Cut{margin:0 0 8px}#r258Cut label{display:block;font-size:11px;font-weight:900;color:#5b3519}#r258Cut select{display:block;width:100%;margin-top:4px;padding:10px;border:2px solid #c8862a;border-radius:9px;font-size:14px;font-weight:800;background:#fffaf2;color:#3a2210}.r258-n{font-size:11px;color:#2d6a36;font-weight:800;margin-top:4px}</style>
+<script id="rcadsR258Script">
+/* R258 — CHOOSE THE CUTOFF right on the "📤 SEND TO RCPS (PAYROLL)" card (HR → ▤ DTR / Export).
+   Same setting as ◷ Cutoff / Archive → SET / SAVE ACTIVE CUTOFF, so the DTR Summary Log, loans and RCPS all use it. */
+(function(){
+  'use strict';
+  const pad=n=>String(n).padStart(2,'0');
+  const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function lbl(c){const a=new Date(c.from+'T00:00'),b=new Date(c.to+'T00:00');return M[a.getMonth()]+' '+a.getDate()+' – '+M[b.getMonth()]+' '+b.getDate()+', '+b.getFullYear()}
+  function list(){const out=[];const t=new Date();let y=t.getFullYear(),m=t.getMonth()+1;m+=1;if(m>12){m=1;y++}
+    for(let i=0;i<14;i++){ // newest first: 7 months back
+      ['26-10','11-25'].forEach(tp=>{const c=rusticaComputeCutoff(tp,y+'-'+pad(m));if(c)out.push(c)});
+      m--;if(m<1){m=12;y--}}
+    return out.filter(c=>c.from<=new Date(Date.now()+20*864e5).toISOString().slice(0,10)).sort((a,b)=>b.from.localeCompare(a.from)).slice(0,16)}
+  function cur(){try{return getSavedHrCutoffPeriod()}catch(e){return null}}
+  function tick(){
+    const card=document.getElementById('r184PayrollCard');if(!card||typeof rusticaComputeCutoff!=='function')return;
+    let box=document.getElementById('r258Cut');
+    if(!box){box=document.createElement('div');box.id='r258Cut';box.className='r258-cut';
+      box.innerHTML='<label>CUTOFF FOR THE DTR SUMMARY LOG<select id="r258Sel"></select></label><div class="r258-n" id="r258Msg"></div>';
+      card.insertBefore(box,card.firstChild);
+      box.querySelector('#r258Sel').addEventListener('change',e=>{const [from,to,type]=e.target.value.split('|');
+        const c={type,from,to,year:+from.slice(0,4),month:+from.slice(5,7),branch:rusticaGetCurrentBranchCode(),savedAt:new Date().toISOString()};
+        try{localStorage.setItem(rusticaActiveCutoffKey(),JSON.stringify(c))}catch(_){}
+        try{rusticaRefreshMaintenancePanel()}catch(_){}
+        const m=document.getElementById('r258Msg');if(m)m.textContent='✓ Cutoff set: '+lbl(c)+'. Now press 📤 SEND TO RCPS.';
+        box.dataset.sig=''})}
+    const c=cur()||{};const sig=(c.from||'')+'|'+(c.to||'');if(box.dataset.sig===sig)return;box.dataset.sig=sig;
+    const L=list();if(c.from&&!L.some(x=>x.from===c.from&&x.to===c.to))L.unshift({type:Number(c.from.slice(8,10))===11?'11-25':'26-10',from:c.from,to:c.to});
+    const sel=box.querySelector('#r258Sel');sel.innerHTML=L.map(x=>'<option value="'+x.from+'|'+x.to+'|'+x.type+'"'+(x.from===c.from&&x.to===c.to?' selected':'')+'>'+lbl(x)+(x.from<=new Date().toISOString().slice(0,10)&&x.to>=new Date().toISOString().slice(0,10)?'  (current)':'')+'</option>').join('');
+  }
+  setInterval(()=>{try{tick()}catch(e){console.warn('R258',e)}},1500);
+})();
+</script>
+
+<!-- RCADS PATCH: R259 HR schedule forms for all branches -->
+<style id="rcadsR259Css">.r259-card{margin:0 0 10px;padding:10px;border-radius:12px;background:#fffaf2;border:2px solid #c8862a;text-align:left}
+.r259-h{font-weight:900;color:#4c2b17;font-size:13px}.r259-n{font-size:11px;color:#6d5845;margin:4px 0 8px;line-height:1.4}
+.r259-r{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:6px 0;border-top:1px solid #eadbc6}.r259-r>b{min-width:110px;color:#3a2210;font-size:12.5px}
+.r259-r span{display:inline-flex;align-items:center;gap:4px}.r259-r i{font-style:normal;font-size:10px;font-weight:900;color:#7a6250;min-width:52px}
+.r259-r button{width:auto!important;padding:6px 9px!important;border-radius:8px!important;border:0!important;background:#4c2b17!important;color:#fff!important;font-size:11px!important;font-weight:800!important;margin:0!important}
+.r259-r button.l{background:#fff!important;color:#4c2b17!important;border:1px solid #c8a46a!important}</style>
+<script id="rcadsR259Script">
+/* R259 — HR: SCHEDULE FORMS FOR ALL BRANCHES (HR → ▦ Schedule Upload)
+   HR downloads the weekly SCHEDULE form and the ACS form of every branch (Kitchen / Dining) and sends them to the
+   Dining Head 1 / Kitchen Head 1 of the branch. Names come from the branch DTR (active staff) + Management — same as their own ⬇ TEMPLATE.
+   The Heads still upload the filled forms in their own RCADS (☰ MORE → 📅 SCHEDULE). */
+(function(){
+  'use strict';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  const M=iso=>{const d=new Date(iso+'T00:00');return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})};
+  function wk(mon){const d=new Date(mon+'T00:00');d.setDate(d.getDate()+6);return M(mon)+' – '+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+  function html(){
+    const R=window.rcadsR215;if(!R)return '';
+    let s0=null;try{s0=R.status(branches()[0].code,'KITCHEN')}catch(e){}
+    const head='<div class="r259-h">📄 SCHEDULE FORMS FOR THE BRANCHES</div><div class="r259-n">Download and send to the <b>Kitchen Head 1</b> / <b>Dining Head 1</b> of each branch. Names = staff with TIME IN in the branch DTR + Management (new staff in, people who left out). '
+      +(s0?'<b>SCHEDULE</b> = next week ('+esc(wk(s0.nextMon))+') — send every <b>Saturday</b>, they upload it on Sunday. <b>ACS</b> = this week ('+esc(wk(s0.mon))+').':'')+'</div>';
+    return head+'<div class="r259-t">'+branches().map(b=>'<div class="r259-r"><b>'+esc(b.name)+'</b>'+['KITCHEN','DINING'].map(d=>'<span><i>'+d+'</i><button type="button" data-r259="'+b.code+'|'+d+'|ORIG">⬇ SCHEDULE</button><button type="button" class="l" data-r259="'+b.code+'|'+d+'|ACS">⬇ ACS</button></span>').join('')+'</div>').join('')+'</div>';
+  }
+  function tick(){
+    const p=document.getElementById('hrScheduleUploadPanel');if(!p||!window.rcadsR215)return;
+    let el=document.getElementById('r259Forms');
+    if(!el){el=document.createElement('div');el.id='r259Forms';el.className='r259-card';p.insertBefore(el,p.firstChild);
+      el.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-r259]');if(!t)return;const [b,d,k]=t.getAttribute('data-r259').split('|');
+        try{const s=window.rcadsR215.status(b,d);window.rcadsR215.template(b,d,k==='ACS'?s.mon:s.nextMon,k)}catch(err){alert('Could not make the form: '+err.message)}})}
+    const h=html();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
+  }
+  setInterval(()=>{try{tick()}catch(e){console.warn('R259',e)}},2000);
+})();
+</script>
 </body>
 </html>
