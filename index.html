@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R273 SCHEDULE ACS BUTTON PER BRANCH</title>
+<title>Rustica RCADS App — R274 PERSONAL APP STAYS PERSONAL</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22338,6 +22338,8 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   function bootGate(){if(gPayload()||oPayload())return;const p=payloadFromHash()||deviceOwner();if(p&&p.c)openGate(p)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(bootGate,350));else setTimeout(bootGate,350);
   window.addEventListener('hashchange',()=>{const p=payloadFromHash();if(p)openGate(p)});
+  /* R274: LOG OUT on a PERSONAL phone goes back to the person's own PIN screen — never to the HR main screen. */
+  (function(){const prev=window.logout;if(typeof prev!=='function')return;window.logout=function(){const r=prev.apply(this,arguments);try{if(!(gPayload()||oPayload())){const d=deviceOwner();if(d&&d.c){try{history.replaceState(null,'',location.pathname+location.search)}catch(_){}setTimeout(()=>openGate({c:d.c,b:d.b,n:d.n}),60)}}}catch(e){console.warn('R274',e)}return r}})();
 
   /* ---------------- HR PANEL ---------------- */
   function statusOf(emp){
@@ -22629,8 +22631,10 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     let r=rec(code),sc='';
     if(r&&r.status==='SETUP'&&!setupExpired(r))sc=knownSetup(code);
     if(!sc){
-      if(r&&r.status==='ACTIVE'&&!confirm((name||code)+' already has their own PIN.\n\nA NEW QR will be made so they can create a new PIN (the old one will stop working). Continue?'))return;
-      sc=await issueSetup(code,branch,name);if(!sc)return;r=rec(code);
+      if(r&&r.status==='ACTIVE'){
+        if(confirm((name||code)+' already has their own PIN.\n\nOK = QR that only OPENS THE APP on their phone — SAME PIN (use this for a new / changed phone or if they were logged out).\n\nCancel = more choices (reset the PIN).')){sc=''}
+        else{if(!confirm('RESET THE PIN of '+(name||code)+'?\n\nTheir current PIN will STOP working and they must create a NEW PIN with the new QR.\nOnly do this if they FORGOT their PIN.'))return;sc=await issueSetup(code,branch,name);if(!sc)return;r=rec(code)}
+      }else{sc=await issueSetup(code,branch,name);if(!sc)return;r=rec(code)}
     }
     let tk='',tkErr='';
     try{if(window.rcadsR182&&window.rcadsR182.canIssue())tk=await window.rcadsR182.issueTicket((name||code)+' • '+code,code);else tkErr='This device is not enrolled as HR'}catch(e){tkErr=e.message}
@@ -22638,9 +22642,9 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     let o=document.getElementById('r179Qr');if(!o){o=document.createElement('div');o.id='r179Qr';document.documentElement.appendChild(o)}
     o.innerHTML='<div class="r179-box"><div class="r179-h">📲 SCAN TO OPEN THE RCADS APP</div><div class="r179-who"><b>'+esc(name||code)+'</b><span>'+esc(code)+(rustId(code)?' • '+esc(rustId(code)):'')+' • '+esc(bName(branch))+'</span></div>'
       +'<div class="r179-qr">'+qrSvg(link)+'</div>'
-      +'<ol class="r179-steps"><li>Open the <b>camera</b> of their phone and scan the QR.</li><li><b>They will create their own 4-digit PIN</b> (2 times).</li><li><b>Install</b> the app (Add to Home Screen).</li><li>They can now log in, TIME IN and TIME OUT.</li></ol>'
+      +'<ol class="r179-steps"><li>Open the <b>camera</b> of their phone and scan the QR.</li><li>'+(sc?'<b>They will create their own 4-digit PIN</b> (2 times).':'<b>They log in with their SAME PIN</b> (no new PIN).')+'</li><li><b>Install</b> the app (Add to Home Screen).</li><li>They can now log in, TIME IN and TIME OUT.</li></ol>'
       +(tk?'<div class="r179-note ok">🔑 The QR has a device key — their phone will sync with Supabase.</div>':'<div class="r179-note">⚠ NO DEVICE KEY in the QR ('+esc(tkErr||'offline')+'). The app will work but will not sync. Fix it in ● Database → 🔑 Device Keys, then make the QR again.</div>')
-      +'<div class="r179-note">This QR is for them only • can be used only once • valid until '+esc(new Date(r.setupExpires).toLocaleDateString())+'. Do not send it to a group chat.</div>'
+      +'<div class="r179-note">This QR is for them only'+(sc&&r&&r.setupExpires?' • can be used only once • valid until '+esc(new Date(r.setupExpires).toLocaleDateString()):' • opens the app with their current PIN')+'. Do not send it to a group chat.</div>'
       +'<div class="r179-btns"><button type="button" class="r160-mini" id="r179Print">🖨 PRINT</button><button type="button" class="r160-mini light" id="r179Copy">COPY LINK</button><button type="button" class="r160-btn" id="r179Close">✕ CLOSE</button></div></div>';
     o.classList.add('show');
     o.querySelector('#r179Close').onclick=()=>{o.classList.remove('show');o.innerHTML='';try{renderList();if(selCode)renderDetail(selCode)}catch(e){}};
