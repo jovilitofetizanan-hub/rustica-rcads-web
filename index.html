@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R277 IPHONE FIX</title>
+<title>Rustica RCADS App — R278 BREAK WITH THE GUARD</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25378,11 +25378,11 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     }
     if(st.state==='WORKING'){
       const wi=workedInfo(p.c);
-      if(wi.worked<NEED){resultBox('r181GuardRes',head+'<b class="big bad">⛔ UNDERTIME — worked '+hmR(wi.worked)+' only</b><span>8 hours needed (still '+hmR(NEED-wi.worked)+'). The guard does NOT record undertime. Ask the <b>Kitchen / Dining Head 1</b> why: if approved, the Head 1 does the TIME OUT in the Head app with the reason.</span><div class="r181-acts"><button type="button" class="r181-btn alt" data-r217-abandon>🚩 LEFT WITHOUT PERMISSION — LEFT WITHOUT PERMISSION</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','warn');pendingOut={p,name,base,wi};return}
-      resultBox('r181GuardRes',head+'<b>ON DUTY since '+esc(st.recs[0].time||fmtT(st.recs[0].date))+' • worked '+hmR(wi.worked)+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r181-out="END">🏁 TIME OUT — END OF SHIFT</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','');
+      if(wi.worked<NEED){resultBox('r181GuardRes',head+'<b>ON DUTY • worked '+hmR(wi.worked)+' • 8 hours not yet complete (still '+hmR(NEED-wi.worked)+')</b><span>Going out for BREAK → press ☕ BREAK OUT. Going home early → the guard cannot record it: the Kitchen / Dining Head 1 does that TIME OUT in the Head app, with the reason.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-brk>☕ BREAK OUT (going out for break)</button><button type="button" class="r181-btn alt" data-r217-abandon>🚩 LEFT WITHOUT PERMISSION</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','warn');pendingOut={p,name,base,wi};return}
+      resultBox('r181GuardRes',head+'<b>ON DUTY since '+esc(st.recs[0].time||fmtT(st.recs[0].date))+' • worked '+hmR(wi.worked)+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r181-out="END">🏁 TIME OUT — END OF SHIFT</button><button type="button" class="r181-btn alt" data-r278-brk>☕ BREAK OUT</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','');
       pendingOut={p,name,base,wi};return;
     }
-    if(st.state==='BREAK'){resultBox('r181GuardRes',head+'<b>☕ ON BREAK since '+esc(st.last.time||fmtT(st.last.date))+'</b><span>BREAK IN is done by the Kitchen/Dining Head 1 or a Manager. After BREAK IN, then TIME OUT with you.</span>','warn');return}
+    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingOut={p,name,base};resultBox('r181GuardRes',head+'<b>☕ ON BREAK since '+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b><span>Coming BACK from break → press ✓ BREAK IN. Just going OUT (the break is already recorded) → press CANCEL, nothing to record.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-in>✓ BREAK IN — back from break</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL — just going out</button></div>','');return}
     resultBox('r181GuardRes',head+'<b>SHIFT DONE</b><span>Already has a TIME OUT this shift ('+esc(st.last.time||fmtT(st.last.date))+'). Cannot be done twice.</span>','warn');
   }
   let pendingOut=null;
@@ -25397,6 +25397,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function utLog(ev){const k='rcads_r217_ut_log_v1';const a=lsGet(k,[])||[];a.push(Object.assign({at:new Date().toISOString()},ev));lsSet(k,a.slice(-600))}
   let pendingHead=null;
   document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('[data-r278-in]')){if(!pendingOut)return;const {p,name,base}=pendingOut;const st=shiftState(p.c);if(st.state!=='BREAK'){alert('The status changed. Scan again.');pendingOut=null;return}
+       const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},base));resultBox('r181GuardRes','<b class="big ok">✓ BREAK IN • '+esc(name)+' • '+esc(s.time)+'</b><span>Break: '+mins+' minutes • Recorded by '+esc(base.authorizedBy)+'.</span>','ok');pendingOut=null;return}
+    if(t.closest('[data-r278-brk]')){if(!pendingOut)return;const {p,name,base}=pendingOut;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
+       const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break (out of the premises)',reasonApproved:'N/A'},base));resultBox('r181GuardRes','<b class="big ok">☕ BREAK OUT • '+esc(name)+' • '+esc(s.time)+'</b><span>Recorded by '+esc(base.authorizedBy)+'. When back: scan again for BREAK IN.</span>','ok');pendingOut=null;return}
     if(t.closest('[data-r217-abandon]')){if(!pendingOut)return;const {p,name,base,wi}=pendingOut;
       if(!confirm('LEFT WITHOUT PERMISSION — '+name+' is leaving WITHOUT the approval of the Head 1 (worked '+hmR(wi?wi.worked:0)+' only).\n\nThis will be recorded and flagged RED to HR. Continue?'))return;
       const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
@@ -25404,6 +25408,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       const f=findEmp(p.c);utLog({t:'ABANDON',code:p.c,name,branch:f?f.branch:curBranch(),worked:wi?wi.worked:0,by:base.authorizedBy});
       resultBox('r181GuardRes','<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+'</span></div><b class="big bad">🚩 LEFT WITHOUT PERMISSION RECORDED • '+esc(s.time)+'</b><span>HR has been flagged.</span>','bad');pendingOut=null;return}
     if(t.closest('[data-r217-x]')){pendingHead=null;resultBox('r181BreakRes','<span>Cancelled.</span>','');return}
+    if(t.closest('[data-r278-hin]')){if(!pendingHead)return;const {p,name,base,a,head}=pendingHead;const st=shiftState(p.c);if(st.state!=='BREAK'){alert('The status changed. Scan again.');pendingHead=null;return}
+      const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},base));resultBox('r181BreakRes',head+'<b class="big ok">✓ BREAK IN • '+esc(s.time)+'</b><span>Break: '+mins+' minutes • Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
     if(t.closest('[data-r217-brk]')){if(!pendingHead)return;const {p,name,base,a,head}=pendingHead;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingHead=null;return}
       const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break / End of Shift',reasonApproved:'N/A'},base));resultBox('r181BreakRes',head+'<b class="big ok">☕ BREAK OUT • '+esc(s.time)+'</b><span>Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
     if(t.closest('[data-r217-ut]')){const b=document.getElementById('r217Ut');if(b)b.hidden=false;return}
@@ -25451,7 +25457,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const st=shiftState(p.c);const head='<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span>'+(String(p.ph||'').indexOf('BORROWED')===0?'<em>👥 BORROWED PHONE</em>':'')+'</div>';
     const base={authorizedBy:a.label,handshake:'BREAK QR',phone:p.ph||'OWN'};const s=nowStampLocal();
     if(st.state==='WORKING'){const wi=workedInfo(p.c);pendingHead={p,name,base,a,head};resultBox('r181BreakRes',head+'<b>ON DUTY • worked '+hmR(wi.worked)+(wi.brk?' • break so far '+hmR(wi.brk):'')+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r217-brk>☕ BREAK OUT</button>'+(wi.worked<NEED?'<button type="button" class="r181-btn alt" data-r217-ut>⏳ UNDERTIME TIME OUT (approve)</button>':'')+'<button type="button" class="r181-btn ghost" data-r217-x>CANCEL</button></div>'+'<div id="r217Ut" hidden><label>REASON FOR UNDERTIME (you approve it)</label><select id="r217Reason">'+UT_REASONS.map(r=>'<option>'+esc(r)+'</option>').join('')+'</select><input id="r217Other" placeholder="Type the reason" hidden><button type="button" class="r181-btn" data-r217-utsave>✓ APPROVE & TIME OUT</button></div>','');return}
-    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},base));resultBox('r181BreakRes',head+'<b class="big ok">✓ BREAK IN • '+esc(s.time)+'</b><span>Break: '+mins+' minutes • Recorded by '+esc(a.label)+'.</span>','ok');return}
+    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingHead={p,name,base,a,head};resultBox('r181BreakRes',head+'<b>☕ ALREADY ON BREAK since '+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b><span>No need to record it again. If they are BACK from break and did not pass the guard → press ✓ BREAK IN.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-hin>✓ BREAK IN — back from break</button><button type="button" class="r181-btn ghost" data-r217-x>CLOSE</button></div>','');return}
     if(st.state==='NONE'){resultBox('r181BreakRes',head+'<b>✗ NO TIME IN YET</b><span>You must TIME IN with the Guard first (mutual scan).</span>','warn');return}
     resultBox('r181BreakRes',head+'<b>SHIFT DONE</b><span>Already has a TIME OUT with the Guard.</span>','warn');
   }
