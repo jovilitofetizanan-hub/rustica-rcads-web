@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R267 CHOOSE BRANCH</title>
+<title>Rustica RCADS App — R273 SCHEDULE ACS BUTTON PER BRANCH</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -28091,6 +28091,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 
   /* ---------- upload (uses the RCADS schedule reader; saved per branch + department) ---------- */
   function upload(file,b,dept,kind,by,done){
+    if(file&&!file.__r272&&window.rcadsR272Pick){window.rcadsR272Pick(file,dept,kind).then(f=>{if(!f.__r272)f.__r272='-';upload(f,b,dept,kind,by,done)}).catch(()=>{file.__r272='-';upload(file,b,dept,kind,by,done)});return}
     if(typeof loadOriginalScheduleFile!=='function'){done(false,'Schedule reader missing.');return}
     try{if(typeof rusticaGetCurrentBranchCode==='function'&&rusticaGetCurrentBranchCode()!==b)localStorage.setItem('rustica_central_current_branch_v1',b)}catch(e){}
     const category=kind==='ACS'?dept+' ACS':dept;const before=JSON.stringify(lib()).length;
@@ -28146,7 +28147,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
       if(d===0&&!s.next)o.push({lvl:'yellow',txt:'ORIGINAL schedule for next week due today (Sunday)',who,go:'hrScheduleUploadPanel'});
       if(s.acsDue)o.push({lvl:'green',txt:'ACS due today ('+(s.cutDay?'cut-off':'Saturday')+')',who,go:'hrScheduleUploadPanel'});
     }));return o}
-  window.rcadsR215={status,flags,template,acsOtMinutes};
+  window.rcadsR215={status,flags,template,acsOtMinutes,upload};
   setInterval(()=>{try{tick()}catch(e){console.warn('R215',e)}},2500);
 })();
 </script>
@@ -28584,7 +28585,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
    Now: on every cloud pull the list is merged RECORD BY RECORD (newest record wins) and the merged list is sent back. */
 (function(){
   'use strict';
-  const MERGE=new Set(['rcads_r160_emp_access_v1']);
+  const MERGE=new Set(['rcads_r160_emp_access_v1','rcads_persistent_schedule_library_v1']);
   const T=v=>{const t=Date.parse(v||'');return isNaN(t)?0:t};
   const F=['ts','pinChangedAt','setupIssuedAt','statusAt','blockedAt','lastLoginAt','updatedAt'];
   function recTs(r){if(!r||typeof r!=='object')return 0;let m=0;F.forEach(f=>{const t=T(r[f]);if(t>m)m=t});return m}
@@ -28599,6 +28600,17 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     out.updatedAt=T(R.updatedAt)>T(L.updatedAt)?R.updatedAt:L.updatedAt;
     return JSON.stringify(out)}
   window.rcadsR226Merge=mergeAccess;
+  /* R271: the SCHEDULE / ACS library is merged RECORD BY RECORD (same branch + category + file = one record, newest wins),
+     so a Kitchen Head 1 upload never erases a Dining Head 1 upload or HR's own uploads. */
+  const SKEY='rcads_persistent_schedule_library_v1';
+  function mergeSched(localStr,remoteStr){let L=null,R=null;try{L=JSON.parse(localStr||'null')}catch(e){}try{R=JSON.parse(remoteStr||'null')}catch(e){}
+    if(!Array.isArray(R))return localStr;if(!Array.isArray(L))return remoteStr;
+    const id=x=>[x&&x.branch,String(x&&x.category||'').toUpperCase(),x&&x.fileName].join('|');const m=new Map();
+    L.concat(R).forEach(x=>{if(!x||typeof x!=='object')return;const k=id(x);const y=m.get(k);if(!y||String(x.savedAt||'')>String(y.savedAt||''))m.set(k,x)});
+    let del={};try{del=JSON.parse(localStorage.getItem('rcads_r271_sched_deleted_v1')||'{}')||{}}catch(e){}
+    const out=[...m.values()].filter(x=>!(del[id(x)]&&String(del[id(x)])>=String(x.savedAt||''))).sort((a,b)=>String(a.savedAt||'').localeCompare(String(b.savedAt||'')));
+    return JSON.stringify(out)}
+  window.rcadsR271MergeSched=mergeSched;
   const same=(a,b)=>{try{return JSON.stringify(JSON.parse(a||'null'))===JSON.stringify(JSON.parse(b||'null'))}catch(e){return a===b}};
   window.rcadsCloudPullMerge=async function(){
     if(!rcadsCloudReady()) throw new Error("Cloud configuration is incomplete.");
@@ -28609,7 +28621,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
       (Array.isArray(rows)?rows:[]).forEach(r=>{
         const k=String(r.data_key||"");if(!rcadsCloudShouldSyncKey(k))return;
         const remoteTime=String(r.updated_at||"");const localTime=String(meta[k]||"");const rv=String(r.data_value??"");
-        if(MERGE.has(k)){const lv=localStorage.getItem(k);const mv=lv?mergeAccess(lv,rv):rv;
+        if(MERGE.has(k)){const lv=localStorage.getItem(k);const mv=lv?(k===SKEY?mergeSched(lv,rv):mergeAccess(lv,rv)):rv;
           if(!same(mv,lv)){localStorage.setItem(k,mv);applied++}
           meta[k]=remoteTime>localTime?remoteTime:(localTime||remoteTime||new Date().toISOString());
           if(!same(mv,rv))sendBack.push([k,mv]);return}
@@ -29025,6 +29037,50 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
 })();
 </script>
 
+<!-- RCADS PATCH: R270 DTR Summary Log names follow the LAST PAYROLL (RCPS) -->
+<script id="rcadsR270Script">
+/* R270 — DTR SUMMARY LOG NAMES = LAST PAYROLL OF THE BRANCH (from RCPS → Employee Master → "Send positions to RCADS",
+   imported in RCADS HR → 👤 Positions from RCPS). Same list the Schedule / ACS forms use.
+   • Every employee in the last payroll is in the DTR Summary Log, in the payroll order, with the payroll name / position / dept.
+   • Someone NOT in the last payroll stays only if he has TIME IN in RCADS in this cutoff (new staff).
+   • Separated people are left out. No payroll imported yet for the branch → unchanged (RCADS employee list). */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  const prev=window.buildEditableDTRWorkbook;if(typeof prev!=='function')return;
+  const DEP=n=>/Mgmt/i.test(n)?'MANAGEMENT':/Kitc/i.test(n)?'KITCHEN':/Dini/i.test(n)?'DINING':/Extra/i.test(n)?'EXTRA':'';
+  window.buildEditableDTRWorkbook=function(){
+    const wb=prev.apply(this,arguments);
+    try{
+      if(!wb||typeof XLSX==='undefined'||!window.rcadsRosterFor)return wb;
+      let b='';try{b=rcadsR158DtrExportContext().branch}catch(e){}
+      const ros=(window.rcadsRosterFor(b)||[]).filter(e=>e&&e.code&&!(window.rcadsIsSeparated&&window.rcadsIsSeparated(e.code)));
+      if(!ros.length)return wb;
+      wb.SheetNames.forEach(n=>{const dep=DEP(n);if(!dep)return;
+        const ws=wb.Sheets[n];const a=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+        const h=a.findIndex(r=>U(r[0])==='EMPCODE');if(h<0)return;
+        let e=h+1;while(e<a.length&&String(a[e][0]).trim())e++;
+        const rows=a.slice(h+1,e),W=a[h].length;
+        const by=new Map(rows.map(r=>[U(r[0]),r]));
+        const blank=rows.find(r=>!(Number(r[3])>0))||null; // a row with no RCADS days = default values (e.g. paid days)
+        const mine=ros.filter(x=>U(x.dept)===dep);
+        const used=new Set();const out=[];
+        mine.forEach(x=>{const k=U(x.code);let r=by.get(k);
+          if(r){r=r.slice();r[1]=x.name||r[1];if(x.position)r[2]=x.position}
+          else{r=blank?blank.slice():new Array(W).fill('');r[0]=k;r[1]=x.name;r[2]=x.position||'';for(let i=3;i<W;i++){if(!blank)r[i]=''}
+            /* loans / remarks of another person must not be copied */
+            a[h].forEach((t,i)=>{if(/LOAN|REMARK|SIGNATURE/i.test(String(t)))r[i]=''})}
+          used.add(k);out.push(r)});
+        const inRos=new Set(ros.map(x=>U(x.code)));
+        rows.forEach(r=>{const k=U(r[0]);if(used.has(k)||inRos.has(k))return;if(Number(r[3])>0)out.push(r)}); // new staff with TIME IN
+        const na=a.slice(0,h+1).concat(out,a.slice(e));
+        const nw=XLSX.utils.aoa_to_sheet(na);['!merges','!cols','!pageSetup','!rows'].forEach(k=>{if(ws[k])nw[k]=ws[k]});
+        for(let r=h+1;r<h+1+out.length;r++){['F','G'].forEach(col=>{const c=nw[col+(r+1)];if(c&&typeof c.v==='number'){c.t='n';c.z='[h]:mm'}})}
+        wb.Sheets[n]=nw});
+    }catch(err){console.warn('R270',err)}
+    return wb};
+})();
+</script>
 <!-- RCADS PATCH: R252 Loans and deductions (HR, per branch) -->
 <style id="rcadsR252Css">
 .r252-due{background:#eef6ff;border:1px solid #9cc0e6;border-radius:10px;padding:8px 10px;margin:8px 0;font-size:12px;color:#173a5e}
@@ -29751,5 +29807,163 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
 })();
 </script>
 <style id="rcadsR267Css">#r267Wrap{display:block;font-size:11px;font-weight:900;color:#5b3519;margin-bottom:8px}#r267Wrap select{display:block;width:100%;margin-top:4px;padding:10px;border:2px solid #c8862a;border-radius:9px;font-size:14px;font-weight:800;background:#fffaf2;color:#3a2210}</style>
+
+<!-- RCADS PATCH: R268 one row per branch: DOWNLOAD / SEND the DTR Summary Log -->
+<style id="rcadsR268Css">.r268-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #2f6b3a;color:#3d2615;text-align:left}
+.r268-h{font-weight:900;font-size:14px;color:#24452a}.r268-n{font-size:11.5px;color:#6d5845;margin:4px 0 8px;line-height:1.4}
+.r268-r{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #eadbc6}.r268-r b{min-width:120px;font-size:13px;color:#3a2210}
+.r268-r button{width:auto!important;padding:9px 14px!important;border-radius:9px!important;font-size:12px!important;font-weight:900!important;margin:0!important;cursor:pointer}
+.r268-b{border-top:2px solid #c8a46a;padding:4px 0 6px}.r268-b .r268-r.top{border-top:0}.r268-r.top b{font-size:14px;color:#24452a}.r268-r.sub{padding:5px 0 5px 18px;border-top:1px dashed #eadbc6}.r268-r.sub span{min-width:102px;font-size:12px;font-weight:800;color:#6d4a2a}.r268-r .dl{background:#fff!important;color:#4c2b17!important;border:1px solid #c8a46a!important}.r268-r .sd{background:#2f6b3a!important;color:#fff!important;border:0!important}</style>
+<script id="rcadsR268Script">
+/* R268 — HR → ▤ DTR / Export: "📤 DTR SUMMARY LOG FOR THE BRANCHES" — one row per branch with
+   ⬇ DOWNLOAD (4 separate Excel files) and 📤 SEND (share menu: Messenger / Viber / e-mail; downloads if the device cannot share).
+   Uses the CUTOFF chosen above. Loans are filled (HR device). */
+(function(){
+  'use strict';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  const XT='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const TAG=nm=>nm==='TRANSFERS'?'TRANSFERS':(/Mgmt/i.test(nm)?'MANAGEMENT':/Kitc/i.test(nm)?'KITCHEN':/Dini/i.test(nm)?'DINING':/Extra/i.test(nm)?'EXTRA':nm.replace(/\W+/g,'_'));
+  function cut(){try{return getSavedHrCutoffPeriod()}catch(e){return null}}
+  async function files(b){
+    if(typeof XLSX==='undefined'||!window.rcadsDtrStyledBlob||!window.rcadsR264)throw new Error('The Excel library did not load. Connect to the internet and open RCADS again.');
+    try{if(window.rcadsR252&&window.rcadsR252.load)await window.rcadsR252.load(true)}catch(_){}
+    const c=cut();const r=window.rcadsR264.buildDtr(b,c);if(!r||!r.wb)throw new Error('No DTR data.');
+    const base='RCADS_'+b+'_DTR_LOG_'+r.ctx.month+'_'+r.ctx.type+'_'+c.from+'_to_'+c.to;const out=[];
+    r.wb.SheetNames.forEach(nm=>{const ws=r.wb.Sheets[nm];if(nm==='TRANSFERS'){const rr=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});if(rr.length<=2)return}
+      out.push(new File([window.rcadsDtrStyledBlob({SheetNames:[nm],Sheets:{[nm]:ws}})],base+'_'+TAG(nm)+'.xlsx',{type:XT}))});
+    return {list:out,c};
+  }
+  function dl(list){list.forEach((f,i)=>setTimeout(()=>{const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)},i*900))}
+  async function act(b,kind,dep,btn){const t=btn.textContent;btn.textContent='…';btn.disabled=true;
+    try{let {list,c}=await files(b);if(dep&&dep!=='ALL')list=list.filter(f=>f.name.endsWith('_'+dep+'.xlsx'));if(!list.length)throw new Error('No '+dep+' DTR Summary Log for this branch and cutoff.');const bn=(branches().find(x=>x.code===b)||{}).name||b;
+      if(kind==='SEND'&&navigator.canShare&&navigator.canShare({files:list})){try{await navigator.share({files:list,title:'DTR Summary Log '+bn,text:'RCADS DTR Summary Log • '+bn+' • '+c.from+' to '+c.to+' • Please check and send back.'})}catch(e){if(!(e&&e.name==='AbortError'))throw e}}
+      else{dl(list);if(kind==='SEND')setTimeout(()=>alert('This device cannot send files directly, so the '+list.length+' DTR files of '+bn+' were DOWNLOADED.\nSend them from your Downloads folder (Messenger / Viber / e-mail).'),list.length*900+300)}}
+    catch(e){alert(e.message)}btn.textContent=t;btn.disabled=false}
+  function html(){const c=cut()||{};return '<div class="r268-h">📤 DTR SUMMARY LOG FOR THE BRANCHES</div><div class="r268-n">Cutoff: <b>'+esc(c.from||'')+' to '+esc(c.to||'')+'</b> (change it in CUTOFF above). Every branch has 4 DTR Summary Logs: MANAGEMENT, KITCHEN, DINING, EXTRA. <b>⬇ DOWNLOAD</b> = save the Excel file. <b>📤 SEND</b> = open Messenger / Viber / e-mail to send it to the branch. Use <b>ALL 4</b> to do the four at once.</div>'
+    +branches().map(b=>'<div class="r268-b"><div class="r268-r top"><b>'+esc(b.name)+'</b><button type="button" class="dl" data-r268="'+b.code+'|DL|ALL">⬇ DOWNLOAD ALL 4</button><button type="button" class="sd" data-r268="'+b.code+'|SEND|ALL">📤 SEND ALL 4</button></div>'
+      +['MANAGEMENT','KITCHEN','DINING','EXTRA'].map(d=>'<div class="r268-r sub"><span>'+d+'</span><button type="button" class="dl" data-r268="'+b.code+'|DL|'+d+'">⬇ DOWNLOAD</button><button type="button" class="sd" data-r268="'+b.code+'|SEND|'+d+'">📤 SEND</button></div>').join('')+'</div>').join('')}
+  function tick(){const p=document.getElementById('hrDtrExportPanel');const card=document.getElementById('r184PayrollCard');if(!p||!card)return;
+    let el=document.getElementById('r268Card');
+    if(!el){el=document.createElement('div');el.id='r268Card';el.className='r268-card';card.insertAdjacentElement('afterend',el);
+      el.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-r268]');if(!t)return;const [b,k,d]=t.getAttribute('data-r268').split('|');act(b,k,d,t)})}
+    else if(el.previousElementSibling!==card)card.insertAdjacentElement('afterend',el);
+    const h=html();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
+  setInterval(()=>{try{tick()}catch(e){console.warn('R268',e)}},1500);
+})();
+</script>
+
+<!-- RCADS PATCH: R271 DTR / forms go out from RCPS — RCADS sending hidden; Schedule / ACS from the branches shown to HR -->
+<style id="rcadsR271Css">
+/* Hidden while the DTR Summary Log and the Schedule / ACS forms are sent from RCPS (kept in the code for later) */
+#r268Card,#r264Card,#r264Hr,#r259Forms{display:none!important}
+.r271-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #2f6b3a;color:#3d2615;text-align:left}
+.r271-h{font-weight:900;font-size:14px;color:#24452a}.r271-n{font-size:11.5px;color:#6d5845;margin:4px 0 8px;line-height:1.4}
+.r271-b{border-top:2px solid #c8a46a;padding:6px 0}.r271-b>b{font-size:14px;color:#24452a}
+.r271-d{display:grid;grid-template-columns:96px 1fr;gap:2px 8px;padding:5px 0 5px 12px;border-top:1px dashed #eadbc6;font-size:11.5px}
+.r271-d i{font-style:normal;font-weight:900;color:#6d4a2a;grid-row:span 3}.r271-d span{color:#3a2210}.r271-d span.no{color:#a1281f;font-weight:800}
+.r271-d em{font-style:normal;font-weight:800;color:#6d5845}
+</style>
+<script id="rcadsR271Script">
+/* R271 — HR → ▦ Schedule Upload: "📥 SCHEDULE / ACS FROM THE BRANCHES"
+   What the Kitchen Head 1 / Dining Head 1 (and HR Assistant for ADMIN) uploaded in their own RCADS:
+   this week's ORIGINAL, next week's ORIGINAL and the latest ACS — file, date, who uploaded. RCADS uses them automatically. */
+(function(){
+  'use strict';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  const F=iso=>{const d=new Date(String(iso).slice(0,10)+'T00:00');return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric'})};
+  const wk=mon=>{const d=new Date(mon+'T00:00');d.setDate(d.getDate()+6);return F(mon)+' – '+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})};
+  function line(x){return x?'<span>✓ '+esc(x.fileName||'')+' • '+esc(new Date(x.savedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+(x.uploadedBy?' • <b>'+esc(x.uploadedBy)+'</b>':'')+'</span>':'<span class="no">❌ not uploaded yet</span>'}
+  function hasAdmin(b){try{return (window.rcadsGetScheduleLibrary?rcadsGetScheduleLibrary():[]).some(x=>x&&x.branch===b&&/^ADMIN/.test(String(x.category||'').toUpperCase()))}catch(e){return false}}
+  function html(){const R=window.rcadsR215;if(!R)return '';let s0=null;try{s0=R.status(branches()[0].code,'KITCHEN')}catch(e){}
+    return '<div class="r271-h">📥 SCHEDULE / ACS FROM THE BRANCHES</div><div class="r271-n">Uploaded by the Kitchen Head 1 / Dining Head 1 in their own RCADS (☰ MORE → 📅 SCHEDULE). RCADS uses them automatically for late, undertime and OT.'+(s0?' This week = <b>'+esc(wk(s0.mon))+'</b> • Next week = <b>'+esc(wk(s0.nextMon))+'</b>.':'')+'</div>'
+      +branches().map(b=>'<div class="r271-b"><b>'+esc(b.name)+'</b>'+['KITCHEN','DINING'].concat(hasAdmin(b.code)?['ADMIN']:[]).map(d=>{let s=null;try{s=R.status(b.code,d)}catch(e){}if(!s)return '';
+        return '<div class="r271-d"><i>'+d+'</i><div><em>This week:</em> '+line(s.cur)+'</div><div><em>Next week:</em> '+line(s.next)+'</div><div><em>ACS:</em> '+line(s.acs)+'</div></div>'}).join('')+'</div>').join('')}
+  function tick(){const p=document.getElementById('hrScheduleUploadPanel');if(!p)return;let el=document.getElementById('r271Card');
+    if(!el){el=document.createElement('div');el.id='r271Card';el.className='r271-card';p.insertBefore(el,p.firstElementChild?p.firstElementChild.nextSibling:null)}
+    const h=html();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
+  setInterval(()=>{try{tick()}catch(e){console.warn('R271',e)}},2000);
+})();
+</script>
+<script id="rcadsR272Pick">
+/* R272 — the RCPS Schedule file has 6 sheets (KIT.ORIG.SCHED, DIN.ORIG.SCHED, ACS KITCHEN, ACS DINING, ADM.ORIG.SCHED, ACS.ADMIN).
+   On upload only the sheet of the chosen department + kind is read (a Kitchen ORIGINAL never picks up the Dining or ACS sheet). */
+window.rcadsR272Pick=async function(file,dept,kind){
+  if(typeof XLSX==='undefined')return file;
+  const wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:'array'});
+  if(!wb||wb.SheetNames.length<2)return file;
+  const W={'KITCHEN|ORIGINAL':'KIT.ORIG.SCHED','DINING|ORIGINAL':'DIN.ORIG.SCHED','ADMIN|ORIGINAL':'ADM.ORIG.SCHED','KITCHEN|ACS':'ACS KITCHEN','DINING|ACS':'ACS DINING','ADMIN|ACS':'ACS.ADMIN'};
+  const want=W[String(dept).toUpperCase()+'|'+(kind==='ACS'?'ACS':'ORIGINAL')]||'';const U=s=>String(s||'').trim().toUpperCase();
+  let nm=wb.SheetNames.find(n=>U(n)===want);
+  if(!nm)nm=wb.SheetNames.find(n=>{const u=U(n);return u.includes(String(dept).slice(0,3).toUpperCase())&&(kind==='ACS')===/ACS/.test(u)});
+  if(!nm)return file;
+  const out=XLSX.utils.book_new();XLSX.utils.book_append_sheet(out,wb.Sheets[nm],nm.slice(0,31));
+  const f=new File([XLSX.write(out,{type:'array',bookType:'xlsx'})],file.name,{type:file.type||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  f.__r272=nm;return f};
+window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:'array'});for(const n of wb.SheetNames){const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:''}).slice(0,8);
+  for(const r of a)for(const c of r){const m=String(c).match(/BRANCH:\s*(.+)/i);if(m)return m[1].trim()}}}catch(e){}return ''};
+</script>
+
+<!-- RCADS PATCH: R273 HR uploads the Schedule / ACS a branch sent — one SCHEDULE and one ACS button per branch -->
+<style id="rcadsR272Css">
+.r272-card{margin:10px 0;padding:12px;border-radius:14px;background:#fff;border:2px solid #5b3519;color:#3d2615;text-align:left}
+.r272-h{font-weight:900;font-size:14px;color:#5b3519}.r272-n{font-size:11.5px;color:#6d5845;margin:4px 0 8px;line-height:1.4}
+.r272-r{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 0;border-top:1px solid #eadbc6}.r272-r>b{min-width:120px;font-size:14px;color:#3a2210}
+.r272-r label{display:inline-block;padding:10px 14px;border-radius:9px;font-size:12px;font-weight:900;cursor:pointer;background:#5b3519;color:#fff}
+.r272-r label.acs{background:#2f6b3a}.r272-r label.busy{opacity:.55;pointer-events:none}
+.r272-msg{flex-basis:100%;font-size:11.5px;font-weight:800;color:#2d6a36;white-space:pre-line}.r272-msg.err{color:#a1281f}
+</style>
+<script id="rcadsR272Script">
+/* R273 — HR → ▦ Schedule Upload: "⬆ UPLOAD SCHEDULE / ACS SENT BY THE BRANCHES"
+   One row per branch: 📎 SCHEDULE and 📎 ACS. Choose the file the Head sent (Viber / Messenger).
+   The RCPS file has the Kitchen, Dining and Admin sheets: every sheet the Head FILLED IN is saved for its department;
+   empty sheets are skipped. Saved for THAT branch (not the HR phone's branch), marked "HR". */
+(function(){
+  'use strict';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  const N=s=>String(s||'').toUpperCase().replace(/[^A-Z]/g,'');const U=s=>String(s||'').trim().toUpperCase();
+  const SH={ORIGINAL:[['KIT.ORIG.SCHED','KITCHEN'],['DIN.ORIG.SCHED','DINING'],['ADM.ORIG.SCHED','ADMIN']],ACS:[['ACS KITCHEN','KITCHEN'],['ACS DINING','DINING'],['ACS.ADMIN','ADMIN']]};
+  const MSG={},BUSY={};
+  function deptOfSheet(a){for(const r of a.slice(0,8))for(const c of r){const m=String(c).match(/DEPT:\s*([A-Z]+)/i);if(m){const d=U(m[1]);if(/KIT/.test(d))return 'KITCHEN';if(/DIN/.test(d))return 'DINING';if(/ADM|MAN/.test(d))return 'ADMIN'}}return ''}
+  function filled(a){const h=a.findIndex(r=>U(r[0])==='EMPCODE');if(h<0)return false;
+    return a.slice(h+1).some(r=>/^[A-Z]{2,4}-/.test(U(r[0]))&&r.slice(3).some(c=>String(c??'').trim()!==''))}
+  function sheetsOf(wb,kind){const out=[];const names=wb.SheetNames;const has=n=>names.find(x=>U(x)===n);
+    const rcps=SH.ORIGINAL.concat(SH.ACS).some(([n])=>has(n));
+    if(rcps){SH[kind].forEach(([n,d])=>{const nm=has(n);if(nm)out.push([nm,d])});return out}
+    names.forEach(nm=>{const a=XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,defval:''});const d=deptOfSheet(a);const isAcs=/ACS|CHANGE OF SCHEDULE/i.test(nm+' '+a.slice(0,3).map(r=>r.join(' ')).join(' '));
+      if(d&&(kind==='ACS')===isAcs)out.push([nm,d])});return out}
+  function fileOf(wb,nm,name){const o=XLSX.utils.book_new();XLSX.utils.book_append_sheet(o,wb.Sheets[nm],nm.slice(0,31));
+    const f=new File([XLSX.write(o,{type:'array',bookType:'xlsx'})],name,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});f.__r272=nm;return f}
+  function up(R,f,b,d,kind,by){return new Promise(res=>R.upload(f,b,d,kind,by,(ok,m)=>res([ok,m])))}
+  async function go(b,kind,file){const R=window.rcadsR215;const bn=(branches().find(x=>x.code===b)||{}).name||b;
+    if(!R||!R.upload||typeof XLSX==='undefined'){MSG[b]={t:'⚠ Schedule reader or Excel library missing. Connect to the internet and reload RCADS.',err:true};draw();return}
+    const fb=await window.rcadsR272Branch(file);
+    if(fb&&N(fb)!==N(bn)&&!confirm('This file says BRANCH: '+fb+'\nbut you pressed the button of '+bn+'.\n\nSave it for '+bn+' anyway?'))return;
+    let wb;try{wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:'array'})}catch(e){MSG[b]={t:'⚠ This file cannot be read.',err:true};draw();return}
+    const list=sheetsOf(wb,kind).filter(([nm])=>filled(XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,defval:''})));
+    const KEY='rustica_central_current_branch_v1';let keep=null;try{keep=localStorage.getItem(KEY)}catch(e){}
+    if(!list.length){MSG[b]={t:'⚠ No filled '+(kind==='ACS'?'ACS':'SCHEDULE')+' found in '+file.name+'. Did you press the right button ('+(kind==='ACS'?'ACS':'SCHEDULE')+')? Are the times filled in?',err:true};draw();return}
+    BUSY[b]=kind;MSG[b]={t:'Saving '+list.map(x=>x[1]).join(', ')+'…'};draw();const lines=[];let bad=false;
+    for(const [nm,d] of list){const [ok,m]=await up(R,list.length>1||wb.SheetNames.length>1?fileOf(wb,nm,file.name):file,b,d,kind,'HR (sent by '+bn+' '+d+')');
+      if(!ok)bad=true;lines.push((ok?'✓ ':'⚠ ')+d+' '+(kind==='ACS'?'ACS':'SCHEDULE')+': '+String(m).replace(/^✓\s*/,''))}
+    try{if(keep===null)localStorage.removeItem(KEY);else localStorage.setItem(KEY,keep)}catch(e){}
+    BUSY[b]='';MSG[b]={t:lines.join('\n'),err:bad};draw()}
+  function html(){return '<div class="r272-h">⬆ UPLOAD SCHEDULE / ACS SENT BY THE BRANCHES</div><div class="r272-n">For the RCPS form the Kitchen Head 1 / Dining Head 1 filled and sent to you by Viber or Messenger. Press <b>📎 SCHEDULE</b> or <b>📎 ACS</b> of the branch and choose the file. Every department filled in the file (Kitchen, Dining, Admin) is saved; empty ones are skipped.</div>'
+    +branches().map(b=>{const m=MSG[b.code];return '<div class="r272-r"><b>'+esc(b.name)+'</b>'
+      +'<label class="'+(BUSY[b.code]?'busy':'')+'">'+(BUSY[b.code]==='ORIGINAL'?'⏳ SAVING…':'📎 SCHEDULE')+'<input type="file" accept=".xlsx,.xls" hidden data-r272="'+b.code+'|ORIGINAL"></label>'
+      +'<label class="acs '+(BUSY[b.code]?'busy':'')+'">'+(BUSY[b.code]==='ACS'?'⏳ SAVING…':'📎 ACS')+'<input type="file" accept=".xlsx,.xls" hidden data-r272="'+b.code+'|ACS"></label>'
+      +(m?'<div class="r272-msg'+(m.err?' err':'')+'">'+esc(m.t)+'</div>':'')+'</div>'}).join('')}
+  function draw(){const el=document.getElementById('r272Card');if(!el)return;const h=html();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
+  function hideOld(){const k=document.getElementById('scheduleFileKitchen');const g=k&&k.closest('div[style*="grid"]');if(g&&g.style.display!=='none'){g.style.display='none';const t=g.previousElementSibling;if(t&&/UPLOAD WEEKLY ORIGINAL/i.test(t.textContent))t.style.display='none'}}
+  function tick(){const p=document.getElementById('hrScheduleUploadPanel');if(!p)return;hideOld();let el=document.getElementById('r272Card');
+    if(!el){el=document.createElement('div');el.id='r272Card';el.className='r272-card';
+      el.addEventListener('change',e=>{const t=e.target;const a=t.getAttribute&&t.getAttribute('data-r272');if(!a||!t.files||!t.files[0])return;const [b,k]=a.split('|');const f=t.files[0];t.value='';go(b,k,f)})}
+    const ref=document.getElementById('r271Card');if(ref){if(ref.previousElementSibling!==el)ref.insertAdjacentElement('beforebegin',el)}else if(el.parentElement!==p)p.insertBefore(el,p.firstElementChild?p.firstElementChild.nextSibling:null);
+    draw()}
+  setInterval(()=>{try{tick()}catch(e){console.warn('R273',e)}},1500);
+})();
+</script>
 </body>
 </html>
