@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R276 TRANSFERS PER BRANCH</title>
+<title>Rustica RCADS App — R277 IPHONE FIX</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -6122,7 +6122,7 @@ function calculateEmployeeDtrSummary(emp, cutoff=null){
   attendance.forEach(r=>{
     const k=dtrDateKey(r.date);
     if(!k) return;
-    (byDate[k] ||= []).push(r);
+    (byDate[k] = byDate[k] || []).push(r);
   });
 
   let workedDays=0, absent=0, workedOnDayOff=0;
