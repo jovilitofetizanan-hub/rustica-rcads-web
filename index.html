@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R278 BREAK WITH THE GUARD</title>
+<title>Rustica RCADS App — R280 HR PHONE MAKES QR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22052,6 +22052,10 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     localStorage.setItem(VAULT,JSON.stringify({v:2,salt,iv,ct:hex(ct),updatedAt:new Date().toISOString()}));
   }
   function hrPinOk(p){try{return typeof rcadsLocalHrPinOk==='function'?rcadsLocalHrPinOk(p):false}catch(e){return false}}
+  async function unlockIssue(){ /* R280: an HR phone (logged in with the HR PIN, checked on the server) can MAKE setup QRs with the public HR key; seeing PINs stays on the device with the HR KEY */
+    try{if(!hrPriv&&!vaultHas()&&read().hrPub&&document.body.classList.contains('hr-session-active'))return true}catch(e){}
+    return unlockVault();
+  }
   async function unlockVault(){
     if(hrPriv)return true;
     if(!hasCrypto()){alert('Secure crypto is not available on this browser.');return false}
@@ -22061,7 +22065,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     if(!hrPinOk(pass)){alert('Wrong HR PIN.');return false}
     if(!vaultHas()){
       const db=read();
-      if(db.hrPub&&!confirm('An HR KEY is already set up on ANOTHER device. If you create a new one here, PINs locked with the old key can no longer be read (they will need a CHANGE PIN). Create a new HR KEY on this device?'))return false;
+      if(db.hrPub){const t=prompt('The HR KEY (to see / manage employee PINs and SETUP QRs) is on your OTHER HR device (your laptop). Do that there.\n\nOnly if that device is LOST or broken: type NEW KEY to make a new HR KEY here. Every employee will then need a new SETUP QR.','');if(String(t||'').trim().toUpperCase()!=='NEW KEY')return false}
       const kp=await crypto.subtle.generateKey({...RSA,modulusLength:2048,publicExponent:new Uint8Array([1,0,1])},true,['encrypt','decrypt']);
       await vaultStore(pass,kp.privateKey);
       const d2=read();d2.hrPub=b64(await crypto.subtle.exportKey('spki',kp.publicKey));d2.hrKeyAt=new Date().toISOString();save(d2);
@@ -22112,7 +22116,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   function setupExpired(r){return !!(r&&r.setupExpires&&Date.now()>Date.parse(r.setupExpires))}
   async function setupFields(){const code=randCode6(),salt=randHex(16),now=new Date().toISOString();return {code,f:{status:'SETUP',setupSalt:salt,setupHash:await pbkdf2(code,salt),setupEnc:await encForHr(code),setupIssuedAt:now,setupExpires:new Date(Date.now()+SETUP_DAYS*864e5).toISOString(),pinSalt:'',pinHash:'',pinEnc:'',fails:0,lockedUntil:''}}}
   async function issueSetup(code,branch,name){
-    if(!(await unlockVault()))return null;
+    if(!(await unlockIssue()))return null;
     const s=await setupFields();const db=read();const old=db.people[U(code)]||{};
     db.people[U(code)]=Object.assign({},old,{code:U(code),branch:branch||old.branch,name:name||old.name||'',assignedAt:old.assignedAt||s.f.setupIssuedAt},s.f,{history:[{at:s.f.setupIssuedAt,by:'HR (SETUP CODE)'}].concat(old.history||[]).slice(0,20)});
     if(!save(db))return null;
@@ -22497,7 +22501,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   function ownerName(k){try{return (simpleHrAccounts&&simpleHrAccounts[k]&&simpleHrAccounts[k].label)||rcadsOwnerDisplayName(k)}catch(e){return k}}
   function ownerRec(k){return (read().owners||{})[k]||null}
   function validOwnerPin(p){return /^\d{4,8}$/.test(p)&&!WEAK.includes(p)&&!/^(\d)\1+$/.test(p)}
-  async function issueOwnerSetup(k){if(!(await unlockVault()))return null;const s=await setupFields();const db=read();db.owners=db.owners||{};const old=db.owners[k]||{};db.owners[k]=Object.assign({key:k,name:ownerName(k),history:old.history||[],lastLoginAt:old.lastLoginAt||''},s.f);if(!save(db))return null;pinCache['OWNER:'+k]={k:'x',pin:'',setup:s.code};return s.code}
+  async function issueOwnerSetup(k){if(!(await unlockIssue()))return null;const s=await setupFields();const db=read();db.owners=db.owners||{};const old=db.owners[k]||{};db.owners[k]=Object.assign({key:k,name:ownerName(k),history:old.history||[],lastLoginAt:old.lastLoginAt||''},s.f);if(!save(db))return null;pinCache['OWNER:'+k]={k:'x',pin:'',setup:s.code};return s.code}
   async function setOwnerPin(k,p,by){
     const salt=randHex(16),h=await pbkdf2(p,salt),enc=await encForHr(p);
     const db=read();db.owners=db.owners||{};const old=db.owners[k]||{};const now=new Date().toISOString();
@@ -22627,7 +22631,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   async function showSetupQr(code,branch,name){
     code=U(code);const f=findEmp(code,branch);if(f){branch=f.branch;name=name||f.emp.name}
     if(isSepCode(code)){alert('is already SEPARATED: '+(name||code)+'. No access to the app.');return}
-    if(!(await unlockVault()))return;await refreshPinCache();
+    if(!(await unlockIssue()))return;await refreshPinCache();
     let r=rec(code),sc='';
     if(r&&r.status==='SETUP'&&!setupExpired(r))sc=knownSetup(code);
     if(!sc){
@@ -22686,7 +22690,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   }
   function guardNote(k,ok){const db=read();const r=(db.guards||{})[k];if(!r)return;if(ok){r.fails=0;r.lockedUntil='';r.lastLoginAt=new Date().toISOString()}else{r.fails=(r.fails||0)+1;if(r.fails>=MAX_FAIL){r.lockedUntil=new Date(Date.now()+LOCK_MIN*60000).toISOString();r.fails=0}}save(db)}
   async function issueGuardSetup(b,s){
-    if(!(await unlockVault()))return null;const st=await setupFields();const k=gKey(b,s);
+    if(!(await unlockIssue()))return null;const st=await setupFields();const k=gKey(b,s);
     const db=read();db.guards=db.guards||{};const old=db.guards[k]||{};
     db.guards[k]=Object.assign({key:k,branch:b,slot:s,name:gName(b,s)||old.name||'',history:old.history||[],lastLoginAt:old.lastLoginAt||''},st.f);
     if(!save(db))return null;pinCache['GUARD:'+k]={k:'x',pin:'',setup:st.code};return st.code;
@@ -22891,7 +22895,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     const h=homeCardHtml();if(force||(c.dataset.h!==h&&!c.contains(document.activeElement))){c.dataset.h=h;c.innerHTML=h}
   }
   async function homePick(it){
-    if(!(await unlockVault()))return;
+    if(!(await unlockIssue()))return;
     let sc='',link='';const label=it.name+' • '+(it.t==='O'?'OWNER':it.t==='G'?'GUARD':it.code);
     if(it.t==='O'){await refreshOwnerPins();const r=ownerRec(it.k);const has=!!(r&&r.pinHash&&r.status!=='SETUP');
       const fresh=has&&confirm(it.name+' already has a PIN.\n\nOK = NEW PIN (the old PIN stops working).\nCancel = the QR only opens Top Management (same PIN).');
