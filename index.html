@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R274 PERSONAL APP STAYS PERSONAL</title>
+<title>Rustica RCADS App — R276 TRANSFERS PER BRANCH</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25796,7 +25796,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 @media (max-width:600px){.r185-form label.w2{grid-column:auto}}
 </style>
 <script id="rcadsR185Script">
-/* R185 — TRANSFERS: HIRAM (loan, may palugit) at PERMANENTE (lipat-branch).
+/* R185 — TRANSFERS: TEMPORARY (with an end date) and PERMANENT (moves to another branch).
    • HR lang ang naglalagay (HR → 🔁 Transfers). Naka-sync sa lahat ng device (rcads_ key).
    • HIRAM: sa MOTHER BRANCH pa rin ang payroll. Sa guard ng humiram na branch nagla-log in/out (👥 HIRAM flag),
      doon din ang GPS check at BREAK ng Head 1 doon. Red flag 5 araw bago matapos ang palugit.
@@ -25909,15 +25909,32 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       ws['!cols']=(isMgmt?[16,28,20,12,12,14,10,14,18,14,18,14,14,12,14,20,40]:[16,28,20,13,10,14,18,16,16,15,16,20,14,16,22,34]).map(w=>({wch:w}));ws['!pageSetup']={orientation:'landscape',paperSize:5,fitToWidth:1,fitToHeight:0};
       XLSX.utils.book_append_sheet(wb,ws,ctx.month+'_DTR Log ('+tag+' '+ctx.type+')');
     });
-    // TRANSFERS sheet (lahat ng branch) — binabasa ng RCPS
-    const T=[['RCADS TRANSFERS (TEMPORARY / PERMANENT) — for RCPS'],['ID','TYPE','RCADS CODE','NAME','RUSTICA ID','FROM BRANCH','FROM DEPT','TO BRANCH','START','UNTIL','NEW CODE','NEW DEPT','POSITION','STATUS','ENDED ON','DAYS WORKED AT OTHER BRANCH (THIS CUTOFF)','NOTES']];
-    read().list.forEach(t=>{
-      let d='';if(t.type==='LOAN'&&t.status!=='CANCELLED'){const f=t.start>c.from?t.start:c.from,to=loanEnd(t)<c.to?loanEnd(t):c.to;if(f<=to){const s=summary(U(t.code),(findAny(t.code)||{}).emp||{name:t.name},f,to);d=Number(s.workedDays)||0}}
-      T.push([t.id,t.type==='LOAN'?'TEMPORARY':'PERMANENT',U(t.code),t.name,rid(t.code),bName(t.from),t.fromDept||'',bName(t.to),t.start,t.type==='LOAN'?t.until:'',t.type==='PERM'?U(t.newCode):'',t.type==='PERM'?t.newDept||'':'',t.pos||'',t.status,t.endedOn||'',d,t.notes||'']);
-    });
+    // TRANSFERS sheet (all branches) — read by RCPS
+    const T=transfersAoa(c,'');
     const wt=XLSX.utils.aoa_to_sheet(T);wt['!cols']=[14,11,14,26,11,14,12,14,11,11,14,12,16,11,11,14,30].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,wt,'TRANSFERS');
     return wb;
   }
+
+  function transfersAoa(c,extra,only){
+    const T=[['RCADS TRANSFERS (TEMPORARY / PERMANENT) — for RCPS'+(extra||'')],['ID','TYPE','RCADS CODE','NAME','RUSTICA ID','FROM BRANCH','FROM DEPT','TO BRANCH','START','UNTIL','NEW CODE','NEW DEPT','POSITION','STATUS','ENDED ON','DAYS WORKED AT OTHER BRANCH (THIS CUTOFF)','NOTES']];
+    read().list.filter(t=>!only||t.from===only||t.to===only).forEach(t=>{
+      let d='';if(t.type==='LOAN'&&t.status!=='CANCELLED'){const f=t.start>c.from?t.start:c.from,to=loanEnd(t)<c.to?loanEnd(t):c.to;if(f<=to){const s=summary(U(t.code),(findAny(t.code)||{}).emp||{name:t.name},f,to);d=Number(s.workedDays)||0}}
+      T.push([t.id,t.type==='LOAN'?'TEMPORARY':'PERMANENT',U(t.code),t.name,rid(t.code),bName(t.from),t.fromDept||'',bName(t.to),t.start,t.type==='LOAN'?t.until:'',t.type==='PERM'?U(t.newCode):'',t.type==='PERM'?t.newDept||'':'',t.pos||'',t.status,t.endedOn||'',d,t.notes||'']);
+    });
+    return T;
+  }
+  /* R275: ⬇ DOWNLOAD FOR RCPS — the transfers (all branches) as one Excel file; RCPS → Employee Master → ⬆ Import transfers from RCADS. */
+  function downloadForRcps(){
+    if(typeof XLSX==='undefined'){alert('The Excel library did not load. Connect to the internet and open RCADS again.');return}
+    const B=(document.getElementById('r276B')||{}).value||'';if(!B){alert('Choose the BRANCH first.');return}
+    if(!read().list.some(t=>t.from===B||t.to===B)){alert('No transfers for '+bName(B)+'.');return}
+    let c=null;try{c=getSavedHrCutoffPeriod()}catch(e){}if(!c||!c.from){alert('Choose the cutoff first (▤ DTR / Export → CUTOFF).');return}
+    const T=transfersAoa(c,' • BRANCH: '+bName(B)+' • CUTOFF '+c.from+' to '+c.to,B);const wb=XLSX.utils.book_new();const wt=XLSX.utils.aoa_to_sheet(T);
+    wt['!cols']=[14,11,14,26,11,14,12,14,11,11,14,12,16,11,11,14,30].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,wt,'TRANSFERS');
+    const blob=new Blob([XLSX.write(wb,{type:'array',bookType:'xlsx'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='RCADS_TRANSFERS_'+B+'_for_RCPS_'+c.from+'_to_'+c.to+'.xlsx';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);
+  }
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#r275Dl');if(b)downloadForRcps()});
 
   /* ---------- HR PANEL ---------- */
   function allPeople(){const out=[];branches().forEach(b=>baseRoster(b.code).forEach(e=>out.push({code:U(e.code),name:e.name,dept:e.dept,position:e.position,home:b.code})));return out}
@@ -25931,6 +25948,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const ppl=allPeople(),opts=ppl.map(p=>'<option value="'+esc(p.code+' • '+p.name+' • '+bName(branchAt(p.code)||p.home))+'">').join('');
     const brs=branches().map(b=>'<option value="'+esc(b.code)+'">'+esc(b.name)+'</option>').join('');
     return '<div class="r185-h">🔁 TRANSFERS — TEMPORARY / PERMANENT <span id="r185Flag"></span></div>'+
+    '<div class="r185-note" style="border-color:#2f6b3a"><b>PAYROLL:</b> after adding, extending or ending a transfer, choose the branch <select id="r276B" style="width:auto;padding:6px 8px;border:2px solid #2f6b3a;border-radius:8px;font-weight:800">'+branches().map(b=>'<option value="'+esc(b.code)+'">'+esc(b.name)+'</option>').join('')+'</select> then press <button type="button" id="r275Dl" style="width:auto;padding:7px 12px;border:0;border-radius:8px;background:#2f6b3a;color:#fff;font-weight:900;cursor:pointer">⬇ DOWNLOAD FOR RCPS</button> and import the file in RCPS → Employee Master → <b>⬆ Import transfers from RCADS</b>. One branch at a time: the file has only the transfers OUT of and INTO that branch. (Uses the CUTOFF chosen in ▤ DTR / Export for the days at the other branch.)</div>'+
     '<div class="r185-note"><b>TEMPORARY</b> = has an end date; <b>the payroll stays at the mother branch</b> (SSS/PhilHealth/Pag-IBIG, loan, 13th month). They log in/out with the guard of the borrowing branch. <b>PERMANENT</b> = from the start date, they belong to the new branch with a new EMPCODE in payroll; the PIN, Rustica ID and attendance history stay the same.</div>'+
     '<div class="r185-form"><label class="w2">EMPLOYEE (EMPCODE / name)<input id="r185Who" list="r185Ppl" placeholder="e.g. SRF-EMP10 or GANTAN"><datalist id="r185Ppl">'+opts+'</datalist></label>'+
     '<label>TYPE<select id="r185Type"><option value="LOAN">TEMPORARY (with end date)</option><option value="PERM">PERMANENT</option></select></label>'+
