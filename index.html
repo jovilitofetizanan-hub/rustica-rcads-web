@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R285 HEAD AND ASSISTANT AUTHORITY</title>
+<title>Rustica RCADS App — R286 BREAK RECORD NOTICE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25364,15 +25364,31 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   async function breakQrText(who){return makePayload(who.code,who.branch,'EMP',null,'NA',who.ph)}
   function meFromSession(){const e=cur();if(!e)return null;const f=findEmp(e.code);return {code:U(e.code),name:e.name,branch:f?f.branch:curBranch(),ph:'OWN'}}
   const breakCache={};
+  function breakNotice(r){
+    if(!r)return '';
+    return '<div class="r181-info"><b>BREAK OUT RECORDED</b><br>By: '+esc(r.authorizedBy||'Not recorded')+'<br>Department: '+esc(r.authorizedDepartment||'Not recorded in older entry')+'<br>Time: '+esc(r.time||fmtT(r.date))+'<br>Already on break — do not record BREAK OUT again.</div>';
+  }
+  async function refreshAttendanceStatus(resultId){
+    try{
+      if(!navigator.onLine||typeof window.rcadsCloudPullMerge!=='function')throw new Error('Offline');
+      await window.rcadsCloudPullMerge();return true;
+    }catch(e){resultBox(resultId,'<b>STATUS NOT CONFIRMED</b><span>Cannot check the latest online attendance. Connect to the internet and scan again. Ask the recording Head/Manager/Guard to sync their record. Do not assume the employee left without permission.</span>','warn');return false}
+  }
+  let breakWriteBusy=false;
+  async function refreshBeforeBreak(resultId){
+    if(breakWriteBusy)return false;breakWriteBusy=true;
+    try{return await refreshAttendanceStatus(resultId)}finally{breakWriteBusy=false}
+  }
   async function passHtml(who){
     const st=shiftState(who.code);const stTxt={NONE:'No TIME IN yet today',WORKING:'ON DUTY • TIME IN '+(st.recs&&st.recs[0]?esc(st.recs[0].time||fmtT(st.recs[0].date)):''),BREAK:'ON BREAK since '+(st.last?esc(st.last.time||fmtT(st.last.date)):''),ENDED:'SHIFT DONE • TIME OUT '+(st.last?esc(st.last.time||fmtT(st.last.date)):'')}[st.state];
     let h='<div class="r181-h">📲 ATTENDANCE <span class="r181-st '+st.state.toLowerCase()+'">'+stTxt+'</span></div>';
+    if(st.state==='BREAK')h+=breakNotice(st.last);
     if(PASS&&PASS.code===who.code&&Date.now()<PASS.until){
       const left=Math.ceil((PASS.until-Date.now())/1000);
       h+='<div class="r181-pass"><div class="r181-ok">✓ YOU SCANNED THE QR OF '+esc(PASS.guard.toUpperCase())+'</div><div class="r181-qr">'+qrSvg(PASS.txt)+'</div><b>SHOW THIS TO THE GUARD TO SCAN</b><small>Still valid for <span data-r181-left>'+left+'</span>s • GPS: '+({OK:'✓ at the branch',OUT:'⚠ OUTSIDE the branch',NA:'not checked',NS:'branch location not set (HR)'}[PASS.geo])+'</small></div>';
     }else{
       h+='<button type="button" class="r181-big" data-r181-scanguard>📷 SCAN THE GUARD’S QR<small>for TIME IN / TIME OUT</small></button>';
-      h+='<details class="r181-brk"'+(st.state==='WORKING'||st.state==='BREAK'?' open':'')+'><summary>☕ BREAK QR — show to the Kitchen/Dining Head 1 or Manager</summary><div class="r181-qr small" data-r181-bq="'+esc(who.code)+'">'+(breakCache[who.code]&&Date.now()-breakCache[who.code].at<60000?qrSvg(breakCache[who.code].txt):'<i>…</i>')+'</div><small>Changes every minute. BREAK OUT / BREAK IN is with the Head 1 or Manager only.</small></details>';
+      h+='<details class="r181-brk"'+(st.state==='WORKING'||st.state==='BREAK'?' open':'')+'><summary>☕ BREAK QR — show to an authorized Head, assistant or Manager</summary><div class="r181-qr small" data-r181-bq="'+esc(who.code)+'">'+(breakCache[who.code]&&Date.now()-breakCache[who.code].at<60000?qrSvg(breakCache[who.code].txt):'<i>…</i>')+'</div><small>Changes every minute. BREAK OUT / BREAK IN: Guard, authorized Heads, assistants and Managers. Prioritize Head 1 and Managers under HR rules.</small></details>';
     }
     return h;
   }
@@ -25409,6 +25425,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function resultBox(id,html,cls){const b=document.getElementById(id);if(b){b.className='r181-result '+(cls||'');b.innerHTML=html;b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
   async function guardHandle(raw){
     pendingOut=null;
+    if(!(await refreshAttendanceStatus('r181GuardRes')))return;
     const gl=guardLabel();if(!gl){alert('Log in as a Guard first.');return}
     const v=await verifyPayload(raw);if(!v.ok){resultBox('r181GuardRes','<b>✗ NOT RECORDED</b><span>'+esc(v.msg)+'</span>','bad');return}
     const p=v.p;
@@ -25421,8 +25438,9 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(guardLabel()!==gl||!guardTokens().includes(p.g)||Date.now()-Number(p.ts)>MAX_AGE){resultBox('r181GuardRes','<b>✗ SCAN AGAIN</b><span>The Guard session or QR expired during the location check.</span>','bad');return}
     const st=shiftState(p.c);const name=v.emp.name||p.c;
     const flags=[p.geo==='OUT'?'⚠ GPS: OUTSIDE THE BRANCH':(p.geo==='OK'?'✓ GPS: at the branch':'GPS: not checked'),String(p.ph||'').indexOf('BORROWED')===0?'👥 BORROWED PHONE ('+esc(p.ph.split(':')[1]||'')+')':'',v.branch&&curBranch()&&v.branch!==curBranch()?'⚠ OTHER BRANCH ('+bName(v.branch)+')':'',v.loan?'👥 TEMPORARY TRANSFER from '+bName(v.loan.from)+' until '+(window.rcadsR185?rcadsR185.fmt(v.loan.until):v.loan.until):'',v.loanEnded&&v.loanEnded.to===curBranch()?'⚠ TEMPORARY TRANSFER ENDED ('+(window.rcadsR185?rcadsR185.fmt(rcadsR185.loanEnd(v.loanEnded)):v.loanEnded.until)+') — should be at '+bName(v.loanEnded.from)+' now':''].filter(Boolean);
-    const head='<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span><em>'+flags.map(esc).join(' • ').replace(/&amp;/g,'&')+'</em></div>';
-    const base={handshake:'MUTUAL QR',guardToken:p.g,geo:p.geo,guardGeo:'OK',guardGeoCheckedAt:guardGeo.at||new Date().toISOString(),phone:p.ph||'OWN',authorizedBy:gl,dutyBranch:curBranch()};
+    const noBreak=st.state==='WORKING'?'<div class="r181-warn">NO BREAK OUT RECORDED in the latest synced attendance. Ask the employee and the Head/Manager before they leave. Confirm the facts before reporting an unauthorized departure.</div>':'';
+    const head=noBreak+'<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span><em>'+flags.map(esc).join(' • ').replace(/&amp;/g,'&')+'</em></div>';
+    const base={handshake:'MUTUAL QR',guardToken:p.g,geo:p.geo,guardGeo:'OK',guardGeoCheckedAt:guardGeo.at||new Date().toISOString(),phone:p.ph||'OWN',authorizedBy:gl,authorizedDepartment:'Security / Guard',dutyBranch:curBranch()};
     if(st.state==='NONE'){
       const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'IN',kind:'Start',date:s.date.toISOString(),time:s.time},base));
       resultBox('r181GuardRes',head+'<b class="big ok">✓ TIME IN • '+esc(s.time)+'</b><span>Recorded. (Mutual scan ✓)</span>','ok');return;
@@ -25433,7 +25451,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       resultBox('r181GuardRes',head+'<b>ON DUTY since '+esc(st.recs[0].time||fmtT(st.recs[0].date))+' • worked '+hmR(wi.worked)+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r181-out="END">🏁 TIME OUT — END OF SHIFT</button><button type="button" class="r181-btn alt" data-r278-brk>☕ BREAK OUT</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','');
       pendingOut={p,name,base,wi};return;
     }
-    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingOut={p,name,base};resultBox('r181GuardRes',head+'<b>☕ ON BREAK since '+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b><span>Coming BACK from break → press ✓ BREAK IN. Just going OUT (the break is already recorded) → press CANCEL, nothing to record.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-in>✓ BREAK IN — back from break</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL — just going out</button></div>','');return}
+    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingOut={p,name,base};resultBox('r181GuardRes',head+'<b>☕ ON BREAK since '+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b>'+breakNotice(st.last)+'<span>Coming BACK from break → press ✓ BREAK IN. Just going OUT (the break is already recorded) → press CANCEL, nothing to record.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-in>✓ BREAK IN — back from break</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL — just going out</button></div>','');return}
     resultBox('r181GuardRes',head+'<b>SHIFT DONE</b><span>Already has a TIME OUT this shift ('+esc(st.last.time||fmtT(st.last.date))+'). Cannot be done twice.</span>','warn');
   }
   let pendingOut=null;
@@ -25447,10 +25465,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function flagUtApproved(code,reason,by){try{const a=JSON.parse(localStorage.getItem('rustica_central_approver_flags_v2')||'[]');a.push({employeeCode:U(code),issueType:'UNDERTIME',decision:'APPROVED',createdAt:new Date().toISOString(),reason,approvedBy:by,source:'R217'});localStorage.setItem('rustica_central_approver_flags_v2',JSON.stringify(a));try{rcadsCloudFlushQueue()}catch(e){}}catch(e){}}
   function utLog(ev){const k='rcads_r217_ut_log_v1';const a=lsGet(k,[])||[];a.push(Object.assign({at:new Date().toISOString()},ev));lsSet(k,a.slice(-600))}
   let pendingHead=null;
-  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
-    if(t.closest('[data-r278-in]')){if(!pendingOut)return;const {p,name,base}=pendingOut;const st=shiftState(p.c);if(st.state!=='BREAK'){alert('The status changed. Scan again.');pendingOut=null;return}
+  document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('[data-r278-in]')){if(!pendingOut||!(await refreshBeforeBreak('r181GuardRes')))return;const {p,name,base}=pendingOut;const st=shiftState(p.c);if(st.state!=='BREAK'){alert('The status changed. Scan again.');pendingOut=null;return}
        const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},base));resultBox('r181GuardRes','<b class="big ok">✓ BREAK IN • '+esc(name)+' • '+esc(s.time)+'</b><span>Break: '+mins+' minutes • Recorded by '+esc(base.authorizedBy)+'.</span>','ok');pendingOut=null;return}
-    if(t.closest('[data-r278-brk]')){if(!pendingOut)return;const {p,name,base}=pendingOut;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
+    if(t.closest('[data-r278-brk]')){if(!pendingOut||!(await refreshBeforeBreak('r181GuardRes')))return;const {p,name,base}=pendingOut;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
        const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break (out of the premises)',reasonApproved:'N/A'},base));resultBox('r181GuardRes','<b class="big ok">☕ BREAK OUT • '+esc(name)+' • '+esc(s.time)+'</b><span>Recorded by '+esc(base.authorizedBy)+'. When back: scan again for BREAK IN.</span>','ok');pendingOut=null;return}
     if(t.closest('[data-r217-abandon]')){if(!pendingOut)return;const {p,name,base,wi}=pendingOut;
       if(!confirm('LEFT WITHOUT PERMISSION — '+name+' is leaving WITHOUT the approval of the Head 1 (worked '+hmR(wi?wi.worked:0)+' only).\n\nThis will be recorded and flagged RED to HR. Continue?'))return;
@@ -25459,9 +25477,9 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       const f=findEmp(p.c);utLog({t:'ABANDON',code:p.c,name,branch:f?f.branch:curBranch(),worked:wi?wi.worked:0,by:base.authorizedBy});
       resultBox('r181GuardRes','<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+'</span></div><b class="big bad">🚩 LEFT WITHOUT PERMISSION RECORDED • '+esc(s.time)+'</b><span>HR has been flagged.</span>','bad');pendingOut=null;return}
     if(t.closest('[data-r217-x]')){pendingHead=null;resultBox('r181BreakRes','<span>Cancelled.</span>','');return}
-    if(t.closest('[data-r278-hin]')){if(!pendingHead)return;const {p,name,base,a,head}=pendingHead;const st=shiftState(p.c);if(st.state!=='BREAK'){alert('The status changed. Scan again.');pendingHead=null;return}
+    if(t.closest('[data-r278-hin]')){if(!pendingHead||!(await refreshBeforeBreak('r181BreakRes')))return;const {p,name,base,a,head}=pendingHead;const st=shiftState(p.c);if(st.state!=='BREAK'){alert('The status changed. Scan again.');pendingHead=null;return}
       const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},base));resultBox('r181BreakRes',head+'<b class="big ok">✓ BREAK IN • '+esc(s.time)+'</b><span>Break: '+mins+' minutes • Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
-    if(t.closest('[data-r217-brk]')){if(!pendingHead)return;const {p,name,base,a,head}=pendingHead;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingHead=null;return}
+    if(t.closest('[data-r217-brk]')){if(!pendingHead||!(await refreshBeforeBreak('r181BreakRes')))return;const {p,name,base,a,head}=pendingHead;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingHead=null;return}
       const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break / End of Shift',reasonApproved:'N/A'},base));resultBox('r181BreakRes',head+'<b class="big ok">☕ BREAK OUT • '+esc(s.time)+'</b><span>Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
     if(t.closest('[data-r217-ut]')){if(!breakAuthority()?.canUndertime){alert('Undertime requires an authorized Department Head, assistant, or Manager.');return}const b=document.getElementById('r217Ut');if(b)b.hidden=false;return}
     if(t.closest('[data-r217-utsave]')){if(!pendingHead)return;const active=breakAuthority();if(!active||!active.canUndertime||active.code!==pendingHead.a.code||active.scope!==pendingHead.a.scope){alert('Undertime authorization changed. Log in with your authorized account and scan again.');pendingHead=null;return}const {p,name,base,a,head}=pendingHead;const sel=document.getElementById('r217Reason');let reason=sel?sel.value:'';
@@ -25491,28 +25509,29 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   /* ---------------- HEADS / MANAGERS: BREAK OUT / BREAK IN ---------------- */
   function breakAuthority(){
     const ms=window.currentManagerSession;const mh=document.getElementById('managerHomeScreen');
-    if(ms&&ms.empCode&&mh&&!mh.classList.contains('hidden')){const f=findEmp(ms.empCode);return {label:(ms.role||'Manager')+' • '+(f?f.emp.name:ms.empCode),scope:'ALL',host:mh,after:document.getElementById('rcadsR97ManagerDashboardHeader'),tab:null,code:U(ms.empCode),canUndertime:true}}
+    if(ms&&ms.empCode&&mh&&!mh.classList.contains('hidden')){const f=findEmp(ms.empCode);return {label:(ms.role||'Manager')+' • '+(f?f.emp.name:ms.empCode),scope:'ALL',host:mh,after:document.getElementById('rcadsR97ManagerDashboardHeader'),tab:null,code:U(ms.empCode),department:'Management',canUndertime:true}}
     const e=cur();const app=document.getElementById('rcadsR131ApproverApp');const shell=app&&app.querySelector('.r131-shell');
     if(e&&shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none'){
       let k='';try{k=getCurrentApproverAccessKeyForGuardDtr()}catch(_){}
       if(['kitchenHead1','kitchenHead2','diningHead1','diningHead2'].includes(k)){
         const f=findEmp(e.code),branch=(window.rcadsHeadBranch&&window.rcadsHeadBranch(e))||(f?f.branch:curBranch());
         const labels={kitchenHead1:'Deputy Chef 1',kitchenHead2:'Assistant Deputy Chef',diningHead1:'Dining Supervisor',diningHead2:'Captain Waiter'};
-        return {label:labels[k]+' • '+e.name,scope:branch,host:shell,after:null,tab:'approvals',code:U(e.code),canUndertime:true};
+        return {label:labels[k]+' • '+e.name,scope:branch,host:shell,after:null,tab:'approvals',code:U(e.code),department:k.startsWith('kitchen')?'Kitchen':'Dining',canUndertime:true};
       }
     }
     return null;
   }
   async function breakHandle(raw){
+    pendingHead=null;if(!(await refreshAttendanceStatus('r181BreakRes')))return;
     const a=breakAuthority();if(!a){alert('Only authorized Department Heads, their assistants, and Managers can do BREAK OUT / BREAK IN.');return}
     const v=await verifyPayload(raw);if(!v.ok){resultBox('r181BreakRes','<b>✗ NOT RECORDED</b><span>'+esc(v.msg)+'</span>','bad');return}
     const p=v.p;const name=v.emp.name||p.c;
     if(a.scope!=='ALL'&&v.branch&&v.branch!==a.scope){resultBox('r181BreakRes','<b>✗ OTHER BRANCH</b><span>'+esc(name)+' is from'+esc(bName(v.branch))+'. Only an authorized Head or assistant of their own branch can do this.</span>','bad');return}
     if(a.code&&a.code===p.c){resultBox('r181BreakRes','<b>✗ NOT ALLOWED ON YOURSELF</b><span>Another Head/Manager must do your BREAK.</span>','bad');return}
     const st=shiftState(p.c);const head='<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span>'+(String(p.ph||'').indexOf('BORROWED')===0?'<em>👥 BORROWED PHONE</em>':'')+'</div>';
-    const base={authorizedBy:a.label,handshake:'BREAK QR',phone:p.ph||'OWN'};const s=nowStampLocal();
+    const base={authorizedBy:a.label,authorizedDepartment:a.department,authorizedCode:a.code,handshake:'BREAK QR',phone:p.ph||'OWN'};const s=nowStampLocal();
     if(st.state==='WORKING'){const wi=workedInfo(p.c);pendingHead={p,name,base,a,head};resultBox('r181BreakRes',head+'<b>ON DUTY • worked '+hmR(wi.worked)+(wi.brk?' • break so far '+hmR(wi.brk):'')+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r217-brk>☕ BREAK OUT</button>'+(wi.worked<NEED&&a.canUndertime?'<button type="button" class="r181-btn alt" data-r217-ut>⏳ UNDERTIME TIME OUT (approve)</button>':'')+'<button type="button" class="r181-btn ghost" data-r217-x>CANCEL</button></div>'+'<div id="r217Ut" hidden><label>REASON FOR UNDERTIME (you approve it)</label><select id="r217Reason">'+UT_REASONS.map(r=>'<option>'+esc(r)+'</option>').join('')+'</select><input id="r217Other" placeholder="Type the reason" hidden><button type="button" class="r181-btn" data-r217-utsave>✓ APPROVE & TIME OUT</button></div>','');return}
-    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingHead={p,name,base,a,head};resultBox('r181BreakRes',head+'<b>☕ ALREADY ON BREAK since '+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b><span>No need to record it again. If they are BACK from break and did not pass the guard → press ✓ BREAK IN.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-hin>✓ BREAK IN — back from break</button><button type="button" class="r181-btn ghost" data-r217-x>CLOSE</button></div>','');return}
+    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingHead={p,name,base,a,head};resultBox('r181BreakRes',head+'<b>☕ ALREADY ON BREAK since '+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b>'+breakNotice(st.last)+'<span>No need to record it again. If they are BACK from break and did not pass the guard → press ✓ BREAK IN.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-hin>✓ BREAK IN — back from break</button><button type="button" class="r181-btn ghost" data-r217-x>CLOSE</button></div>','');return}
     if(st.state==='NONE'){resultBox('r181BreakRes',head+'<b>✗ NO TIME IN YET</b><span>You must TIME IN with the Guard first (mutual scan).</span>','warn');return}
     resultBox('r181BreakRes',head+'<b>SHIFT DONE</b><span>Already has a TIME OUT with the Guard.</span>','warn');
   }
