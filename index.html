@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R286 BREAK RECORD NOTICE</title>
+<title>Rustica RCADS App — R287 OFFLINE RECORDING</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -15179,7 +15179,7 @@ function rcadsCloudRenderSetup(){
     if(this===localStorage){ try{rcadsCloudQueueKey(key,value);}catch(e){} }
   };
 })();
-window.addEventListener("online",()=>{rcadsCloudFlushQueue(); if(rcadsCloudReady()) rcadsCloudSetStatus("ONLINE — syncing pending changes…",null);});
+window.addEventListener("online",()=>{const go=()=>rcadsCloudFlushQueue(); if(typeof window.rcadsR287Sync==="function"){window.rcadsR287Sync().finally(go)}else go(); if(rcadsCloudReady()) rcadsCloudSetStatus("ONLINE — syncing pending changes…",null);});
 document.addEventListener("DOMContentLoaded",()=>{
   setTimeout(()=>{rcadsCloudRenderSetup(); if(rcadsCloudReady()){rcadsCloudPing().catch(()=>rcadsCloudSetStatus("Cloud configured; currently offline/unreachable. Local mode continues.",false));}},600);
 });
@@ -25284,6 +25284,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     return {state:'ENDED',recs,last};
   }
   function appendRecord(c,name,rec){
+    if(r287Off&&rec&&typeof rec==='object'){rec.offline=true;rec.offlineSavedAt=new Date().toISOString()}
     const k=attKey(c);const s=lsGet(k,null)||{employeeCode:U(c),employeeName:name||'',records:[]};
     s.records=(s.records||[]).concat([rec]).sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0));s.employeeName=s.employeeName||name||'';s.savedAt=new Date().toISOString();
     const ok=lsSet(k,s);try{window.dispatchEvent(new CustomEvent('rcads:dtr-refresh'))}catch(e){}return ok;
@@ -25368,11 +25369,13 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(!r)return '';
     return '<div class="r181-info"><b>BREAK OUT RECORDED</b><br>By: '+esc(r.authorizedBy||'Not recorded')+'<br>Department: '+esc(r.authorizedDepartment||'Not recorded in older entry')+'<br>Time: '+esc(r.time||fmtT(r.date))+'<br>Already on break — do not record BREAK OUT again.</div>';
   }
+  let r287Off=false;
   async function refreshAttendanceStatus(resultId){
+    /* R287: offline is allowed — the record is saved on this phone and syncs automatically when internet returns */
     try{
       if(!navigator.onLine||typeof window.rcadsCloudPullMerge!=='function')throw new Error('Offline');
-      await window.rcadsCloudPullMerge();return true;
-    }catch(e){resultBox(resultId,'<b>STATUS NOT CONFIRMED</b><span>Cannot check the latest online attendance. Connect to the internet and scan again. Ask the recording Head/Manager/Guard to sync their record. Do not assume the employee left without permission.</span>','warn');return false}
+      await Promise.race([window.rcadsCloudPullMerge(),new Promise((_,rj)=>setTimeout(()=>rj(new Error('timeout')),8000))]);r287Off=false;return true;
+    }catch(e){r287Off=true;return true}
   }
   let breakWriteBusy=false;
   async function refreshBeforeBreak(resultId){
@@ -25422,7 +25425,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   /* ---------------- GUARD: scan the employee PASS ---------------- */
   function guardLabel(){try{return getLoggedGuardLabel()||''}catch(e){return ''}}
   function guardTokens(){const t=[];try{t.push(rcadsGuardCurrentToken(new Date()));t.push(rcadsGuardCurrentToken(new Date(Date.now()-PASS_MS)))}catch(e){}return t.filter(Boolean)}
-  function resultBox(id,html,cls){const b=document.getElementById(id);if(b){b.className='r181-result '+(cls||'');b.innerHTML=html;b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
+  function resultBox(id,html,cls){if(r287Off&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r287off">📴 OFFLINE MODE — records are saved on this phone and will sync automatically when internet returns. Do not clear browser data.</span>'+html;const b=document.getElementById(id);if(b){b.className='r181-result '+(cls||'');b.innerHTML=html;b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
   async function guardHandle(raw){
     pendingOut=null;
     if(!(await refreshAttendanceStatus('r181GuardRes')))return;
@@ -28713,6 +28716,15 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     const out=[...m.values()].filter(x=>!(del[id(x)]&&String(del[id(x)])>=String(x.savedAt||''))).sort((a,b)=>String(a.savedAt||'').localeCompare(String(b.savedAt||'')));
     return JSON.stringify(out)}
   window.rcadsR271MergeSched=mergeSched;
+  const ATTK=k=>/^rustica_srf_local_attendance_/i.test(k);
+  function mergeAtt(localStr,remoteStr){let L=null,R=null;try{L=JSON.parse(localStr||'null')}catch(e){}try{R=JSON.parse(remoteStr||'null')}catch(e){}
+    if(!R||!Array.isArray(R.records))return localStr;if(!L||!Array.isArray(L.records))return remoteStr;
+    const id=r=>[String(r.type||''),String(r.date||''),String(r.kind||''),String(r.time||'')].join('|');const m=new Map();
+    R.records.concat(L.records).forEach(r=>{if(!r||typeof r!=='object')return;const k=id(r);const y=m.get(k);if(!y||Object.keys(r).length>=Object.keys(y).length)m.set(k,y?Object.assign({},y,r):r)});
+    const recs=[...m.values()].sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0));
+    const out=Object.assign({},R,L,{records:recs,employeeName:L.employeeName||R.employeeName||''});
+    if(String(R.savedAt||'')>String(L.savedAt||''))out.savedAt=R.savedAt;return JSON.stringify(out)}
+  window.rcadsR287MergeAtt=mergeAtt;
   const same=(a,b)=>{try{return JSON.stringify(JSON.parse(a||'null'))===JSON.stringify(JSON.parse(b||'null'))}catch(e){return a===b}};
   window.rcadsCloudPullMerge=async function(){
     if(!rcadsCloudReady()) throw new Error("Cloud configuration is incomplete.");
@@ -28723,7 +28735,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
       (Array.isArray(rows)?rows:[]).forEach(r=>{
         const k=String(r.data_key||"");if(!rcadsCloudShouldSyncKey(k))return;
         const remoteTime=String(r.updated_at||"");const localTime=String(meta[k]||"");const rv=String(r.data_value??"");
-        if(MERGE.has(k)){const lv=localStorage.getItem(k);const mv=lv?(k===SKEY?mergeSched(lv,rv):mergeAccess(lv,rv)):rv;
+        if(MERGE.has(k)||ATTK(k)){const lv=localStorage.getItem(k);const mv=lv?(k===SKEY?mergeSched(lv,rv):ATTK(k)?mergeAtt(lv,rv):mergeAccess(lv,rv)):rv;
           if(!same(mv,lv)){localStorage.setItem(k,mv);applied++}
           meta[k]=remoteTime>localTime?remoteTime:(localTime||remoteTime||new Date().toISOString());
           if(!same(mv,rv))sendBack.push([k,mv]);return}
@@ -30065,6 +30077,56 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
     const ref=document.getElementById('r271Card');if(ref){if(ref.previousElementSibling!==el)ref.insertAdjacentElement('beforebegin',el)}else if(el.parentElement!==p)p.insertBefore(el,p.firstElementChild?p.firstElementChild.nextSibling:null);
     draw()}
   setInterval(()=>{try{tick()}catch(e){console.warn('R273',e)}},1500);
+})();
+</script>
+
+<!-- RCADS R287: OFFLINE RECORDING + AUTO SYNC -->
+<style>.r287off{display:block;margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff4d6;border:1px solid #e0b64a;color:#6b4a00;font-weight:800;font-size:12px}
+#r287Badge{position:fixed;left:8px;bottom:8px;z-index:2147483000;background:#6b4a00;color:#fff;font:800 11px system-ui,sans-serif;padding:6px 10px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.25);display:none}</style>
+<script>
+(function(){
+  const PK='r287_pending_sync_v1';            /* not synced: no rustica_/rcads_ prefix */
+  const ATT=/^rustica_srf_local_attendance_/i;
+  function getP(){try{return JSON.parse(localStorage.getItem(PK)||'{}')||{}}catch(e){return {}}}
+  function setP(p){try{Storage.prototype.__r287Orig.call(localStorage,PK,JSON.stringify(p))}catch(e){}}
+  const orig=Storage.prototype.setItem;Storage.prototype.__r287Orig=orig;
+  Storage.prototype.setItem=function(key,value){
+    orig.apply(this,arguments);
+    try{if(this===localStorage&&ATT.test(String(key))&&!(typeof rcadsCloudApplyingRemote!=='undefined'&&rcadsCloudApplyingRemote)){
+      const p=getP();p[key]=new Date().toISOString();setP(p);badge()}}catch(e){}
+  };
+  function count(){return Object.keys(getP()).length}
+  function badge(){try{let b=document.getElementById('r287Badge');if(!b){if(!document.body)return;b=document.createElement('div');b.id='r287Badge';document.body.appendChild(b)}
+    const n=count();if(n&&!navigator.onLine){b.textContent='📴 OFFLINE • '+n+' attendance record(s) waiting to sync';b.style.display='block'}
+    else if(n){b.textContent='⏳ Syncing '+n+' attendance record(s)…';b.style.display='block'}else b.style.display='none'}catch(e){}}
+  let busy=false;
+  async function sync(){
+    if(busy)return false;const p=getP();const keys=Object.keys(p);badge();
+    if(!keys.length)return true;
+    if(!navigator.onLine||typeof rcadsCloudReady!=='function'||!rcadsCloudReady())return false;
+    busy=true;
+    try{
+      /* 1) pull and merge record by record — offline records and other phones' records are both kept */
+      if(typeof window.rcadsCloudPullMerge==='function')await window.rcadsCloudPullMerge();
+      /* 2) push every attendance file written on this phone */
+      for(const k of keys){
+        const v=localStorage.getItem(k);if(v==null){continue}
+        await rcadsCloudPushKey(k,v,new Date().toISOString());
+        try{if(typeof rcadsCloudQueue!=='undefined')rcadsCloudQueue.delete(k)}catch(e){}
+        const cur=getP();if(cur[k]===p[k]){delete cur[k];setP(cur)}
+      }
+      try{rcadsCloudSetStatus('OFFLINE RECORDS SYNCED ✓ • '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),true)}catch(e){}
+      return true;
+    }catch(e){try{rcadsCloudSetStatus('Cloud sync pending — attendance is safe on this phone. Will retry automatically.',false)}catch(_){}return false}
+    finally{busy=false;badge()}
+  }
+  window.rcadsR287Sync=sync;window.rcadsR287Pending=getP;
+  window.addEventListener('online',()=>{badge();setTimeout(sync,1500)});
+  window.addEventListener('offline',badge);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(sync,800)});
+  setInterval(()=>{if(count())sync()},30000);
+  document.addEventListener('DOMContentLoaded',()=>{badge();setTimeout(sync,4000)});
+  if(document.readyState!=='loading'){badge();setTimeout(sync,4000)}
 })();
 </script>
 </body>
