@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R280 HR PHONE MAKES QR</title>
+<title>Rustica RCADS App — R281 PERSONAL PHONE LOGOUT</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22274,8 +22274,14 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     const g=gateEl();document.documentElement.classList.add('r160-gate-open');
     g.innerHTML='<div class="r160-card"><div class="r160-brand">RUSTICA • RCADS</div><div class="r160-title">MY PERSONAL APP</div>'
       +'<div class="r160-who"><b>'+esc(p.n||p.c)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(p.b))+'</span></div>'
-      +inner+'<div class="r160-msg" id="r160Msg"></div><button type="button" class="r160-link" id="r160NotMe">Not you? — Close</button></div>';
-    g.querySelector('#r160NotMe').onclick=()=>{forgetDevice();try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}closeGate()};
+      +inner+'<div class="r160-msg" id="r160Msg"></div><button type="button" class="r160-link" id="r160NotMe">Not your account?</button></div>';
+    g.querySelector('#r160NotMe').onclick=()=>{
+      if(deviceOwner()){
+        msg('This phone is linked to a personal RCADS account. To change the account, scan the new personal QR issued by HR.');
+        return;
+      }
+      try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}closeGate()
+    };
     return g;
   }
   function msg(t,ok){const m=document.getElementById('r160Msg');if(m){m.textContent=t;m.className='r160-msg'+(ok?' ok':' bad')}}
@@ -22342,8 +22348,26 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   function bootGate(){if(gPayload()||oPayload())return;const p=payloadFromHash()||deviceOwner();if(p&&p.c)openGate(p)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(bootGate,350));else setTimeout(bootGate,350);
   window.addEventListener('hashchange',()=>{const p=payloadFromHash();if(p)openGate(p)});
-  /* R274: LOG OUT on a PERSONAL phone goes back to the person's own PIN screen — never to the HR main screen. */
-  (function(){const prev=window.logout;if(typeof prev!=='function')return;window.logout=function(){const r=prev.apply(this,arguments);try{if(!(gPayload()||oPayload())){const d=deviceOwner();if(d&&d.c){try{history.replaceState(null,'',location.pathname+location.search)}catch(_){}setTimeout(()=>openGate({c:d.c,b:d.b,n:d.n}),60)}}}catch(e){console.warn('R274',e)}return r}})();
+  /* R281: keep the enrolled phone identity across every employee-role logout.
+     Identity selects a PIN screen only; openGate still verifies access and PIN. */
+  function returnToPersonalGate(){
+    if(gPayload()||oPayload())return;
+    const d=deviceOwner();if(!d||!d.c)return;
+    verifiedFor='';
+    try{history.replaceState(null,'',location.pathname+location.search)}catch(_){}
+    ['selectScreen','normalScreen','simpleHrAdminModal','managerLoginScreen',
+     'cateringManagerLoginScreen','assistantSousChefLoginScreen','pinScreen']
+      .forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+    // Open synchronously before cloud checks, so logout never exposes HR home.
+    openGate({c:d.c,b:d.b,n:d.n});
+  }
+  ['logout','logoutManager','logoutAssistantSousChef'].forEach(name=>{
+    const previous=window[name];if(typeof previous!=='function')return;
+    window[name]=function(){
+      try{return previous.apply(this,arguments)}
+      finally{returnToPersonalGate()}
+    };
+  });
 
   /* ---------------- HR PANEL ---------------- */
   function statusOf(emp){
