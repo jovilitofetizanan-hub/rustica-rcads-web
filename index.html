@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R283 MUTUAL SCAN LOCATION</title>
+<title>Rustica RCADS App — R284 ASSISTANT BREAK ACCESS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25463,8 +25463,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},base));resultBox('r181BreakRes',head+'<b class="big ok">✓ BREAK IN • '+esc(s.time)+'</b><span>Break: '+mins+' minutes • Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
     if(t.closest('[data-r217-brk]')){if(!pendingHead)return;const {p,name,base,a,head}=pendingHead;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingHead=null;return}
       const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break / End of Shift',reasonApproved:'N/A'},base));resultBox('r181BreakRes',head+'<b class="big ok">☕ BREAK OUT • '+esc(s.time)+'</b><span>Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
-    if(t.closest('[data-r217-ut]')){const b=document.getElementById('r217Ut');if(b)b.hidden=false;return}
-    if(t.closest('[data-r217-utsave]')){if(!pendingHead)return;const {p,name,base,a,head}=pendingHead;const sel=document.getElementById('r217Reason');let reason=sel?sel.value:'';
+    if(t.closest('[data-r217-ut]')){if(!breakAuthority()?.canUndertime){alert('Undertime requires Head 1 or Manager. Assistants may approve only when the assigned Head 1 is scheduled DAY OFF.');return}const b=document.getElementById('r217Ut');if(b)b.hidden=false;return}
+    if(t.closest('[data-r217-utsave]')){if(!pendingHead)return;const active=breakAuthority();if(!active||!active.canUndertime||active.code!==pendingHead.a.code||active.scope!==pendingHead.a.scope){alert('Undertime authorization changed. Ask Head 1 or Manager, or scan again.');pendingHead=null;return}const {p,name,base,a,head}=pendingHead;const sel=document.getElementById('r217Reason');let reason=sel?sel.value:'';
       if(/^Other/.test(reason)){reason=String((document.getElementById('r217Other')||{}).value||'').trim();if(!reason){alert('Type the reason.');return}}
       const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingHead=null;return}
       const wi=workedInfo(p.c);const s=nowStampLocal();
@@ -25484,30 +25484,46 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function mountGuard(){
     const gh=document.getElementById('guardHomeScreen');if(!gh||gh.classList.contains('hidden')||!guardLabel()){return}
     let c=document.getElementById('r181Guard');
-    if(!c){c=document.createElement('div');c.id='r181Guard';c.className='r181-card guard';c.innerHTML='<div class="r181-h">🛡 TIME IN / TIME OUT — MUTUAL QR SCAN</div><ol class="r181-steps"><li>Both phones must allow Location. Have the employee scan <b>your QR</b> (below, changes every 2 minutes).</li><li>Their phone will show the <b>green PASS QR</b>.</li><li>Press the button and <b>scan their PASS QR</b>.</li></ol><button type="button" class="r181-big" data-r181-scanpass>📷 SCAN THE EMPLOYEE’S PASS QR</button><div id="r181GuardRes" class="r181-result"></div><small class="r181-note">BREAK OUT / BREAK IN: Guard, Kitchen/Dining Head 1, and Managers.</small>';
+    if(!c){c=document.createElement('div');c.id='r181Guard';c.className='r181-card guard';c.innerHTML='<div class="r181-h">🛡 TIME IN / TIME OUT — MUTUAL QR SCAN</div><ol class="r181-steps"><li>Both phones must allow Location. Have the employee scan <b>your QR</b> (below, changes every 2 minutes).</li><li>Their phone will show the <b>green PASS QR</b>.</li><li>Press the button and <b>scan their PASS QR</b>.</li></ol><button type="button" class="r181-big" data-r181-scanpass>📷 SCAN THE EMPLOYEE’S PASS QR</button><div id="r181GuardRes" class="r181-result"></div><small class="r181-note">BREAK OUT / BREAK IN: Guard, Deputy Chef 1, Assistant Deputy Chef, Dining Supervisor, Captain Waiter, and Managers.</small>';
       const first=gh.querySelector('.section');if(first)first.insertAdjacentElement('afterend',c);else gh.insertBefore(c,gh.firstChild)}
   }
 
   /* ---------------- HEADS / MANAGERS: BREAK OUT / BREAK IN ---------------- */
+  function assistantHeadIsOff(role,branch){
+    try{
+      const primary=role==='kitchenHead2'?'kitchenHead1':'diningHead1';
+      const map=lsGet('rcads_r231_branch_heads_v1',{});
+      const code=U((map[branch]||{})[primary]);
+      const emp=staff(branch).find(e=>U(e.code)===code);if(!emp)return false;
+      const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+      const entry=rcadsBranchScheduleEntryForEmployeeDate(branch,emp,day);
+      return !!(entry&&entry.type==='STATUS'&&/^(DAY OFF|OFF|REST DAY)/i.test(String(entry.status||'').trim()));
+    }catch(e){return false}
+  }
   function breakAuthority(){
     const ms=window.currentManagerSession;const mh=document.getElementById('managerHomeScreen');
-    if(ms&&ms.empCode&&mh&&!mh.classList.contains('hidden')){const f=findEmp(ms.empCode);return {label:(ms.role||'Manager')+' • '+(f?f.emp.name:ms.empCode),scope:'ALL',host:mh,after:document.getElementById('rcadsR97ManagerDashboardHeader'),tab:null,code:U(ms.empCode)}}
+    if(ms&&ms.empCode&&mh&&!mh.classList.contains('hidden')){const f=findEmp(ms.empCode);return {label:(ms.role||'Manager')+' • '+(f?f.emp.name:ms.empCode),scope:'ALL',host:mh,after:document.getElementById('rcadsR97ManagerDashboardHeader'),tab:null,code:U(ms.empCode),canUndertime:true}}
     const e=cur();const app=document.getElementById('rcadsR131ApproverApp');const shell=app&&app.querySelector('.r131-shell');
     if(e&&shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none'){
       let k='';try{k=getCurrentApproverAccessKeyForGuardDtr()}catch(_){}
-      if(k==='kitchenHead1'||k==='diningHead1'){const f=findEmp(e.code);return {label:(k==='kitchenHead1'?'Kitchen Head 1':'Dining Head 1')+' • '+e.name,scope:f?f.branch:curBranch(),host:shell,after:null,tab:'approvals',code:U(e.code)}}
+      if(['kitchenHead1','kitchenHead2','diningHead1','diningHead2'].includes(k)){
+        const f=findEmp(e.code),branch=(window.rcadsHeadBranch&&window.rcadsHeadBranch(e))||(f?f.branch:curBranch());
+        const assistant=k==='kitchenHead2'||k==='diningHead2';
+        const labels={kitchenHead1:'Deputy Chef 1',kitchenHead2:'Assistant Deputy Chef',diningHead1:'Dining Supervisor',diningHead2:'Captain Waiter'};
+        return {label:labels[k]+' • '+e.name,scope:branch,host:shell,after:null,tab:'approvals',code:U(e.code),canUndertime:!assistant||assistantHeadIsOff(k,branch)};
+      }
     }
     return null;
   }
   async function breakHandle(raw){
-    const a=breakAuthority();if(!a){alert('Only Kitchen/Dining Head 1 and Managers can do BREAK OUT / BREAK IN.');return}
+    const a=breakAuthority();if(!a){alert('Only authorized Department Heads, their assistants, and Managers can do BREAK OUT / BREAK IN.');return}
     const v=await verifyPayload(raw);if(!v.ok){resultBox('r181BreakRes','<b>✗ NOT RECORDED</b><span>'+esc(v.msg)+'</span>','bad');return}
     const p=v.p;const name=v.emp.name||p.c;
-    if(a.scope!=='ALL'&&v.branch&&v.branch!==a.scope){resultBox('r181BreakRes','<b>✗ OTHER BRANCH</b><span>'+esc(name)+' is from'+esc(bName(v.branch))+'. Only the Head 1 of their own branch can do this.</span>','bad');return}
+    if(a.scope!=='ALL'&&v.branch&&v.branch!==a.scope){resultBox('r181BreakRes','<b>✗ OTHER BRANCH</b><span>'+esc(name)+' is from'+esc(bName(v.branch))+'. Only an authorized Head or assistant of their own branch can do this.</span>','bad');return}
     if(a.code&&a.code===p.c){resultBox('r181BreakRes','<b>✗ NOT ALLOWED ON YOURSELF</b><span>Another Head/Manager must do your BREAK.</span>','bad');return}
     const st=shiftState(p.c);const head='<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span>'+(String(p.ph||'').indexOf('BORROWED')===0?'<em>👥 BORROWED PHONE</em>':'')+'</div>';
     const base={authorizedBy:a.label,handshake:'BREAK QR',phone:p.ph||'OWN'};const s=nowStampLocal();
-    if(st.state==='WORKING'){const wi=workedInfo(p.c);pendingHead={p,name,base,a,head};resultBox('r181BreakRes',head+'<b>ON DUTY • worked '+hmR(wi.worked)+(wi.brk?' • break so far '+hmR(wi.brk):'')+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r217-brk>☕ BREAK OUT</button>'+(wi.worked<NEED?'<button type="button" class="r181-btn alt" data-r217-ut>⏳ UNDERTIME TIME OUT (approve)</button>':'')+'<button type="button" class="r181-btn ghost" data-r217-x>CANCEL</button></div>'+'<div id="r217Ut" hidden><label>REASON FOR UNDERTIME (you approve it)</label><select id="r217Reason">'+UT_REASONS.map(r=>'<option>'+esc(r)+'</option>').join('')+'</select><input id="r217Other" placeholder="Type the reason" hidden><button type="button" class="r181-btn" data-r217-utsave>✓ APPROVE & TIME OUT</button></div>','');return}
+    if(st.state==='WORKING'){const wi=workedInfo(p.c);pendingHead={p,name,base,a,head};resultBox('r181BreakRes',head+'<b>ON DUTY • worked '+hmR(wi.worked)+(wi.brk?' • break so far '+hmR(wi.brk):'')+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r217-brk>☕ BREAK OUT</button>'+(wi.worked<NEED&&a.canUndertime?'<button type="button" class="r181-btn alt" data-r217-ut>⏳ UNDERTIME TIME OUT (approve)</button>':'')+'<button type="button" class="r181-btn ghost" data-r217-x>CANCEL</button></div>'+'<div id="r217Ut" hidden><label>REASON FOR UNDERTIME (you approve it)</label><select id="r217Reason">'+UT_REASONS.map(r=>'<option>'+esc(r)+'</option>').join('')+'</select><input id="r217Other" placeholder="Type the reason" hidden><button type="button" class="r181-btn" data-r217-utsave>✓ APPROVE & TIME OUT</button></div>','');return}
     if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingHead={p,name,base,a,head};resultBox('r181BreakRes',head+'<b>☕ ALREADY ON BREAK since '+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b><span>No need to record it again. If they are BACK from break and did not pass the guard → press ✓ BREAK IN.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-hin>✓ BREAK IN — back from break</button><button type="button" class="r181-btn ghost" data-r217-x>CLOSE</button></div>','');return}
     if(st.state==='NONE'){resultBox('r181BreakRes',head+'<b>✗ NO TIME IN YET</b><span>You must TIME IN with the Guard first (mutual scan).</span>','warn');return}
     resultBox('r181BreakRes',head+'<b>SHIFT DONE</b><span>Already has a TIME OUT with the Guard.</span>','warn');
@@ -25586,7 +25602,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const sec=document.getElementById('rcadsApproverAccessSection');if(!sec)return;
     let c=document.getElementById('r181Hr');
     const r=rules();
-    const html='<div class="r181-h">📋 ATTENDANCE RULES (R181)</div><ul class="r181-rules"><li><b>TIME IN / TIME OUT:</b> Guard only — MUTUAL QR SCAN (employee → guard’s QR, guard → employee’s PASS QR). Changes every 2 minutes. Employee AND Guard must pass the location check.</li><li><b>BREAK OUT / BREAK IN:</b> Guard, Kitchen Head 1, Dining Head 1 (own branch), Restaurant Manager and Catering Manager (all branches).</li><li><b>No phone / dead battery:</b> BORROWED PHONE — log in with your own EMPCODE + PIN on a co-worker’s phone (5 minutes). The record is marked 👥.</li></ul>'
+    const html='<div class="r181-h">📋 ATTENDANCE RULES (R181)</div><ul class="r181-rules"><li><b>TIME IN / TIME OUT:</b> Guard only — MUTUAL QR SCAN (employee → guard’s QR, guard → employee’s PASS QR). Changes every 2 minutes. Employee AND Guard must pass the location check.</li><li><b>BREAK OUT / BREAK IN:</b> Guard; Deputy Chef 1, Assistant Deputy Chef, Dining Supervisor and Captain Waiter (own branch); both Managers (all branches). Assistants may record breaks even when Head 1 is present. For undertime, assistants substitute only when their assigned Head 1 is scheduled DAY OFF.</li><li><b>No phone / dead battery:</b> BORROWED PHONE — log in with your own EMPCODE + PIN on a co-worker’s phone (5 minutes). The record is marked 👥.</li></ul>'
       +'<label class="r181-chk"><input type="checkbox" disabled id="r181AllowManual"'+(r.allowManual?' checked':'')+'> MUTUAL SCAN REQUIRED: manual attendance without QR is disabled.</label>';
     if(!c){c=document.createElement('div');c.id='r181Hr';c.className='r181-card hr';sec.insertBefore(c,sec.firstChild)}
     if(c.dataset.h!==html&&!c.contains(document.activeElement)){c.dataset.h=html;c.innerHTML=html;c.querySelector('#r181AllowManual').onchange=ev=>{if(ev.target.checked&&!confirm('This opens the old method (no QR scan). For emergencies only. Continue?')){ev.target.checked=false;return}const x=rules();x.allowManual=ev.target.checked;x.updatedAt=new Date().toISOString();lsSet(RULES_KEY,x)}}
