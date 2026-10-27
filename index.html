@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R287 OFFLINE RECORDING</title>
+<title>Rustica RCADS App — R288 HR REMOVE PHONE LINK</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22277,7 +22277,26 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
       +inner+'<div class="r160-msg" id="r160Msg"></div><button type="button" class="r160-link" id="r160NotMe">Not your account?</button></div>';
     g.querySelector('#r160NotMe').onclick=()=>{
       if(deviceOwner()){
-        msg('This phone is linked to a personal RCADS account. To change the account, scan the new personal QR issued by HR.');
+        /* R288: only HR (HR PIN checked on the server) can remove the personal account linked to this phone */
+        const o=deviceOwner()||{};const box=g.querySelector('.r160-card');
+        box.innerHTML='<div class="r160-brand">RUSTICA • RCADS</div><div class="r160-title">REMOVE ACCOUNT FROM THIS PHONE</div>'
+          +'<div class="r160-who"><b>'+esc(o.n||o.c||'')+'</b><span>'+esc(o.c||'')+'</span></div>'
+          +'<div class="r160-info">This phone is linked to the account above. Only HR can remove it. The employee\'s records are NOT deleted — only the link on this phone. The employee can be linked again later with a new personal QR from HR.</div>'
+          +'<label>HR PIN</label><input id="r288Pin" type="password" inputmode="numeric" autocomplete="off">'
+          +'<button type="button" class="r160-btn" id="r288Go">REMOVE FROM THIS PHONE</button>'
+          +'<div class="r160-msg" id="r160Msg"></div><button type="button" class="r160-link" id="r288Back">← Back</button>';
+        box.querySelector('#r288Back').onclick=()=>{closeGate();openGate(o)};
+        const go=async()=>{
+          const pin=box.querySelector('#r288Pin').value.trim();if(!pin){msg('Enter the HR PIN.');return}
+          if(!navigator.onLine){msg('Needs internet to check the HR PIN.');return}
+          msg('Checking the HR PIN…',true);let ok=false;
+          try{ok=await centralOpenHrSession(pin)}catch(e){ok=false}
+          if(!ok){msg('Wrong HR PIN (or no connection to the server).');return}
+          forgetDevice();try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+          closeGate();alert('✓ '+(o.n||o.c||'The account')+' was removed from this phone.\n\nThis phone is no longer anyone\'s personal app.');
+          try{location.reload()}catch(e){}
+        };
+        box.querySelector('#r288Go').onclick=go;box.querySelector('#r288Pin').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
         return;
       }
       try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}closeGate()
