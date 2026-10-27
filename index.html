@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R281 PERSONAL PHONE LOGOUT</title>
+<title>Rustica RCADS App — R282 ALL PERSONAL ROLES</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22742,8 +22742,8 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     const g=gateEl();document.documentElement.classList.add('r160-gate-open');
     g.innerHTML='<div class="r160-card"><div class="r160-brand">RUSTICA • RCADS</div><div class="r160-title">🛡 GUARD APP</div>'
       +'<div class="r160-who"><b>'+esc(p.n||gSlotLbl(p.g))+'</b><span>'+esc(gSlotLbl(p.g))+' • '+esc(bName(p.b))+'</span></div>'
-      +inner+'<div class="r160-msg" id="r160Msg"></div><button type="button" class="r160-link" id="r206NotMe">Not you? — Close</button></div>';
-    g.querySelector('#r206NotMe').onclick=()=>{gForget();try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}closeGate()};
+      +inner+'<div class="r160-msg" id="r160Msg"></div><button type="button" class="r160-link" id="r206NotMe">Not your account?</button></div>';
+    g.querySelector('#r206NotMe').onclick=()=>{if(gDevice()){msg('This phone is linked to your personal RCADS. To change the account, scan the new personal QR issued by HR.');return}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}closeGate()};
     return g;
   }
   let gSessionPin='';
@@ -22951,8 +22951,8 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   function oRemember(k){try{localStorage.setItem(ODEV,JSON.stringify({o:k}))}catch(e){}}
   function oForget(){try{localStorage.removeItem(ODEV)}catch(e){}}
   function oShell(k,inner){const g=gateEl();document.documentElement.classList.add('r160-gate-open');
-    g.innerHTML='<div class="r160-card"><div class="r160-brand">RUSTICA • RCADS</div><div class="r160-title">👑 TOP MANAGEMENT</div><div class="r160-who"><b>'+esc(ownerName(k))+'</b><span>ALL BRANCHES</span></div>'+inner+'<div class="r160-msg" id="r160Msg"></div><button type="button" class="r160-link" id="r220NotMe">Not you? — Close</button></div>';
-    g.querySelector('#r220NotMe').onclick=()=>{oForget();try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}closeGate()};return g}
+    g.innerHTML='<div class="r160-card"><div class="r160-brand">RUSTICA • RCADS</div><div class="r160-title">👑 TOP MANAGEMENT</div><div class="r160-who"><b>'+esc(ownerName(k))+'</b><span>ALL BRANCHES</span></div>'+inner+'<div class="r160-msg" id="r160Msg"></div><button type="button" class="r160-link" id="r220NotMe">Not your account?</button></div>';
+    g.querySelector('#r220NotMe').onclick=()=>{if(oDevice()){msg('This phone is linked to your personal RCADS. To change the account, scan the new personal QR issued by HR.');return}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}closeGate()};return g}
   async function ownerGo(k,pinv){closeGate();try{['selectScreen','normalScreen','guardLoginScreen'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));const t=document.getElementById('topManagementNormalScreen');if(t){t.classList.remove('hidden');t.style.display=''}}catch(e){}
     try{window.rcadsOpenTopManagementDashboard()}catch(e){}await new Promise(r=>setTimeout(r,120));
     const sel=document.getElementById('topManagementOwnerSelect'),pi=document.getElementById('topManagementLoginPin');if(sel)sel.value=k;if(pi)pi.value=String(pinv);
@@ -22976,6 +22976,23 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     const go=async()=>{const v=document.getElementById('r220Pin').value;const cur=ownerRec(k);if(locked(cur)){msg('Locked for '+LOCK_MIN+' minutes.');return}let ok=false;try{ok=(await pbkdf2(String(v).trim(),cur.pinSalt))===cur.pinHash}catch(e){}if(!ok){ownerNote(k,false);msg('Wrong PIN.');document.getElementById('r220Pin').value='';return}ownerGo(k,v)};
     document.getElementById('r220Login').onclick=go;document.getElementById('r220Pin').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
   }
+  /* R282: Owner and Guard keep their enrolled phone identity after logout. */
+  function returnToRoleGate(kind){
+    const d=kind==='guard'?gDevice():oDevice();
+    if(!d||(kind==='guard'?(!d.b||!d.g):!OWNER_KEYS.includes(d.o)))return;
+    try{history.replaceState(null,'',location.pathname+location.search)}catch(_){}
+    ['selectScreen','normalScreen','simpleHrAdminModal','guardLoginScreen',
+     'topManagementNormalScreen','pinScreen'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+    if(kind==='guard'){gSessionPin='';openGuardGate({b:d.b,g:d.g,n:d.n})}
+    else openOwnerGate({o:d.o});
+  }
+  [['guardLogout','guard'],['rcadsCloseTopManagementDashboard','owner']].forEach(([name,kind])=>{
+    const previous=window[name];if(typeof previous!=='function')return;
+    window[name]=function(){
+      try{return previous.apply(this,arguments)}
+      finally{returnToRoleGate(kind)}
+    };
+  });
   function bootOwnerGate(){const p=oPayload();if(p){openOwnerGate(p);return}if(payloadFromHash()||gPayload()||deviceOwner()||gDevice())return;const d=oDevice();if(d&&d.o&&!window.rcadsTopManagementSession)openOwnerGate({o:d.o})}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(bootOwnerGate,500));else setTimeout(bootOwnerGate,500);
   window.addEventListener('hashchange',()=>{const p=oPayload();if(p)openOwnerGate(p)});
