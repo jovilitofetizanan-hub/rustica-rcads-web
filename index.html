@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R301 ANTI SCAM</title>
+<title>Rustica RCADS App — R305 ID QR 5 FIELDS ONLY</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -23689,6 +23689,10 @@ body.r162-has-nav{padding-bottom:78px!important}
   const TPL_KEY='rcads_r167_id_template_v1';
   const HRSIG_KEY='rcads_r171_hr_signature_v1';
   function hrSig(){return read(HRSIG_KEY,{})||{}}
+  /* R303: the HR's own ID (RUS-HR01 / RUST-001) is signed by the CEO */
+  const CEOSIG_KEY='rcads_r303_ceo_sig_v1';
+  function ceoSig(){const c=read(CEOSIG_KEY,{})||{};return {img:c.img||'',name:c.name||'MS. EVANGELINE BALINGIT',title:c.title||'Chief Executive Officer',updatedAt:c.updatedAt||''}}
+  function sigFor(c){return String(c&&c.code||'').toUpperCase()==='RUS-HR01'?ceoSig():hrSig()}
   const TYPE_KEY='rcads_r167_emptype_v1';
   const IDC_PREFIX='rcads_r167_idcard_';
   const HR_FLAG='rustica_r167_hrdevice_pin_flag'; // contains "pin" → never synced
@@ -23700,10 +23704,11 @@ body.r162-has-nav{padding-bottom:78px!important}
   function safeKey(s){return U(s).replace(/[^A-Z0-9]+/g,'_').slice(0,60)}
   function rustId(code){try{return (window.RCADS_RUSTICA_IDS||{})[U(code)]||''}catch(e){return ''}}
   function branchList(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
-  function bName(c){const b=branchList().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function bName(c){if(c==='HR_OFFICE')return 'All Branches (HR)';const b=branchList().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
   function curBranch(){try{return U(rusticaGetCurrentBranchCode())}catch(e){return ''}}
-  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
-  function findEmp(code){code=U(code);for(const b of branchList()){const e=staff(b.code).find(x=>U(x.code)===code);if(e)return {emp:e,branch:b.code}}return null}
+  const R302HR={code:'RUS-HR01',name:'FETIZANAN, JOVILITO F.',dept:'HR',position:'HR OPERATION OFFICER / CHEF CONSULTANT'}; /* R302: HR has his own Rustica ID (RUST-001) */
+  function staff(b){if(b==='HR_OFFICE')return [R302HR];let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  function findEmp(code){code=U(code);if(code==='RUS-HR01')return {emp:R302HR,branch:'HR_OFFICE'};for(const b of branchList()){const e=staff(b.code).find(x=>U(x.code)===code);if(e)return {emp:e,branch:b.code}}return null}
   function recKey(code){return IDC_PREFIX+safeKey(code)}
   function rec(code){return read(recKey(code),null)}
   function tpl(){return read(TPL_KEY,{})||{}}
@@ -23761,6 +23766,8 @@ body.r162-has-nav{padding-bottom:78px!important}
     const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.drawImage(im,0,0,W,H);
     return {img:c.toDataURL('image/jpeg',0.8),orient:land?'landscape':'portrait'};
   }
+  /* R305: the ID QR holds ONLY Name, Position, Branch, Emp. Code and Rustica ID No. */
+  function idQrText(c){return 'Name: '+(c.name||'')+'\nPosition: '+String(c.position||'').toUpperCase()+'\nBranch: '+bName(c.branch)+'\nEmp. Code: '+(c.code||'')+'\nRustica ID: '+(c.rid||'')}
   function qrSvg(data){
     const QR=window.RCADSQRCode,E=window.RCADSQRErrorCorrectLevel;if(!QR||!E)return '';
     const q=new QR(-1,E.M);q.addData(data);q.make();const n=q.getModuleCount(),z=2,s=n+z*2;let d='';
@@ -23772,7 +23779,7 @@ body.r162-has-nav{padding-bottom:78px!important}
   function cardData(code,r){
     const f=findEmp(code)||{};const e=f.emp||{};
     return {code:U(code),name:(r&&r.name)||e.name||code,position:(r&&r.position)||e.position||'',branch:(r&&r.branch)||f.branch||curBranch(),rid:rustId(code)||'RUST-—',
-      photo:r&&r.photo,sig:r&&r.sig,emg:(r&&r.emg)||{},type:(r&&r.empType)||empType(code),issued:r&&r.approvedAt,valid:r&&r.validUntil,status:r?r.status:'NONE'};
+      photo:r&&r.photo,sig:(r&&r.sig)||(U(code)==='RUS-HR01'?(hrSig().img||''):''), /* R304: HR's saved signature = his own ID signature */emg:(r&&r.emg)||{},type:(r&&r.empType)||empType(code),issued:r&&r.approvedAt,valid:r&&r.validUntil,status:r?r.status:'NONE'};
   }
   function stamp(c){
     if(c.status==='ACTIVE'&&isExpired({validUntil:c.valid}))return '<div class="r167-stamp">EXPIRED</div>';
@@ -23799,13 +23806,13 @@ body.r162-has-nav{padding-bottom:78px!important}
       +stamp(c)+'</div>';
   }
   function r191Back(c){
-    const e=c.emg||{},h=hrSig();
+    const e=c.emg||{},h=sigFor(c);
     const em=(e.name?e.name+(e.rel?' ('+e.rel+')':''):'')+(e.phone?(e.name?' • ':'')+e.phone:'');
     return '<div class="r167-card port back r255"><div class="r255-top"></div><div class="r255-slot"></div><div class="r255-in">'
       +'<div class="r255-h">PROPERTY OF RUSTICA RESTAURANT</div>If found, please return to:<br><b>Rustica Restaurant</b><br>McArthur Highway, San Rafael, Tarlac City<br>(045) 606 9721 / 0967 364 1682'
       +'<div class="r255-hr"></div><div class="r255-kv"><b>Emergency contact</b><span>'+esc(em||'—')+'</span><b>Status</b><span>'+esc(U(c.type||''))+'</span><b>Employee signature</b><div class="r255-esig">'+(c.sig?'<img src="'+c.sig+'" alt="">':'')+'</div></div>'
       +'<div class="r255-hr"></div><div class="r255-qrh">RUSTICA ID QR</div>'
-      +'<div class="r255-qr">'+qrSvg('RUSTICA ID|'+c.rid+'|'+c.name+'|VALID UNTIL '+(c.valid?String(c.valid).slice(0,10):'—'))+'</div>'
+      +'<div class="r255-qr">'+qrSvg(idQrText(c))+'</div>'
       +'<div class="r255-rid">'+esc(c.rid||'')+' • '+esc(c.code)+'</div>'
       +'<div class="r255-note">This ID is non-transferable. Report a lost ID to HR at once.</div>'
       +'<div class="r255-hrsig">'+(h.img?'<img src="'+h.img+'" alt="">':'')+'</div>'
@@ -23834,9 +23841,9 @@ body.r162-has-nav{padding-bottom:78px!important}
     const e=c.emg||{};
     return '<div class="r167-card back '+(land?'land':'port')+(t.back?' tpl':'')+'">'+bg
       +'<div class="r167-emg"><small>IN CASE OF EMERGENCY, PLEASE NOTIFY:</small><b>'+esc(e.name||'—')+'</b><span>'+esc(e.rel||'')+'</span><span>📞 '+esc(e.phone||'—')+'</span><span>'+esc(e.addr||'')+'</span></div>'
-      +'<div class="r167-qr">'+qrSvg('RUSTICA ID|'+c.rid+'|'+c.name+'|VALID UNTIL '+(c.valid?String(c.valid).slice(0,10):'—'))+'</div>'
+      +'<div class="r167-qr">'+qrSvg(idQrText(c))+'</div>'
       +'<div class="r167-valid"><span>EMPLOYMENT: <b>'+esc(c.type)+'</b></span><span>ISSUED: <b>'+esc(fmtD(c.issued))+'</b></span><span class="vu">VALID UNTIL: <b>'+esc(fmtD(c.valid))+'</b></span></div>'
-      +(()=>{const h=hrSig();return '<div class="r167-hrsig">'+(h.img?'<img src="'+h.img+'" alt="">':'')+'<i></i><b>'+esc(h.name||'JOVILITO F. FETIZANAN')+'</b><small>'+esc(h.title||'HR Operation Officer')+'</small></div>'})()
+      +(()=>{const h=sigFor(c);return '<div class="r167-hrsig">'+(h.img?'<img src="'+h.img+'" alt="">':'')+'<i></i><b>'+esc(h.name||'JOVILITO F. FETIZANAN')+'</b><small>'+esc(h.title||'HR Operation Officer')+'</small></div>'})()
       +'<div class="r167-prop">This ID is the property of Rustica Restaurant. Non-transferable. If found, please return to any Rustica branch.</div>'
       +stamp(c)+'</div>';
   }
@@ -23892,7 +23899,7 @@ body.r162-has-nav{padding-bottom:78px!important}
       const p=pending[code]||{};const old=rec(code)||{};
       if(p.sigDrawn){const s=trimCanvas(form.querySelector('[data-r167-pad]'));if(s)p.sig=s}
       const emg={};form.querySelectorAll('[data-r167-f]').forEach(i=>emg[i.getAttribute('data-r167-f')]=i.value.trim());
-      const photo=p.photo||old.photo,sig=p.sig||old.sig;
+      const photo=p.photo||old.photo,sig=p.sig||old.sig||(U(code)==='RUS-HR01'?(hrSig().img||''):'');
       if(byHr&&!rustId(code)){info(form,'No RUSTICA ID NO. for '+code+'. Add them to the Rustica ID Registry first before making an ID.',true);return}
       if(!photo){info(form,'A 1×1 photo is required.',true);return}
       if(!sig){info(form,'A signature is required.',true);return}
@@ -23956,11 +23963,12 @@ body.r162-has-nav{padding-bottom:78px!important}
 
   /* ---------- HR panel ---------- */
   function hrHtml(){
-    const bo=branchList().map(b=>'<option value="'+esc(b.code)+'">'+esc(b.name)+'</option>').join('');const t=tpl();
+    const bo=branchList().map(b=>'<option value="'+esc(b.code)+'">'+esc(b.name)+'</option>').join('')+'<option value="HR_OFFICE">HR — All Branches</option>';const t=tpl();
     return '<div class="r160-hr-title">🪪 RUSTICA ID CARDS (ATM SIZE 85.6 × 54 mm)</div>'
       +'<div class="r160-hr-note">1) The Rustica ID design (front and back) is already built in — upload a design below ONLY if you want to replace it. 2) Choose the BRANCH, then click the employee in the list (FILTER: No ID yet), or search by RUSTICA ID NO. / EMPCODE. 3) Upload the 1×1 photo and signature they gave, enter the emergency contact, choose REGULAR or CONTRACTUAL, and press SAVE &amp; ISSUE. The ID is valid for 5 months (Contractual) or 1 year (Regular). The employee can then see and print it in the MY ID tab of their app.</div>'
       +'<div class="r167-tplrow"><div><label>ID DESIGN — FRONT (JPG/PNG)</label><input type="file" accept="image/*" id="r167TplFront"></div><div><label>ID DESIGN — BACK (JPG/PNG)</label><input type="file" accept="image/*" id="r167TplBack"></div><div class="r167-tplinfo" id="r167TplInfo">'+(t.updatedAt?'Design uploaded '+esc(fmtD(t.updatedAt))+' • '+esc(t.orient||'portrait'):'Using the built-in Rustica ID design.')+(t.front||t.back?' <button type="button" class="r167-mini red" id="r167TplClear">REMOVE DESIGN</button>':'')+'</div></div>'
       +(()=>{const h=hrSig();return '<div class="r167-hrsigbox"><div class="r167-hrsig-h">✍ HR SIGNATURE ON THE BACK OF THE ID</div><div class="r167-hrsig-grid"><div><label>NAME</label><input id="r167HrName" value="'+esc(h.name||'JOVILITO F. FETIZANAN')+'" maxlength="40"><label>TITLE</label><input id="r167HrTitle" value="'+esc(h.title||'HR Operation Officer')+'" maxlength="40"><label>UPLOAD THE SIGNATURE (photo on white paper)</label><input type="file" accept="image/*" id="r167HrSigFile"><label>OR SIGN HERE</label><canvas class="r167-pad" id="r167HrPad" width="600" height="200"></canvas><div class="r167-row"><button type="button" class="r167-mini light" id="r167HrPadClear">CLEAR</button><button type="button" class="r167-mini" id="r167HrSave">SAVE HR SIGNATURE</button>'+(h.img?'<button type="button" class="r167-mini red" id="r167HrRemove">REMOVE</button>':'')+'</div><div class="r167-info" id="r167HrInfo">'+(h.updatedAt?'Saved '+esc(fmtD(h.updatedAt))+' — it will appear on the back of every ID.':'No HR signature yet.')+'</div></div><div class="r167-hrsig-prev">'+(h.img?'<img src="'+h.img+'" alt="HR signature">':'<span>Signature preview</span>')+'</div></div></div>'})()
+      +'<div class="r167-hrsigbox" id="r303Box"><div class="r167-hrsig-h">✍ CEO SIGNATURE — only on the HR\'s own ID (RUST-001 • RUS-HR01)</div>'+(()=>{const c=ceoSig();return '<div class="r167-hrsig-grid"><div><label>NAME</label><input id="r303Name" value="'+esc(c.name)+'" maxlength="40"><label>TITLE</label><input id="r303Title" value="'+esc(c.title)+'" maxlength="40"><label>UPLOAD THE CEO SIGNATURE (photo on white paper)</label><input type="file" accept="image/*" id="r303File"><button type="button" class="r167-btn" id="r303Save">SAVE CEO SIGNATURE</button><div class="r167-tplinfo">'+(c.img?'CEO signature saved '+esc(fmtD(c.updatedAt))+'.':'No CEO signature yet.')+'</div></div><div class="r167-hrsig-prev">'+(c.img?'<img src="'+c.img+'" alt="CEO signature">':'<span>Signature preview</span>')+'</div></div>'})()+'</div>'
       +'<div class="r167-find"><label>SEARCH BY RUSTICA ID NO. OR EMPCODE</label><div class="r167-row"><input id="r167Find" placeholder="e.g. RUST-034 or SRF-EMP10" list="r167FindList"><datalist id="r167FindList"></datalist><button type="button" class="r160-mini" id="r167FindBtn">SEARCH</button></div></div>'
       +'<div class="r160-hr-bar"><label>BRANCH <select id="r167Branch">'+bo+'</select></label><label>FILTER <select id="r167Filter"><option value="">All</option><option value="PENDING">Pending approval</option><option value="ACTIVE">Active</option><option value="EXPIRED">Expired / expiring 30 days</option><option value="NONE">No ID yet</option></select></label></div>'
       +'<div id="r167Counts" class="r160-counts"></div>'
@@ -24018,6 +24026,11 @@ body.r162-has-nav{padding-bottom:78px!important}
     const det=document.querySelector('#r167Detail .r167-upd');if(det)det.open=true;
     document.getElementById('r167Detail').scrollIntoView({behavior:'smooth',block:'start'});
   }
+  let r303Img='';
+  document.addEventListener('change',ev=>{const t=ev.target;if(!t||t.id!=='r303File'||!t.files||!t.files[0])return;const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const W=Math.min(600,im.width),H=Math.round(im.height*W/im.width);const cv=document.createElement('canvas');cv.width=W;cv.height=H;cv.getContext('2d').drawImage(im,0,0,W,H);r303Img=cv.toDataURL('image/png');const pv=document.querySelector('#r303Box .r167-hrsig-prev');if(pv)pv.innerHTML='<img src="'+r303Img+'" alt="">'};im.src=fr.result};fr.readAsDataURL(t.files[0])});
+  document.addEventListener('click',ev=>{const t=ev.target;if(!t.closest||!t.closest('#r303Save'))return;const c=ceoSig();const img=r303Img||c.img;if(!img){alert('Upload the CEO signature first.');return}
+    write(CEOSIG_KEY,{img,name:(document.getElementById('r303Name').value.trim()||'MS. EVANGELINE BALINGIT'),title:(document.getElementById('r303Title').value.trim()||'Chief Executive Officer'),updatedAt:new Date().toISOString()});r303Img='';
+    const s2=document.getElementById('r167HrSection');if(s2)rebind(s2);alert('✓ CEO signature saved — it is on the back of the HR\'s own Rustica ID (RUST-001).')});
   function rebind(sec){sec.remove();ensureHr();renderHrList();if(hrSel)renderHrDetail(hrSel)}
   document.addEventListener('click',ev=>{
     const t=ev.target;if(!t.closest)return;
