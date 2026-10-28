@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R294 LINK PHONE ON OWN LOGIN</title>
+<title>Rustica RCADS App — R296 LOGOUT BACK TO MY PIN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22384,7 +22384,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   /* R293: a phone linked to a person never stays on the main (HR) screen — whatever path led there
      (logout, back button, iPhone reload…), the person's own PIN screen opens again. HR devices are not affected. */
   setInterval(()=>{try{
-    const d=deviceOwner();
+    const d=deviceOwner()||payloadFromHash(); /* R296: also when the app was opened from the personal QR link (icon saved with the link) */
     if(!d||!d.c){
       /* R294: a person who logs in with their OWN personal PIN on a phone that is not linked yet (e.g. the iPhone home-screen
          icon keeps its own storage, separate from Safari) → this phone becomes theirs, so logout returns to THEIR PIN screen. */
@@ -22396,9 +22396,11 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
       const r=rec(e.code);if(!r||r.status!=='ACTIVE'||!r.pinHash)return;
       const f=findEmp(e.code);rememberDevice({c:U(e.code),b:(f&&f.branch)||'',n:e.name||''});return;
     }
-    if(gPayload()||oPayload()||payloadFromHash())return;
+    if(gPayload()||oPayload())return;
+    /* R295: a phone that belongs to a person is never an HR device — even if HR once opened the HR dashboard on it.
+       The HR-device mark is removed (no HR home screen, no HR-only data sync); only an active HR session is left alone. */
+    if(!document.body.classList.contains('hr-session-active')){try{if(localStorage.getItem('rustica_r167_hrdevice_pin_flag'))localStorage.removeItem('rustica_r167_hrdevice_pin_flag')}catch(_){}}
     if(document.getElementById('r160Gate'))return;
-    try{if(window.rcadsR182&&window.rcadsR182.role&&window.rcadsR182.role()==='HR')return}catch(_){}
     let e=null;try{e=currentEmployee}catch(_){}if(e)return;
     const B=document.body.classList;if(B.contains('guard-session-active')||B.contains('hr-session-active'))return;
     if(window.rcadsTopManagementSession||window.currentManagerSession)return;
