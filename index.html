@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R326 HR MY ID TAB</title>
+<title>Rustica RCADS App — R328 MEMO LIBRARY + SIGN MEMO</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21306,8 +21306,8 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
   function docButtonsHtml(){
     const b=board();
     return '<div class="r159-docbtns">'
-      +'<button type="button" class="r159-docbtn" data-r159-doc="COD">📘 CODE OF DISCIPLINE'+(b.cod?'':' <small>(not yet posted)</small>')+'</button>'
-      +'<button type="button" class="r159-docbtn" data-r159-doc="MC">📄 MEMO CIRCULARS <small>('+b.circulars.length+')</small></button>'
+      +'<button type="button" class="r159-docbtn" data-r159-doc="COD">📘 CODE OF DISCIPLINE'+(b.cod||(window.rcadsR328&&window.rcadsR328.count('COD'))?'':' <small>(not yet posted)</small>')+'</button>'
+      +'<button type="button" class="r159-docbtn" data-r159-doc="MC">📄 MEMO CIRCULARS <small>('+(b.circulars.length+(window.rcadsR328?window.rcadsR328.count('MC'):0))+')</small></button>'
       +'<button type="button" class="r159-docbtn wide" data-r159-doc="CV">⭐ RUSTICA CORE VALUES'+(b.cv?'':' <small>(not yet posted)</small>')+'</button>'
       +'</div><div class="r159-docnote">VIEW ONLY • Each document can be opened once a week. Downloading, copying, printing and screenshots are not allowed. Your name is watermarked.</div>';
   }
@@ -21316,10 +21316,11 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
     const unread=list.filter(n=>!readsOf(v.id)[n.id]).length;
     return '<div class="r159-head"><span>📢 HR NOTICE BOARD</span>'+(unread?'<em>'+unread+' UNREAD</em>':'<i>ALL READ</i>')+'</div>'
       +'<div class="r159-sub">'+esc(v.name)+(v.code&&v.role!=='OWNER'?' • '+esc(v.code):'')+(rustId(v.code)?' • '+esc(rustId(v.code)):'')+'</div>'
+      +(window.rcadsR328?window.rcadsR328.mineButton(v):'')
       +noticeCardsHtml(v,list)
       +docButtonsHtml();
   }
-  function boardSignature(v){return JSON.stringify([v.id,board().updatedAt||'',Object.keys(readsOf(v.id)).length])}
+  function boardSignature(v){return JSON.stringify([v.id,board().updatedAt||'',Object.keys(readsOf(v.id)).length,window.rcadsR328?window.rcadsR328.sig():''])}
   function ensureBoard(hostEl,id,v,where){
     if(!hostEl||!v)return;
     let el=document.getElementById(id);
@@ -21431,7 +21432,8 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
   document.addEventListener('visibilitychange',()=>{if(document.hidden)shield()});
   window.addEventListener('beforeprint',shield);
 
-  function openDocList(kind,v){
+  function openDocList(kind,v,force){
+    if(!force&&(kind==='MC'||kind==='COD')&&window.rcadsR328&&window.rcadsR328.openLib(kind,v))return;
     const b=board();
     if(kind==='CV'){
       if(!b.cv){alert('No Core Values posted yet.');return}
@@ -21871,7 +21873,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
   setInterval(()=>{try{approverExtras()}catch(e){console.warn('R159 approver extras',e)}},1000);
   window.addEventListener('rcads:dtr-refresh',()=>{const d=document.getElementById('r159ApDtr');if(d)d.dataset.code=''});
   window.rcadsR159Refresh=ensureAll;
-  window.rcadsR159OpenReader=openReader; window.rcadsR159LoadPdfJs=loadPdfJs; // R174: MY 201 view-only reader
+  window.rcadsR159OpenReader=openReader;window.rcadsR159OpenDocList=openDocList; window.rcadsR159LoadPdfJs=loadPdfJs; // R174: MY 201 view-only reader
   document.addEventListener('DOMContentLoaded',ensureAll);
   setInterval(ensureAll,1500);
   window.addEventListener('storage',e=>{if(e.key&&e.key.indexOf('rcads_r159_')===0)ensureAll()});
@@ -23712,7 +23714,7 @@ body.r162-has-nav{padding-bottom:78px!important}
   function recKey(code){return IDC_PREFIX+safeKey(code)}
   function rec(code){return read(recKey(code),null)}
   function tpl(){return read(TPL_KEY,{})||{}}
-  function empType(code){return (read(TYPE_KEY,{})||{})[U(code)]||'CONTRACTUAL'}
+  function empType(code){return (read(TYPE_KEY,{})||{})[U(code)]||(U(code)==='RUS-HR01'?'REGULAR':'CONTRACTUAL')}
   function fmtD(iso){if(!iso)return '—';const d=new Date(iso);return isNaN(d)?'—':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
   function addMonths(d,m){const x=new Date(d);const day=x.getDate();x.setMonth(x.getMonth()+m);if(x.getDate()<day)x.setDate(0);return x}
   /* R307: ID validity starts on the CONTRACT SIGNING date (Contractual 5 months, Probationary 6 months — ends automatically)
@@ -23723,7 +23725,7 @@ body.r162-has-nav{padding-bottom:78px!important}
   function r307Until(type,startStr){const st=startStr?new Date(startStr+'T00:00:00'):new Date();if(isNaN(st))return null;
     if(type==='REGULAR'){const y=Math.max(st.getFullYear(),new Date().getFullYear());return new Date(y,11,31,23,0,0)}
     const e=addMonths(st,type==='PROBATIONARY'?6:5);e.setDate(e.getDate()-1);e.setHours(23,0,0,0);return e}
-  function r307Read(code){const ts=document.getElementById('r167Type'),ds=document.getElementById('r307Start');const type=ts?ts.value:empType(code);const start=(ds&&ds.value)||startOf(code)||ymd(new Date());return {type,start,until:r307Until(type,start)}}
+  function r307Read(code){let ts=document.getElementById('r167Type'),ds=document.getElementById('r307Start');if(ts&&U(ts.getAttribute('data-r307-code')||'')!==U(code))ts=null;if(ds&&U(ds.getAttribute('data-r307-code')||'')!==U(code))ds=null;const type=ts?ts.value:empType(code);const start=(ds&&ds.value)||startOf(code)||ymd(new Date());return {type,start,until:r307Until(type,start)}}
   function r307Save(code,type,start){const m=read(START_KEY,{})||{};m[U(code)]=start;write(START_KEY,m);const t=read(TYPE_KEY,{})||{};t[U(code)]=type;write(TYPE_KEY,t)}
   /* R308: LOST ID — report at once; the old ID becomes NOT VALID until HR issues a replacement. */
   const LOST_PREFIX='rcads_r308_lost_';
@@ -24122,8 +24124,9 @@ body.r162-has-nav{padding-bottom:78px!important}
     const ok=r&&r.status==='ACTIVE'&&!isExpired(r)&&!lostOpen('RUS-HR01');
     box.innerHTML='<div class="r167-head">🪪 MY RUSTICA ID — RUST-001</div>'
       +(ok?'<div class="r167-st ok">✓ ACTIVE • '+esc(r.empType||'REGULAR')+' • VALID UNTIL '+esc(fmtD(r.validUntil))+'</div>':(r&&r.status==='ACTIVE'&&isExpired(r)?'<div class="r167-st bad">⛔ EXPIRED on '+esc(fmtD(r.validUntil))+' — renew it in 🪪 Rustica ID Cards (HR — All Branches).</div>':'<div class="r167-st none">Not issued yet — make it in 🪪 Rustica ID Cards → BRANCH: HR — All Branches.</div>'))
-      +'<div>'+cardsHtml(cardData('RUS-HR01',r))+'</div>'
+      +'<div data-r167-preview="RUS-HR01">'+cardsHtml(cardData('RUS-HR01',r))+'</div>'
       +'<div class="r167-actions"><button type="button" class="r167-btn" data-r167-print="RUS-HR01"'+(ok?'':' disabled')+'>🖨 PRINT MY ID (ATM SIZE)</button></div>'
+      +(()=>{const e=(r&&r.emg)||{};const need=!(r&&r.photo)||!e.name||!e.phone||!e.addr;return '<details class="r327-edit"'+(need?' open':'')+'><summary>✎ MY 1×1 PHOTO, EMERGENCY CONTACT AND ADDRESS'+(need?' — <b>NOT COMPLETE</b>':'')+'</summary>'+formHtml('RUS-HR01',r,true)+'</details>'})()
       +(()=>{const c=read(CEOSIG_KEY,{})||{},h=hrSig();const f=x=>x?new Date(x).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
         return '<div class="r323-diag"><b>ON THIS DEVICE:</b> CEO signature '+(c.img?'✓ saved '+esc(f(c.updatedAt)):'✗ NOT YET')+' • HR signature '+(h.img?'✓ saved '+esc(f(h.updatedAt)):'✗ NOT YET')+'<br><button type="button" class="r167-mini" data-r323-sync>↻ SYNC SIGNATURES NOW</button> <span data-r323-msg></span></div>'})();
   }catch(e){}},1500);
@@ -24159,7 +24162,7 @@ body.r162-has-nav{padding-bottom:78px!important}
     if(rj){const code=rj.getAttribute('data-r167-reject');const why=prompt('Reason for returning (the employee will see it):','Please replace the 1x1 photo (white background, clear face).');if(why===null)return;const r=rec(code);if(!r)return;r.status='REJECTED';r.rejectReason=why;write(recKey(code),r);renderHrList();renderHrDetail(U(code));return}
   });
   setInterval(()=>{try{ensureHr()}catch(e){console.warn('R167 hr',e)}},1500);
-  window.rcadsR167={rec,printCard,cardData};
+  window.rcadsR167={rec,printCard,cardData,sigFromFile,trimCanvas};
 })();
 </script>
 
@@ -24766,7 +24769,7 @@ body.r162-has-nav{padding-bottom:78px!important}
     if(t.closest('#r173ChangePass')){const n1=prompt('New 201 password (10+ letters and numbers):','');if(!n1)return;const n2=prompt('Repeat the new 201 password:','');if(n1!==n2){alert('They do not match.');return}try{await rpc('rustica_201_change_pass',{p_pass:PASS,p_new:n1});PASS=n1;alert('✓ The 201 password was changed.')}catch(err){alert(err.message)}return}
     const row=t.closest('[data-r173-emp]');if(row){sel=U(row.getAttribute('data-r173-emp'));renderList();renderDetail(sel);return}
     if(t.closest('#r173Upload')){
-      const files=[...(document.getElementById('r173File').files||[])];const type=document.getElementById('r173Type').value;const m=document.getElementById('r173UpMsg');
+      const files=window.rcadsR328Files?await window.rcadsR328Files('r173').catch(e=>{alert(e.message);return []}):[...(document.getElementById('r173File').files||[])];const type=document.getElementById('r173Type').value;const m=document.getElementById('r173UpMsg');
       if(!sel){alert('Choose an employee first.');return}if(!files.length){m.className='r173-msg bad';m.textContent='Choose a file.';return}if(type==='CONTRACT'){const b=r195Block(sel);if(b){m.className='r173-msg bad';m.textContent=b;return}}
       const f=findEmp(sel);let ok=0;
       for(const file of files){
@@ -24998,7 +25001,7 @@ body.r162-has-nav{padding-bottom:78px!important}
       m.className='r173-msg';m.textContent='Saving…';
       try{await rpc('rustica_201_staff_set_info',{p_code:SF.code,p_pin:SF.pin,p_emp_code:v.code,p_emp_name:f?f.emp.name:null,p_branch:f?f.branch:null,p_date_hired:v.hired,p_contract:v.type,p_end_date:v.end});await staffLoad(SF.pin);renderStaff()}catch(err){m.className='r173-msg bad';m.textContent=err.message}return}
     if(t.closest('#r175Upload')){
-      const files=[...(document.getElementById('r175File').files||[])];const type=document.getElementById('r175Type').value;const m=document.getElementById('r175UpMsg');
+      const files=window.rcadsR328Files?await window.rcadsR328Files('r175').catch(e=>{alert(e.message);return []}):[...(document.getElementById('r175File').files||[])];const type=document.getElementById('r175Type').value;const m=document.getElementById('r175UpMsg');
       if(!files.length){m.className='r173-msg bad';m.textContent='Choose or take a photo of the document.';return}if(type==='CONTRACT'){const b=r195Block(SF.sel);if(b){m.className='r173-msg bad';m.textContent=b;return}}
       const f=findEmp(SF.sel);let ok=0;
       for(const file of files){try{m.className='r173-msg';m.textContent='Uploading '+file.name+'…';const p=await prepFile(file);await rpc('rustica_201_staff_put',{p_code:SF.code,p_pin:SF.pin,p_emp_code:SF.sel,p_rustica_id:rustId(SF.sel)||null,p_emp_name:f?f.emp.name:null,p_doc_type:type,p_file_name:p.name,p_mime:p.mime,p_data_b64:p.b64});ok++}catch(err){m.className='r173-msg bad';m.textContent=file.name+': '+err.message;return}}
@@ -30413,5 +30416,368 @@ body.r209-myid #r311HrId{display:block!important;position:fixed!important;left:0
 body.r209-myid{overflow:hidden}
 #r209Nav .w button{min-width:0}
 </style>
+<style id="rcadsR327Css">.r327-edit{margin:10px 0;padding:10px;border:2px solid #b07a3c;border-radius:12px;background:#fff;text-align:left}.r327-edit summary{font-weight:900;font-size:13px;color:#5b3519;cursor:pointer}.r327-edit summary b{color:#a1281f}.r327-edit .r167-form input{width:100%;box-sizing:border-box}</style>
+<style id="rcadsR328Css">
+.r328-nav{position:sticky;top:0;z-index:3;background:#fffaf2;padding:6px 0 8px;border-bottom:1px solid #e6d3b8;margin-bottom:8px}
+.r328-nav select{width:100%;box-sizing:border-box;padding:11px;border:2px solid #b07a3c;border-radius:12px;font-weight:900;font-size:14px;background:#fff;color:#3d2615}
+.r328-pn{display:flex;gap:6px;margin-top:6px}.r328-pn button{flex:1;padding:9px 4px;border:0;border-radius:10px;background:#5b3519;color:#fff;font-weight:900;font-size:11.5px;min-height:auto!important}.r328-pn button:disabled{opacity:.35}
+.r328-q{width:100%;box-sizing:border-box;padding:9px;border:1px solid #d8bfa1;border-radius:10px;margin:4px 0 8px;font-size:13px}
+.r328-idx{display:grid;gap:6px}.r328-idx button{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;text-align:left;padding:10px;border:1px solid #e6d3b8;border-radius:12px;background:#fff;cursor:pointer;min-height:auto!important}
+.r328-idx b{grid-row:span 2;color:#7a3e12;font-size:13px;min-width:46px}.r328-idx span{font-weight:800;font-size:13px;color:#3d2615}.r328-idx small{font-size:10.5px;color:#7a5a3d}
+.r328-mine{display:block;width:100%;margin:10px 0 4px;padding:13px;border:2px solid #b07a3c;border-radius:14px;background:#fff8ee;color:#5b3519;font-weight:900;font-size:13.5px;cursor:pointer;min-height:auto!important}
+.r328-mine small{display:block;font-weight:700;font-size:10.5px;color:#7a5a3d}.r328-mine.due{background:#a1281f;border-color:#a1281f;color:#fff}.r328-mine em{display:block;font-style:normal;font-size:11.5px;margin-top:3px;color:#ffe3a6}
+#r328Pm{position:fixed;inset:0;z-index:2147483300;background:rgba(30,12,4,.82);display:none;align-items:stretch;justify-content:center}#r328Pm.show{display:flex}
+.r328-box{width:100%;max-width:720px;background:#fffaf2;display:flex;flex-direction:column;-webkit-user-select:none;user-select:none}
+.r328-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px;background:#3d2412;color:#fff}.r328-head b{font-size:14px}.r328-head button{border:0;border-radius:10px;padding:8px 12px;font-weight:900;background:#fff;color:#3d2412;min-height:auto!important}
+.r328-body{flex:1;overflow-y:auto;padding:12px 12px 90px}
+.r328-row{display:block;width:100%;text-align:left;margin:6px 0;padding:12px;border-radius:12px;border:1px solid #e6d3b8;background:#fff;cursor:pointer;min-height:auto!important}.r328-row b{display:block;font-size:13px}.r328-row small{font-size:11px;color:#7a5a3d}.r328-row.due{border:2px solid #a1281f}.r328-row.due b{color:#a1281f}.r328-row.done b{color:#2d6a36}
+.r328-note{font-size:12px;background:#f3ead9;border-radius:10px;padding:9px;color:#5b3519}
+.r328-back{border:0;background:none;font-weight:900;color:#5b3519;padding:4px 0 8px;min-height:auto!important;cursor:pointer}
+.r328-mh b{display:block;font-size:15px;color:#3d2615}.r328-mh small{font-size:11px;color:#7a5a3d}
+#r328PmPages .r159-page img,.r328-body .r159-page img{width:100%;display:block;border:1px solid #ddd;margin-top:8px;pointer-events:none}
+.r328-sign{margin-top:12px;padding:12px;border:2px solid #b07a3c;border-radius:14px;background:#fff}.r328-sh{font-weight:900;color:#5b3519;margin-bottom:6px}
+.r328-sign label{display:block;font-weight:900;font-size:11px;margin-top:8px;color:#4c2b17}.r328-sign input[type=file]{width:100%;margin-top:4px}
+.r328-pad{width:100%;height:140px;border:1px dashed #b07a3c;border-radius:10px;background:#fff;touch-action:none}
+.r328-sigprev{margin-top:10px;height:110px;display:flex;align-items:flex-end;justify-content:center;border-bottom:2px solid #000}.r328-sigprev img{max-height:110px;max-width:80%}.r328-sigprev span{color:#aaa;font-size:12px;margin-bottom:6px}
+.r328-name{text-align:center;font-weight:900;font-size:14px;margin-top:4px}.r328-name small{display:block;font-weight:700;font-size:11px;color:#7a5a3d}
+.r328-chk{display:flex!important;gap:8px;align-items:center;font-weight:800!important;font-size:12.5px!important;margin:10px 0!important}
+.r328-chk input{width:auto!important;flex:0 0 auto!important;margin:0!important;min-height:0!important;height:18px}
+.r328-btn{display:block;width:100%;margin-top:8px;padding:13px;border:0;border-radius:12px;background:#2d6a36;color:#fff;font-weight:900;font-size:14px;min-height:auto!important}.r328-btn:disabled{opacity:.4}
+.r328-mini{border:0;border-radius:9px;padding:8px 10px;background:#5b3519;color:#fff;font-weight:900;font-size:11px;margin-top:6px;min-height:auto!important}.r328-mini.light{background:#efe2cf;color:#5b3519}
+.r328-msg{margin-top:6px;font-weight:800;font-size:12px;color:#2d6a36}.r328-msg.bad,.r328-err{color:#a1281f;font-weight:800;font-size:12.5px}.r328-ok{margin-top:12px;padding:10px;border-radius:10px;background:#e3f4e7;color:#1d7a3a;font-weight:900;font-size:12.5px}
+.r328-pin{display:flex;flex-direction:column;gap:8px;max-width:320px;margin:20px auto;text-align:center}.r328-pin small{color:#7a5a3d}.r328-pin input{font-size:22px;text-align:center;padding:10px;border:2px solid #b07a3c;border-radius:12px;letter-spacing:6px}
+body.r328-open{overflow:hidden}
+.r328-card{border:2px solid #b07a3c!important}.r328-h2{margin-top:12px;font-weight:900;font-size:12.5px;color:#5b3519}
+.r328-rows{max-height:280px;overflow-y:auto;border:1px solid #e6d3b8;border-radius:10px;margin:6px 0;padding:4px}
+.r328-r{display:grid;grid-template-columns:110px 1fr;gap:4px;padding:5px;border-bottom:1px dashed #e6d3b8}.r328-r input{padding:6px;border:1px solid #d8bfa1;border-radius:8px;font-size:12px;min-width:0}.r328-r small,.r328-r span{grid-column:1/-1;font-size:10.5px;color:#7a5a3d}.r328-r span{font-weight:800;color:#2d6a36}
+.r328-list{max-height:420px;overflow-y:auto}.r328-li{display:flex;gap:6px;align-items:center;padding:7px 4px;border-bottom:1px solid #eadbc6;font-size:12px}.r328-li>div{flex:1;min-width:0}.r328-li small{display:block;font-size:10.5px;color:#7a5a3d}
+.r328-s{display:block;font-weight:900;font-size:11px;margin-top:2px}.r328-s.ok{color:#1d7a3a}.r328-s.rd{color:#a86200}.r328-s.no{color:#a1281f}
+.r328-who{font-size:12px;font-weight:800;color:#2d6a36;min-height:16px}
+.r328-old{font-size:11px;font-weight:800;color:#8a4b00;background:#fff1d6;border-radius:8px;padding:6px 8px;margin:4px 0}
+.r328-cam{margin:6px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px}.r328-cambtn{display:inline-block;padding:10px 14px;border-radius:10px;background:#5b3519;color:#fff!important;font-weight:900;cursor:pointer}.r328-cam .r328-chk{flex-basis:100%;margin:2px 0!important}
+</style>
+<script id="rcadsR328Script">
+(function(){
+  'use strict';
+  /* ============================================================
+     R328 — MEMO CIRCULARS + CODE OF DISCIPLINE (unlimited, Supabase) with dropdown 001 → last
+          + PERSONAL MEMO / NTE: employee reads, SIGNS → signed PDF saved to his/her 201 automatically
+     Needs RCADS_R328_MEMOS_SUPABASE.sql (run once).
+     Pages live in Supabase (not on the phone); only the small list is cached on the phone.
+     ============================================================ */
+  if(window.RCADS_PREVIEW)return;
+  const MAXP=80,PAGE_W=1240,JPEG_Q=0.72;
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function U(c){return String(c||'').trim().toUpperCase()}
+  function DB(){try{return RUSTICA_CENTRAL_DB||{}}catch(e){return {}}}
+  function fmtD(s){if(!s)return '';const d=new Date(String(s).length===10?s+'T00:00:00':s);return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+  function fmtDT(s){const d=new Date(s);return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+  function auth(){const R=window.rcadsR182;let k='',b='';try{k=(R&&R.key&&R.key())||DB().syncSecret||''}catch(e){}try{b=(R&&R.branch&&R.branch())||DB().branch||'SAN_RAFAEL'}catch(e){b='SAN_RAFAEL'}return {p_branch_code:b,p_key:k}}
+  async function rpc(name,body){
+    const url=DB().url,anon=DB().anonKey;if(!url||!anon)throw new Error('No Supabase settings.');
+    let r;try{r=await fetch(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('No internet / no connection to Supabase.')}
+    const txt=await r.text();let d=null;try{d=txt?JSON.parse(txt):null}catch(e){}
+    if(!r.ok){const m=(d&&(d.message||d.hint))||txt||('HTTP '+r.status);if(/could not find the function|PGRST202/i.test(m))throw new Error('The memo storage is not set up in Supabase yet. HR: run RCADS_R328_MEMOS_SUPABASE.sql once.');throw new Error(m)}
+    if(d&&d.ok===false){const em=String(d.error||'Request failed');const mm=em.match(/^([A-Z_]+):\s*/);const er=new Error(em.replace(/^[A-Z_]+:\s*/,''));er.code=mm?mm[1]:em;throw er}
+    return d;
+  }
+  /* ---------- order 001 → last ---------- */
+  function cmp(a,b){const x=String(a.doc_no||''),y=String(b.doc_no||'');if(x&&!y)return -1;if(y&&!x)return 1;const c=x.localeCompare(y,undefined,{numeric:true,sensitivity:'base'});return c||String(a.title||'').localeCompare(String(b.title||''))||String(a.created_at||'').localeCompare(String(b.created_at||''))}
+  /* ---------- library list (small, cached on the phone) ---------- */
+  const LIB={};
+  function lib(kind){if(!LIB[kind]){try{LIB[kind]=JSON.parse(localStorage.getItem('r328_lib_'+kind)||'[]')||[]}catch(e){LIB[kind]=[]}}return LIB[kind]}
+  async function libRefresh(kind){const d=await rpc('rustica_doc_list',Object.assign(auth(),{p_kind:kind}));LIB[kind]=(d.rows||[]).slice().sort(cmp);if(kind!=='PM'){try{localStorage.setItem('r328_lib_'+kind,JSON.stringify(LIB[kind]))}catch(e){}}bump();return LIB[kind]}
+  let VER=0;function bump(){VER++;try{window.rcadsR159Refresh&&window.rcadsR159Refresh()}catch(e){}}
+  async function refreshAll(){if(!navigator.onLine||!auth().p_key)return;for(const k of ['MC','COD']){try{await libRefresh(k)}catch(e){}}}
+  setTimeout(refreshAll,5000);setInterval(refreshAll,10*60000);window.addEventListener('online',()=>setTimeout(refreshAll,2000));
+  /* ---------- pages (kept in memory only) ---------- */
+  const PG=new Map();
+  async function page(id,n,emp){const k=id+'|'+n;if(PG.has(k))return PG.get(k);
+    const d=emp?await rpc('rustica_pmemo_page',Object.assign({p_code:emp.code,p_pin:emp.pin||''},auth(),{p_id:id,p_page:n})):await rpc('rustica_doc_page',Object.assign(auth(),{p_id:id,p_page:n}));
+    const u='data:image/jpeg;base64,'+d.data_b64;PG.set(k,u);return u}
+  /* ---------- file → page images ---------- */
+  function canvasJpeg(c,q){return c.toDataURL('image/jpeg',q||JPEG_Q)}
+  function readImg(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error(file.name+': cannot read the picture.'));im.src=fr.result};fr.onerror=()=>rej(fr.error);fr.readAsDataURL(file)})}
+  async function imgPage(file){const im=await readImg(file);const sc=Math.min(1,PAGE_W/im.width);const c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);return canvasJpeg(c)}
+  async function pdfPages(file,prog){
+    const lib=await window.rcadsR159LoadPdfJs();const pdf=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+    if(pdf.numPages>MAXP)throw new Error(file.name+' has '+pdf.numPages+' pages — up to '+MAXP+' pages per file. Split it into 2 files.');
+    const out=[];for(let i=1;i<=pdf.numPages;i++){prog&&prog(file.name+' — converting page '+i+' of '+pdf.numPages);const p=await pdf.getPage(i);const v0=p.getViewport({scale:1});const vp=p.getViewport({scale:PAGE_W/v0.width});const c=document.createElement('canvas');c.width=Math.round(vp.width);c.height=Math.round(vp.height);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);await p.render({canvasContext:g,viewport:vp}).promise;out.push(canvasJpeg(c))}
+    return out}
+  async function filesToPages(files,prog){let pages=[];for(const f of files){if(/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name))pages=pages.concat(await pdfPages(f,prog));else if(/^image\//i.test(f.type))pages.push(await imgPage(f));else throw new Error(f.name+': only PDF or pictures (JPG/PNG). For Word, save it as PDF first.');if(pages.length>MAXP)throw new Error('Up to '+MAXP+' pages per document.')}return pages}
+  function b64of(u){return String(u).split(',')[1]||''}
+  async function uploadDoc(meta,pages,prog){
+    const d=await rpc('rustica_doc_put',Object.assign(auth(),{p_id:null,p_kind:meta.kind,p_doc_no:meta.no||null,p_title:meta.title||null,p_doc_date:meta.date||null,p_emp_code:meta.emp||null,p_emp_name:meta.empName||null,p_pages:pages.length}));
+    try{for(let i=0;i<pages.length;i++){prog&&prog(i+1,pages.length);let ok=false,err=null;for(let t=0;t<2&&!ok;t++){try{await rpc('rustica_doc_page_put',Object.assign(auth(),{p_id:d.id,p_page:i+1,p_data_b64:b64of(pages[i])}));ok=true}catch(e){err=e}}if(!ok)throw err}}
+    catch(e){try{await rpc('rustica_doc_delete',Object.assign(auth(),{p_id:d.id}))}catch(_){}throw e}
+    return d.id}
+  function parseName(name){const base=String(name||'').replace(/\.[a-z0-9]{2,5}$/i,'').replace(/_/g,' ').trim();
+    const m=base.match(/^\s*((?:(?:memo(?:randum)?|circular|mc|m\.c\.|cod|code|no\.?|#)[\s.\-]*)*[0-9][0-9\-–.\/]*)\s*[-–.:)]*\s*(.*)$/i);
+    if(m){let no=m[1].replace(/[\s.\-–]+$/,'').trim();const core=no.replace(/^(?:(?:memo(?:randum)?|circular|mc|m\.c\.|cod|code|no\.?|#)[\s.\-]*)+/i,'');if(/^\d{1,3}$/.test(core))no=core.padStart(3,'0');return {no,title:(m[2]||'').trim()||base}}
+    return {no:'',title:base}}
+  /* ---------- who is who ---------- */
+  function branchList(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&e.code&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  function findEmp(code){code=U(code);if(!code)return null;for(const b of branchList()){const e=staff(b.code).find(x=>U(x.code)===code);if(e)return {emp:e,branch:b}}return null}
+  function rustId(c){try{return (window.RCADS_RUSTICA_IDS||{})[U(c)]||''}catch(e){return ''}}
+
+  /* =================== READER (employees, owners, HR): dropdown 001 → last =================== */
+  const KIND_T={MC:'MEMO CIRCULARS',COD:'CODE OF DISCIPLINE'};
+  let CUR=null;
+  function legacyItems(kind){let b={};try{b=JSON.parse(localStorage.getItem('rcads_r159_notice_board_v1')||'{}')||{}}catch(e){}
+    if(kind==='MC')return (Array.isArray(b.circulars)?b.circulars:[]).map(c=>({legacy:'MC',id:c.id,doc_no:c.number||'',title:c.title||'',created_at:c.postedAt}));
+    return b.cod&&(b.cod.body||b.cod.att)?[{legacy:'COD',id:'OLDCOD',doc_no:'',title:(b.cod.title||'CODE OF DISCIPLINE')+' (old copy)',created_at:b.cod.updatedAt}]:[]}
+  function items(kind){return lib(kind).map(x=>Object.assign({},x)).concat(legacyItems(kind)).sort(cmp)}
+  function label(x){return (x.doc_no?x.doc_no+' — ':'')+(x.title||'')}
+  function navHtml(kind,list,curId){
+    const i=list.findIndex(x=>x.id===curId);
+    return '<div class="r328-nav"><select data-r328-sel><option value="">— CHOOSE ('+list.length+') —</option>'+list.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===curId?' selected':'')+'>'+esc(label(x))+'</option>').join('')+'</select>'
+      +(curId?'<div class="r328-pn"><button type="button" data-r328-go="'+(i>0?esc(list[i-1].id):'')+'"'+(i>0?'':' disabled')+'>◀ PREVIOUS</button><button type="button" data-r328-list>☰ LIST</button><button type="button" data-r328-go="'+(i>=0&&i<list.length-1?esc(list[i+1].id):'')+'"'+(i>=0&&i<list.length-1?'':' disabled')+'>NEXT ▶</button></div>':'')+'</div>'}
+  function openLib(kind,v,force){
+    const list=items(kind);
+    if(!list.length&&!force){if(navigator.onLine&&auth().p_key){libRefresh(kind).then(l=>{if(l.length)openLib(kind,v,true);else alert('No '+(kind==='MC'?'Memo Circular':'Code of Discipline')+' posted yet.')}).catch(e=>alert(e.message));return true}return false}
+    CUR={kind,v};
+    const html=navHtml(kind,list,'')+'<input class="r328-q" data-r328-q placeholder="🔎 Search memo no. or title">'
+      +'<div class="r328-idx">'+(list.length?list.map(x=>'<button type="button" data-r328-open="'+esc(x.id)+'"><b>'+esc(x.doc_no||'—')+'</b><span>'+esc(x.title||'')+'</span><small>'+(x.pages?x.pages+' page(s) • ':'')+esc(fmtD(x.doc_date||x.created_at))+'</small></button>').join(''):'<div class="r159-empty">Loading the list… (internet needed)</div>')+'</div>';
+    window.rcadsR159OpenReader(KIND_T[kind],html,v);
+    if(navigator.onLine&&auth().p_key)libRefresh(kind).then(()=>{if(CUR&&CUR.kind===kind&&document.querySelector('#r159ReaderDoc .r328-idx')&&!document.querySelector('#r159ReaderDoc [data-r328-pages]')){const q=document.querySelector('[data-r328-q]');if(!q||!q.value)openLib(kind,v,true)}}).catch(()=>{});
+    return true}
+  let TOK=0;
+  async function openItem(id){
+    if(!CUR)return;const {kind,v}=CUR;const list=items(kind);const x=list.find(y=>y.id===id);if(!x)return;
+    if(x.legacy==='MC'){const b=document.createElement('button');b.setAttribute('data-r159-mc',x.id);b.style.display='none';document.body.appendChild(b);b.click();b.remove();return}
+    if(x.legacy==='COD'){window.rcadsR159OpenDocList&&window.rcadsR159OpenDocList('COD',v,true);return}
+    window.rcadsR159OpenReader(label(x),'<div class="r159-doc-meta">'+esc(KIND_T[kind])+' • '+(x.pages||0)+' page(s) • '+esc(fmtD(x.doc_date||x.created_at))+' • FROM: HR OPERATION OFFICER</div><div data-r328-pages="'+esc(x.id)+'"><div class="r159-empty">Loading page 1…</div></div>',v,kind+'_'+x.id);
+    const doc=document.getElementById('r159ReaderDoc');if(doc)doc.insertAdjacentHTML('afterbegin',navHtml(kind,list,x.id));
+    const box=doc&&doc.querySelector('[data-r328-pages]');if(!box)return;
+    const t=++TOK;let html='';
+    for(let n=1;n<=(x.pages||0);n++){
+      try{const u=await page(x.id,n);if(t!==TOK)return;html+='<div class="r159-page"><img src="'+u+'" alt="Page '+n+'" draggable="false"><span>Page '+n+' of '+x.pages+'</span></div>';box.innerHTML=html+(n<x.pages?'<div class="r159-empty">Loading page '+(n+1)+'…</div>':'')}
+      catch(e){if(t!==TOK)return;box.innerHTML=html+'<div class="r159-empty">⚠ '+esc(e.message)+'<br>The pages are kept in Supabase — connect to the internet and open it again.</div>';return}
+    }
+  }
+  document.addEventListener('change',e=>{const s=e.target.closest&&e.target.closest('[data-r328-sel]');if(s&&s.value)openItem(s.value)});
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    const o=t.closest('[data-r328-open]');if(o){openItem(o.getAttribute('data-r328-open'));return}
+    const g=t.closest('[data-r328-go]');if(g&&g.getAttribute('data-r328-go')){openItem(g.getAttribute('data-r328-go'));return}
+    if(t.closest('[data-r328-list]')&&CUR){openLib(CUR.kind,CUR.v,true);return}});
+  document.addEventListener('input',e=>{const q=e.target.closest&&e.target.closest('[data-r328-q]');if(!q)return;const w=U(q.value);document.querySelectorAll('#r159ReaderDoc .r328-idx [data-r328-open]').forEach(b=>{b.style.display=!w||U(b.textContent).includes(w)?'':'none'})});
+
+  /* =================== EMPLOYEE: MY MEMOS TO SIGN =================== */
+  const PMC={};const SEEN=new Set();
+  function mineButton(v){
+    if(!v||!v.code||!/^(EMPLOYEE|APPROVER|MANAGER)$/.test(v.role||'')||!/^[A-Z]{2,4}-[A-Z0-9.]+$/.test(U(v.code)))return '';
+    const c=U(v.code);if(!SEEN.has(c)){SEEN.add(c);setTimeout(pollCounts,300)}const n=PMC[c]||0;
+    return '<button type="button" class="r328-mine'+(n?' due':'')+'" data-r328-mine="'+esc(c)+'">📝 MY MEMOS TO SIGN'+(n?' <em>'+n+' NEW — READ AND SIGN</em>':' <small>(signed copies go to your 201)</small>')+'</button>'}
+  let polling=false;
+  async function pollCounts(){if(polling||!navigator.onLine||!auth().p_key)return;polling=true;let ch=false;
+    try{for(const c of SEEN){try{const d=await rpc('rustica_pmemo_count',Object.assign(auth(),{p_emp_code:c}));const n=+d.unsigned||0;if(PMC[c]!==n){PMC[c]=n;ch=true}}catch(e){}}}finally{polling=false}
+    if(ch)bump()}
+  setInterval(pollCounts,120000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(pollCounts,1500)});
+
+  let PM=null; // {code,name,pin,rows,sig,cur}
+  function overlay(){let o=document.getElementById('r328Pm');if(!o){o=document.createElement('div');o.id='r328Pm';o.innerHTML='<div class="r328-box"><div class="r328-head"><b id="r328PmTitle">📝 MY MEMOS</b><button type="button" data-r328-close>CLOSE</button></div><div class="r328-body" id="r328PmBody"></div></div>';document.body.appendChild(o);
+      ['copy','cut','contextmenu','dragstart'].forEach(ev=>o.addEventListener(ev,e=>{if(!(e.target.matches&&e.target.matches('input')))e.preventDefault()},true))}
+    o.classList.add('show');document.body.classList.add('r328-open');return o}
+  function closePm(){const o=document.getElementById('r328Pm');if(o){o.classList.remove('show');o.querySelector('#r328PmBody').innerHTML=''}document.body.classList.remove('r328-open');if(PM)PM.cur=null}
+  function body(h){overlay().querySelector('#r328PmBody').innerHTML=h}
+  async function openMine(code,name){PM={code:U(code),name:name||code,pin:(PM&&PM.code===U(code))?PM.pin:'',rows:[],sig:null,cur:null};document.getElementById('r328PmTitle')||overlay();overlay().querySelector('#r328PmTitle').textContent='📝 MY MEMOS — '+PM.name;body('<div class="r159-empty">Loading your memos…</div>');await loadMine()}
+  async function loadMine(){
+    try{const d=await rpc('rustica_pmemo_mine',Object.assign({p_code:PM.code,p_pin:PM.pin||''},auth()));PM.rows=d.rows||[];PMC[PM.code]=PM.rows.filter(r=>!r.signed_at).length;listMine()}
+    catch(e){if(e.code==='PIN'||e.code==='DENIED'||e.code==='LOCKED'){pinForm(e.code==='PIN'?'':e.message)}else body('<div class="r328-err">⚠ '+esc(e.message)+'</div>')}}
+  function pinForm(msg){PM.pin='';body('<div class="r328-pin"><b>Enter your 4-digit RCADS PIN</b><small>Needed because this is not your own RCADS phone.</small><input type="password" inputmode="numeric" maxlength="6" id="r328Pin" autocomplete="off"><button type="button" class="r328-btn" data-r328-pin>OPEN MY MEMOS</button>'+(msg?'<div class="r328-err">'+esc(msg)+'</div>':'')+'</div>');setTimeout(()=>{const i=document.getElementById('r328Pin');if(i)i.focus()},80)}
+  function listMine(){
+    const rows=PM.rows.slice().sort((a,b)=>(a.signed_at?1:0)-(b.signed_at?1:0)||String(b.created_at).localeCompare(String(a.created_at)));
+    body(rows.length?'<div class="r328-note">Read each memo, then SIGN to confirm that you received it. The signed copy is saved automatically in your <b>201 FILES</b>.</div>'+rows.map(r=>'<button type="button" class="r328-row'+(r.signed_at?' done':' due')+'" data-r328-pm="'+esc(r.id)+'"><b>'+(r.signed_at?'✓ SIGNED':'🔴 TO SIGN')+' • '+esc(label(r))+'</b><small>Sent '+esc(fmtDT(r.created_at))+(r.signed_at?' • Signed '+esc(fmtDT(r.signed_at)):'')+'</small></button>').join(''):'<div class="r159-empty">You have no personal memo. 👍</div>');bump()}
+  function idSig(){try{const r=window.rcadsR167&&window.rcadsR167.rec(PM.code);return r&&r.sig||''}catch(e){return ''}}
+  async function openPm(id){
+    const r=PM.rows.find(x=>x.id===id);if(!r)return;PM.cur=r;PM.sig=null;const t=++TOK;
+    const signed=!!r.signed_at;
+    body('<button type="button" class="r328-back" data-r328-back>← MY MEMOS</button><div class="r328-mh"><b>'+esc(label(r))+'</b><small>From: HR OPERATION OFFICER • Sent '+esc(fmtDT(r.created_at))+'</small></div><div id="r328PmPages"><div class="r159-empty">Loading page 1…</div></div>'
+      +(signed?'<div class="r328-ok">✓ You signed this memo on '+esc(fmtDT(r.signed_at))+'. The signed copy is in your 201 FILES (Memos / NTE / Disciplinary).</div>'
+       :'<div class="r328-sign" id="r328Sign"><div class="r328-sh">✍ SIGN TO CONFIRM YOU RECEIVED THIS MEMO</div>'
+        +'<label>UPLOAD A PHOTO OF YOUR SIGNATURE (sign on clean white paper with a black pen)</label><input type="file" accept="image/*" id="r328SigFile">'
+        +(idSig()?'<button type="button" class="r328-mini" data-r328-idsig>USE THE SIGNATURE ON MY RUSTICA ID</button>':'')
+        +'<details class="r328-padd"><summary>or sign here with your finger</summary><canvas class="r328-pad" id="r328Pad" width="600" height="200"></canvas><button type="button" class="r328-mini light" data-r328-padclr>CLEAR</button></details>'
+        +'<div class="r328-sigprev" id="r328SigPrev"><span>Your signature will appear here</span></div>'
+        +'<div class="r328-name">'+esc(U(PM.name))+'<small>'+esc(PM.code)+(rustId(PM.code)?' • '+esc(rustId(PM.code)):'')+'</small></div>'
+        +'<label class="r328-chk"><input type="checkbox" id="r328Agree"> I have READ and RECEIVED this memo.</label>'
+        +'<button type="button" class="r328-btn" data-r328-sign disabled>✓ SIGN AND SUBMIT</button><div id="r328SignMsg" class="r328-msg"></div></div>'));
+    bindPad();
+    const box=document.getElementById('r328PmPages');let html='';
+    for(let n=1;n<=(r.pages||0);n++){
+      try{const u=await page(r.id,n,PM);if(t!==TOK)return;html+='<div class="r159-page"><img src="'+u+'" alt="Page '+n+'" draggable="false"><span>Page '+n+' of '+r.pages+'</span></div>';box.innerHTML=html+(n<r.pages?'<div class="r159-empty">Loading page '+(n+1)+'…</div>':'')}
+      catch(e){if(t!==TOK)return;box.innerHTML=html+'<div class="r328-err">⚠ '+esc(e.message)+'</div>';return}
+    }
+    checkReady()}
+  let padDrawn=false;
+  function bindPad(){padDrawn=false;const cv=document.getElementById('r328Pad');if(!cv)return;const g=cv.getContext('2d');g.lineWidth=5;g.lineCap='round';g.lineJoin='round';g.strokeStyle='#000';let down=false,last=null;
+    const pos=ev=>{const r=cv.getBoundingClientRect();return {x:(ev.clientX-r.left)*cv.width/r.width,y:(ev.clientY-r.top)*cv.height/r.height}};
+    cv.addEventListener('pointerdown',ev=>{down=true;last=pos(ev);cv.setPointerCapture(ev.pointerId);ev.preventDefault()});
+    cv.addEventListener('pointermove',ev=>{if(!down)return;const p=pos(ev);g.beginPath();g.moveTo(last.x,last.y);g.lineTo(p.x,p.y);g.stroke();last=p;padDrawn=true;ev.preventDefault()});
+    const up=()=>{if(down&&padDrawn){try{const s=window.rcadsR167&&window.rcadsR167.trimCanvas?window.rcadsR167.trimCanvas(cloneCanvas(cv)):cv.toDataURL('image/png');if(s)setSig(s)}catch(e){}}down=false};cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);cv.style.touchAction='none'}
+  function cloneCanvas(c){const n=document.createElement('canvas');n.width=c.width;n.height=c.height;n.getContext('2d').drawImage(c,0,0);return n}
+  function setSig(u){PM.sig=u;const p=document.getElementById('r328SigPrev');if(p)p.innerHTML='<img src="'+u+'" alt="signature">';checkReady()}
+  function checkReady(){const b=document.querySelector('[data-r328-sign]');const a=document.getElementById('r328Agree');const pagesOk=!document.querySelector('#r328PmPages .r159-empty,#r328PmPages .r328-err');if(b)b.disabled=!(PM&&PM.sig&&a&&a.checked&&pagesOk)}
+  function loadImage(u){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('Cannot read the image.'));im.src=u})}
+  function nowTrue(){try{const t=window.rcadsTrueNow&&window.rcadsTrueNow();if(t)return new Date(t)}catch(e){}return new Date()}
+  /* signed copy: every memo page + a "RECEIVED AND READ BY" block under the last page (signature above the name) */
+  async function signedPages(r,sigUrl,q,scale){
+    const out=[];const sig=await loadImage(sigUrl);const when=nowTrue();
+    for(let n=1;n<=r.pages;n++){
+      const im=await loadImage(await page(r.id,n,PM));const W=Math.round(im.width*(scale||1)),H=Math.round(im.height*(scale||1));
+      const last=n===r.pages;const BH=last?Math.round(W*0.30):0;
+      const c=document.createElement('canvas');c.width=W;c.height=H+BH;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,W,H);
+      if(last){const y0=H,u=W/1000;g.fillStyle='#000';g.font='bold '+Math.round(22*u)+'px Arial';g.textAlign='left';g.fillText('RECEIVED AND READ BY:',60*u,y0+40*u);
+        const bw=440*u,bh=130*u,cx=W/2;const sc=Math.min(bw/sig.width,bh/sig.height);const sw=sig.width*sc,sh=sig.height*sc;
+        const lineY=y0+200*u;g.drawImage(sig,cx-sw/2,lineY-sh+6*u,sw,sh);
+        g.fillRect(cx-250*u,lineY,500*u,Math.max(1,2*u));
+        g.textAlign='center';g.font='bold '+Math.round(26*u)+'px Arial';g.fillText(U(PM.name),cx,lineY+34*u);
+        g.font=Math.round(17*u)+'px Arial';g.fillText(PM.code+(rustId(PM.code)?' • '+rustId(PM.code):'')+' • Signed in RCADS: '+when.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+' '+when.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),cx,lineY+62*u)}
+      out.push({u:c.toDataURL('image/jpeg',q||0.8),w:c.width,h:c.height})}
+    return out}
+  function b64ToBytes(b){const s=atob(b);const a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a}
+  function bytesToB64(a){let s='';for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)}
+  function jpegPdf(pages){
+    const enc=new TextEncoder();const parts=[];let len=0;const off=[];const put=x=>{const b=typeof x==='string'?enc.encode(x):x;parts.push(b);len+=b.length};
+    const N=pages.length;const kids=[];for(let i=0;i<N;i++)kids.push((3+i*3)+' 0 R');
+    put('%PDF-1.4\n%âãÏÓ\n');
+    const obj=(id,s,stream)=>{off[id]=len;put(id+' 0 obj\n'+s);if(stream){put('\nstream\n');put(stream);put('\nendstream')}put('\nendobj\n')};
+    obj(1,'<< /Type /Catalog /Pages 2 0 R >>');obj(2,'<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+N+' >>');
+    pages.forEach((p,i)=>{const id=3+i*3;const pw=595.28,ph=(pw*p.h/p.w).toFixed(2);const img=b64ToBytes(b64of(p.u));const cs='q '+pw+' 0 0 '+ph+' 0 0 cm /Im0 Do Q';
+      obj(id,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pw+' '+ph+'] /Resources << /XObject << /Im0 '+(id+2)+' 0 R >> >> /Contents '+(id+1)+' 0 R >>');
+      obj(id+1,'<< /Length '+cs.length+' >>',enc.encode(cs));
+      obj(id+2,'<< /Type /XObject /Subtype /Image /Width '+p.w+' /Height '+p.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+img.length+' >>',img)});
+    const total=3+N*3;const xo=len;let x='xref\n0 '+total+'\n0000000000 65535 f \n';for(let i=1;i<total;i++)x+=String(off[i]).padStart(10,'0')+' 00000 n \n';
+    put(x+'trailer\n<< /Size '+total+' /Root 1 0 R >>\nstartxref\n'+xo+'\n%%EOF\n');
+    const out=new Uint8Array(len);let p=0;parts.forEach(b=>{out.set(b,p);p+=b.length});return out}
+  async function doSign(){
+    const r=PM.cur;if(!r||!PM.sig)return;const msg=document.getElementById('r328SignMsg');const btn=document.querySelector('[data-r328-sign]');btn.disabled=true;
+    const say=(t,bad)=>{if(msg){msg.textContent=t;msg.className='r328-msg'+(bad?' bad':'')}};
+    try{say('Preparing the signed copy…');
+      let pages=await signedPages(r,PM.sig,0.8,1);let pdf=jpegPdf(pages);
+      if(pdf.length>4200000){pages=await signedPages(r,PM.sig,0.6,0.75);pdf=jpegPdf(pages)}
+      if(pdf.length>4400000)throw new Error('The memo is too big to sign in the app. Please see HR.');
+      say('Sending to HR and saving to your 201…');
+      await rpc('rustica_pmemo_sign',Object.assign({p_code:PM.code,p_pin:PM.pin||''},auth(),{p_id:r.id,p_sig_png:PM.sig,p_pdf_b64:bytesToB64(pdf)}));
+      r.signed_at=new Date().toISOString();PMC[PM.code]=PM.rows.filter(x=>!x.signed_at).length;
+      alert('✓ SIGNED\n\nThank you. Your signed copy of "'+label(r)+'" is now saved in your 201 FILES.');listMine()}
+    catch(e){say('⚠ NOT SIGNED: '+e.message,true);btn.disabled=false;if(e.code==='PIN'){pinForm('Enter your PIN, then open the memo again to sign.')}}}
+  document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
+    const m=t.closest('[data-r328-mine]');if(m){const host=m.closest('.r159-board');const v=host&&host._r159viewer;openMine(m.getAttribute('data-r328-mine'),v&&v.name);return}
+    if(!t.closest('#r328Pm'))return;
+    if(t.closest('[data-r328-close]')){closePm();return}
+    if(t.closest('[data-r328-back]')){TOK++;listMine();return}
+    if(t.closest('[data-r328-pin]')){const i=document.getElementById('r328Pin');PM.pin=String(i&&i.value||'').trim();if(!/^\d{4,6}$/.test(PM.pin)){pinForm('Enter your 4-digit PIN.');return}body('<div class="r159-empty">Checking…</div>');await loadMine();return}
+    const p=t.closest('[data-r328-pm]');if(p){openPm(p.getAttribute('data-r328-pm'));return}
+    if(t.closest('[data-r328-idsig]')){const s=idSig();if(s)setSig(s);return}
+    if(t.closest('[data-r328-padclr]')){const cv=document.getElementById('r328Pad');if(cv){cv.getContext('2d').clearRect(0,0,cv.width,cv.height);padDrawn=false}return}
+    if(t.closest('[data-r328-sign]')){doSign();return}});
+  document.addEventListener('change',async e=>{const t=e.target;if(!t.closest||!t.closest('#r328Pm'))return;
+    if(t.id==='r328Agree'){checkReady();return}
+    if(t.id==='r328SigFile'&&t.files&&t.files[0]){const msg=document.getElementById('r328SignMsg');try{if(msg)msg.textContent='Cleaning the signature…';const fn=window.rcadsR167&&window.rcadsR167.sigFromFile;const s=fn?await fn(t.files[0]):await imgPage(t.files[0]);if(!s)throw new Error('No signature found in the photo. Use clean white paper and a black pen.');setSig(s);if(msg)msg.textContent='✓ Signature ready'}catch(err){if(msg)msg.textContent='⚠ '+err.message}}});
+  document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target&&e.target.id==='r328Pin'){const b=document.querySelector('[data-r328-pin]');if(b)b.click()}});
+
+  /* =================== HR CARDS =================== */
+  const HRV={name:'HR OPERATION OFFICER',code:'RUS-HR01',role:'HR',id:'HR'};
+  let ROWS=[],BUSY=false,HRKIND='MC';
+  function hrLibHtml(){return '<h4>📚 MEMO CIRCULARS + CODE OF DISCIPLINE — UNLIMITED</h4>'
+    +'<div class="r159-info">Saved in Supabase (not on the phones). Choose <b>MANY files at once</b> (PDF or pictures) — <b>1 file = 1 memo</b>. The MEMO NO. and TITLE are read from the file name (e.g. <i>MC-001 Uniform Policy.pdf</i>); you can correct them before uploading. Everyone chooses from a dropdown in order <b>001 → last</b>. Up to '+MAXP+' pages per file.</div>'
+    +'<label>TYPE</label><select id="r328Kind"><option value="MC">MEMO CIRCULAR</option><option value="COD">CODE OF DISCIPLINE</option></select>'
+    +'<label>FILES</label><input type="file" id="r328Files" multiple accept="application/pdf,image/*">'
+    +'<label class="r328-chk"><input type="checkbox" id="r328One"> All chosen files are ONE document (e.g. 11 scanned pages of the Code of Discipline)</label>'
+    +'<div id="r328Rows"></div><button type="button" class="r159-btn" id="r328Up" disabled>UPLOAD ALL</button><div id="r328Msg" class="r159-info"></div>'
+    +'<div class="r328-h2">UPLOADED <span id="r328Cnt"></span> <button type="button" class="r159-mini" id="r328Reload">↻</button></div><input id="r328Search" class="r328-q" placeholder="🔎 Search no. or title"><div id="r328List" class="r328-list"></div>'}
+  function hrPmHtml(){return '<h4>📝 PERSONAL MEMO / NTE — employee must READ and SIGN</h4>'
+    +'<div class="r159-info">The employee sees it in <b>📢 NOTICES → 📝 MY MEMOS TO SIGN</b>. When he/she signs, the signature is placed above his/her name at the bottom of the memo and the signed copy is saved <b>automatically</b> in his/her <b>201 FILES → Memos / NTE / Disciplinary</b>.</div>'
+    +'<label>EMPCODE</label><input id="r328PmCode" list="r159NCodeList" placeholder="e.g. SRF-EMP10" autocomplete="off"><div id="r328PmWho" class="r328-who"></div>'
+    +'<div class="r159-row2"><div><label>MEMO NO.</label><input id="r328PmNo" placeholder="e.g. NTE-2026-014"></div><div><label>TITLE / SUBJECT</label><input id="r328PmTitle" placeholder="e.g. Notice to Explain — Tardiness"></div></div>'
+    +'<label>MEMO FILE (PDF or pictures — all chosen files = one memo)</label><input type="file" id="r328PmFiles" multiple accept="application/pdf,image/*">'
+    +'<button type="button" class="r159-btn" id="r328PmSend">SEND TO EMPLOYEE</button><div id="r328PmMsg" class="r159-info"></div>'
+    +'<div class="r328-h2">SENT <span id="r328PmCnt"></span> <button type="button" class="r159-mini" id="r328PmReload">↻</button></div><input id="r328PmSearch" class="r328-q" placeholder="🔎 Search name / EMPCODE / title"><div id="r328PmList" class="r328-list"></div>'}
+  function rowsHtml(){if(!ROWS.length)return '';return '<div class="r328-rows">'+ROWS.map((r,i)=>'<div class="r328-r"><input data-r328-no="'+i+'" value="'+esc(r.no)+'" placeholder="NO."><input data-r328-ti="'+i+'" value="'+esc(r.title)+'" placeholder="TITLE"><small>'+esc(r.files.map(f=>f.name).join(', '))+'</small><span data-r328-st="'+i+'">'+esc(r.st||'')+'</span></div>').join('')+'</div>'}
+  function setRows(){const el=document.getElementById('r328Rows');if(el)el.innerHTML=rowsHtml();const b=document.getElementById('r328Up');if(b){b.disabled=BUSY||!ROWS.length;b.textContent=ROWS.length?'UPLOAD ALL ('+ROWS.length+')':'UPLOAD ALL'}}
+  function makeRows(){const inp=document.getElementById('r328Files');const files=[...(inp&&inp.files||[])];const one=document.getElementById('r328One').checked;
+    if(!files.length){ROWS=[];setRows();return}
+    if(one){const p=parseName(files[0].name);ROWS=[{files,no:p.no,title:HRKIND==='COD'&&!p.no?'CODE OF DISCIPLINE':p.title}]}
+    else ROWS=files.slice().sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true})).map(f=>{const p=parseName(f.name);return {files:[f],no:p.no,title:p.title}});setRows()}
+  function renderLib(){const el=document.getElementById('r328List');if(!el)return;const q=U((document.getElementById('r328Search')||{}).value);const all=lib(HRKIND).slice().sort(cmp);const l=all.filter(x=>!q||U(label(x)).includes(q));
+    const c=document.getElementById('r328Cnt');if(c)c.textContent='— '+all.length+' '+(HRKIND==='MC'?'Memo Circular(s)':'Code of Discipline file(s)');
+    el.innerHTML=l.length?l.map(x=>'<div class="r328-li"><div><b>'+esc(x.doc_no||'—')+'</b> '+esc(x.title||'')+'<small>'+x.pages+' page(s) • '+esc(fmtD(x.created_at))+'</small></div><button type="button" class="r159-mini" data-r328-hview="'+esc(x.id)+'">VIEW</button><button type="button" class="r159-mini red" data-r328-hdel="'+esc(x.id)+'">DELETE</button></div>').join(''):'<div class="r159-empty">None yet.</div>'}
+  function pmStatus(x){return x.signed_at?'<span class="r328-s ok">✓ SIGNED '+esc(fmtDT(x.signed_at))+' • saved to 201</span>':x.read_at?'<span class="r328-s rd">👁 OPENED '+esc(fmtDT(x.read_at))+' — NOT SIGNED YET</span>':'<span class="r328-s no">⏳ NOT YET OPENED</span>'}
+  function renderPm(){const el=document.getElementById('r328PmList');if(!el)return;const q=U((document.getElementById('r328PmSearch')||{}).value);const all=(LIB.PM||[]).slice().sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)));
+    const l=all.filter(x=>!q||U([x.emp_code,x.emp_name,x.doc_no,x.title].join(' ')).includes(q));const c=document.getElementById('r328PmCnt');if(c)c.textContent='— '+all.length+' • '+all.filter(x=>!x.signed_at).length+' waiting for signature';
+    el.innerHTML=l.length?l.slice(0,200).map(x=>'<div class="r328-li"><div><b>'+esc(x.emp_name||'')+'</b> • '+esc(x.emp_code)+'<br>'+esc(label(x))+'<small>Sent '+esc(fmtDT(x.created_at))+'</small>'+pmStatus(x)+'</div><button type="button" class="r159-mini" data-r328-pview="'+esc(x.id)+'">VIEW</button>'+(x.signed_at?'':'<button type="button" class="r159-mini red" data-r328-pdel="'+esc(x.id)+'">CANCEL</button>')+'</div>').join(''):'<div class="r159-empty">None yet.</div>'}
+  async function hrRefresh(){try{await libRefresh(HRKIND)}catch(e){const m=document.getElementById('r328Msg');if(m)m.textContent='⚠ '+e.message}renderLib();try{await libRefresh('PM')}catch(e){const m=document.getElementById('r328PmMsg');if(m)m.textContent='⚠ '+e.message}renderPm()}
+  function hrView(id,pm){const x=pm?(LIB.PM||[]).find(y=>y.id===id):lib(HRKIND).find(y=>y.id===id);if(!x)return;
+    if(!pm){CUR={kind:HRKIND,v:HRV};openItem(id);return}
+    window.rcadsR159OpenReader(label(x)+' — '+(x.emp_name||x.emp_code),'<div class="r159-doc-meta">PERSONAL MEMO to '+esc(x.emp_name||'')+' • '+esc(x.emp_code)+' • '+(x.signed_at?'SIGNED '+esc(fmtDT(x.signed_at))+' — the signed copy is in his/her 201 FILES':'not signed yet')+'</div><div data-r328-pages="'+esc(x.id)+'"><div class="r159-empty">Loading…</div></div>',HRV);
+    (async()=>{const box=document.querySelector('#r159ReaderDoc [data-r328-pages]');let h='';for(let n=1;n<=x.pages;n++){try{h+='<div class="r159-page"><img src="'+await page(x.id,n)+'" alt=""><span>Page '+n+' of '+x.pages+'</span></div>';if(box)box.innerHTML=h}catch(e){if(box)box.innerHTML=h+'<div class="r328-err">⚠ '+esc(e.message)+'</div>';return}}})()}
+  async function hrUpload(){if(BUSY||!ROWS.length)return;const msg=document.getElementById('r328Msg');const say=t=>{if(msg)msg.textContent=t};
+    if(!(window.rcadsR182&&window.rcadsR182.canIssue&&window.rcadsR182.canIssue())){say('⚠ This device is not enrolled as HR. Log out and log in to HR again (with internet), then try again.');return}
+    BUSY=true;setRows();let ok=0,bad=0;
+    for(let i=0;i<ROWS.length;i++){const r=ROWS[i];const st=t=>{r.st=t;const s=document.querySelector('[data-r328-st="'+i+'"]');if(s)s.textContent=t};
+      if(r.done){ok++;continue}
+      try{st('converting…');say('File '+(i+1)+' of '+ROWS.length+'…');const pages=await filesToPages(r.files,t=>say('File '+(i+1)+' of '+ROWS.length+' — '+t));
+        await uploadDoc({kind:HRKIND,no:r.no,title:r.title},pages,(a,b)=>{st('uploading page '+a+' of '+b);say('File '+(i+1)+' of '+ROWS.length+' — uploading page '+a+' of '+b)});r.done=true;st('✓ uploaded');ok++}
+      catch(e){st('⚠ '+e.message);bad++}}
+    BUSY=false;say('Done: '+ok+' uploaded'+(bad?', '+bad+' FAILED (see ⚠ — press UPLOAD ALL again to retry them)':'')+'.');
+    if(!bad){ROWS=[];const f=document.getElementById('r328Files');if(f)f.value=''}setRows();await hrRefresh()}
+  async function pmSend(){const msg=document.getElementById('r328PmMsg');const say=t=>{if(msg)msg.textContent=t};if(BUSY)return;
+    const code=U(document.getElementById('r328PmCode').value),f=findEmp(code),no=document.getElementById('r328PmNo').value.trim(),title=document.getElementById('r328PmTitle').value.trim(),files=[...document.getElementById('r328PmFiles').files];
+    if(!f){say('⚠ EMPCODE not found.');return}if(!title){say('⚠ Type the TITLE / SUBJECT.');return}if(!files.length){say('⚠ Choose the memo file (PDF or pictures).');return}
+    if(!(window.rcadsR182&&window.rcadsR182.canIssue&&window.rcadsR182.canIssue())){say('⚠ This device is not enrolled as HR. Log out and log in to HR again (with internet).');return}
+    if(!confirm('Send "'+(no?no+' — ':'')+title+'" to '+f.emp.name+' ('+code+')?\n\nThe employee must read and sign it in RCADS. The signed copy goes to the 201 automatically.'))return;
+    BUSY=true;try{const pages=await filesToPages(files,say);await uploadDoc({kind:'PM',no,title,emp:code,empName:f.emp.name},pages,(a,b)=>say('Uploading page '+a+' of '+b+'…'));
+      say('✓ Sent to '+f.emp.name+'. Waiting for the signature.');['r328PmNo','r328PmTitle','r328PmFiles'].forEach(id=>{const x=document.getElementById(id);if(x)x.value=''})}
+    catch(e){say('⚠ NOT SENT: '+e.message)}finally{BUSY=false}await hrRefresh()}
+  function ensureHr(){
+    const sec=document.getElementById('r159HrSection');const grid=sec&&sec.querySelector('.r159-hr-grid');if(!grid)return;
+    if(!document.getElementById('r328HrLib')){const a=document.createElement('div');a.id='r328HrLib';a.className='r159-hr-card r328-card';a.innerHTML=hrLibHtml();const b=document.createElement('div');b.id='r328HrPm';b.className='r159-hr-card r328-card';b.innerHTML=hrPmHtml();grid.insertBefore(b,grid.firstChild);grid.insertBefore(a,grid.firstChild);
+      document.getElementById('r328Kind').value=HRKIND;renderLib();renderPm();setTimeout(hrRefresh,200);
+      grid.querySelectorAll('.r159-hr-card').forEach(c=>{const h=c.querySelector('h4');if(h&&/^(CODE OF DISCIPLINE|MEMO CIRCULAR) \(VIEW-ONLY/.test(h.textContent)&&!c.querySelector('.r328-old')){h.insertAdjacentHTML('afterend','<div class="r328-old">OLD STORAGE (saved on the phones — small). For new uploads use 📚 MEMO CIRCULARS + CODE OF DISCIPLINE — UNLIMITED above.</div>');c.classList.add('r328-oldcard')}})}}
+  setInterval(()=>{try{ensureHr()}catch(e){console.warn('R328',e)}},1500);
+  document.addEventListener('change',e=>{const t=e.target;if(!t||!t.id)return;
+    if(t.id==='r328Kind'){HRKIND=t.value;ROWS.forEach(r=>{});renderLib();libRefresh(HRKIND).then(renderLib).catch(()=>{})}
+    if(t.id==='r328Files'||t.id==='r328One')makeRows()});
+  document.addEventListener('input',e=>{const t=e.target;if(!t)return;
+    if(t.hasAttribute&&t.hasAttribute('data-r328-no'))ROWS[+t.getAttribute('data-r328-no')].no=t.value.trim();
+    if(t.hasAttribute&&t.hasAttribute('data-r328-ti'))ROWS[+t.getAttribute('data-r328-ti')].title=t.value.trim();
+    if(t.id==='r328Search')renderLib();if(t.id==='r328PmSearch')renderPm();
+    if(t.id==='r328PmCode'){const f=findEmp(t.value);const w=document.getElementById('r328PmWho');if(w)w.innerHTML=f?'✓ '+esc(f.emp.name)+' • '+esc(f.emp.position||'')+' • '+esc(f.branch.name):(t.value.trim()?'⚠ not found':'')}});
+  document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('#r328Up')){hrUpload();return}if(t.closest('#r328PmSend')){pmSend();return}
+    if(t.closest('#r328Reload')||t.closest('#r328PmReload')){hrRefresh();return}
+    const v=t.closest('[data-r328-hview]');if(v){hrView(v.getAttribute('data-r328-hview'),false);return}
+    const pv=t.closest('[data-r328-pview]');if(pv){hrView(pv.getAttribute('data-r328-pview'),true);return}
+    const d=t.closest('[data-r328-hdel]');if(d){const x=lib(HRKIND).find(y=>y.id===d.getAttribute('data-r328-hdel'));if(!x||!confirm('DELETE "'+label(x)+'" for everyone?'))return;try{await rpc('rustica_doc_delete',Object.assign(auth(),{p_id:x.id}));await hrRefresh()}catch(err){alert(err.message)}return}
+    const pd=t.closest('[data-r328-pdel]');if(pd){const x=(LIB.PM||[]).find(y=>y.id===pd.getAttribute('data-r328-pdel'));if(!x||!confirm('CANCEL the memo "'+label(x)+'" to '+(x.emp_name||x.emp_code)+'? It will be removed from his/her app.'))return;try{await rpc('rustica_doc_delete',Object.assign(auth(),{p_id:x.id}));await hrRefresh()}catch(err){alert(err.message)}return}});
+
+
+  /* =================== 201 FILES: 📷 TAKE PHOTO (phone camera) + many photos → ONE PDF =================== */
+  const STAGE={r173:[],r175:[]};
+  function camUi(k){const n=STAGE[k].length;return '<div class="r328-cam" data-r328-camwrap="'+k+'"><label class="r328-cambtn">📷 TAKE PHOTO<input type="file" accept="image/*" capture="environment" data-r328-cam="'+k+'" hidden></label><span data-r328-camn="'+k+'">'+(n?'📷 '+n+' photo(s) taken <button type="button" class="r328-mini light" data-r328-camclr="'+k+'">CLEAR</button>':'Take one photo per page.')+'</span>'
+    +'<label class="r328-chk"><input type="checkbox" data-r328-comb="'+k+'" checked> Put all photos together in ONE PDF (pages of one document)</label></div>'}
+  setInterval(()=>{['r173','r175'].forEach(k=>{const inp=document.getElementById(k+'File');if(!inp)return;const w=inp.parentElement.querySelector('[data-r328-camwrap="'+k+'"]');
+    if(!w)inp.insertAdjacentHTML('afterend',camUi(k));
+    const m=document.getElementById(k+'UpMsg');if(m&&/\bok\b/.test(m.className)&&STAGE[k].length){STAGE[k]=[];const x=inp.parentElement.querySelector('[data-r328-camwrap="'+k+'"]');if(x)x.outerHTML=camUi(k)}})},1200);
+  document.addEventListener('change',e=>{const t=e.target;const k=t&&t.getAttribute&&t.getAttribute('data-r328-cam');if(!k||!t.files||!t.files[0])return;STAGE[k].push(t.files[0]);t.value='';const w=t.closest('[data-r328-camwrap]');if(w)w.outerHTML=camUi(k)});
+  document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest('[data-r328-camclr]');if(!c)return;const k=c.getAttribute('data-r328-camclr');STAGE[k]=[];const w=c.closest('[data-r328-camwrap]');if(w)w.outerHTML=camUi(k)});
+  async function filesFor(k){
+    const inp=document.getElementById(k+'File');const picked=[...(inp&&inp.files||[])].concat(STAGE[k]);
+    const cb=document.querySelector('[data-r328-comb="'+k+'"]');const isImg=f=>/^image\//i.test(f.type)||/\.(jpe?g|png|webp|heic)$/i.test(f.name);
+    const imgs=picked.filter(isImg),others=picked.filter(f=>!isImg(f));
+    if(!(cb&&cb.checked)||imgs.length<2)return picked;
+    const pages=[];for(const f of imgs){const im=await readImg(f);let sc=Math.min(1,1600/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);pages.push({c})}
+    let q=0.72,pdf=null;for(let t=0;t<4;t++){pdf=jpegPdf(pages.map(p=>({u:p.c.toDataURL('image/jpeg',q),w:p.c.width,h:p.c.height})));if(pdf.length<=3000000)break;q-=0.15}
+    if(pdf.length>3100000)throw new Error('Too many photos for one file (over 3 MB). Upload them in 2 batches.');
+    const name=(imgs[0].name||'scan').replace(/\.[a-z0-9]+$/i,'').replace(/^image$/i,'scan')+' ('+imgs.length+' pages).pdf';
+    return others.concat([new File([pdf],name,{type:'application/pdf'})])}
+  window.rcadsR328Files=filesFor;
+
+  window.rcadsR328={openLib,mineButton,count:k=>items(k).length-legacyItems(k).length,sig:()=>VER+'|'+JSON.stringify(PMC),refreshAll,libRefresh,parseName,jpegPdf,_pm:()=>PM,_lib:LIB};
+})();
+
+</script>
 </body>
 </html>
