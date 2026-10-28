@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R299 SCAN MY QR INSIDE THE APP</title>
+<title>Rustica RCADS App — R301 ANTI SCAM</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22111,7 +22111,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   }
   async function disable(code){const db=read();const r=db.people[U(code)];if(!r)return;r.status='DISABLED';r.pinHash='';r.pinSalt='';r.pinEnc='';save(db);delete pinCache[U(code)];try{window.dispatchEvent(new CustomEvent('rcads:pin-set',{detail:{code:U(code),pin:null}}))}catch(e){}}
   /* ---------------- R176: SELF-SET PIN with a one-time SETUP CODE from HR ---------------- */
-  const SETUP_DAYS=7;
+  const SETUP_DAYS=2; /* R301: QR / setup code valid 2 days only */
   function randCode6(){const a=new Uint32Array(1);crypto.getRandomValues(a);return String(100000+a[0]%900000)}
   function setupExpired(r){return !!(r&&r.setupExpires&&Date.now()>Date.parse(r.setupExpires))}
   async function setupFields(){const code=randCode6(),salt=randHex(16),now=new Date().toISOString();return {code,f:{status:'SETUP',setupSalt:salt,setupHash:await pbkdf2(code,salt),setupEnc:await encForHr(code),setupIssuedAt:now,setupExpires:new Date(Date.now()+SETUP_DAYS*864e5).toISOString(),pinSalt:'',pinHash:'',pinEnc:'',fails:0,lockedUntil:''}}}
@@ -22423,7 +22423,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     if(card)return;
     card=document.createElement('div');card.id='r298Card';
     card.style.cssText='margin:12px 0;padding:14px;border-radius:16px;background:#fffaf2;border:2px solid #2f6b3a;text-align:center;color:#3d2615';
-    card.innerHTML='<div style="font-weight:900;font-size:16px;color:#2f6b3a">👤 MY PERSONAL RCADS</div><div style="font-size:12px;margin:4px 0 8px">Employees: type your EMPCODE, then your own PIN. You do this only once on this app.</div>'
+    card.innerHTML='<div style="font-weight:900;font-size:16px;color:#2f6b3a">👤 MY PERSONAL RCADS</div><div style="font-size:12px;margin:4px 0 8px">Employees: type your EMPCODE, then your own PIN. Owners and Guards: press SCAN below. You do this only once on this app.</div>'
       +'<input id="r298Code" placeholder="EMPCODE (e.g. SRF-EMP44)" autocapitalize="characters" autocomplete="off" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8bfa1;border-radius:11px;font-size:16px;text-align:center;text-transform:uppercase">'
       +'<button type="button" id="r298Go" style="width:100%;margin-top:8px;padding:13px;border:0;border-radius:12px;background:#2f6b3a;color:#fff;font-weight:900;font-size:14px">NEXT → MY PIN</button>'
       +'<div style="font-size:11px;margin:10px 0 4px;color:#7a6250;font-weight:800">— OR (best on iPhone) —</div><button type="button" id="r299Scan" style="width:100%;padding:13px;border:2px solid #2f6b3a;border-radius:12px;background:#fff;color:#2f6b3a;font-weight:900;font-size:14px">📷 SCAN MY QR FROM HR HERE</button><div id="r298Msg" style="min-height:14px;color:#a1281f;font-weight:800;font-size:12px;margin-top:6px"></div>';
@@ -22443,6 +22443,23 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
       });
     };card.querySelector('#r298Code').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
   }catch(err){}},1000);
+
+  /* R300: OWNER and GUARD phones get the same protection — never left on the main (HR) screen, HR mark removed. */
+  setInterval(()=>{try{
+    if(deviceOwner()||payloadFromHash()||gPayload()||oPayload())return;
+    const od=oDevice(),gd=gDevice();if(!(od&&od.o)&&!(gd&&gd.b&&gd.g))return;
+    const B=document.body.classList;
+    if(!B.contains('hr-session-active')){try{localStorage.removeItem('rustica_r167_hrdevice_pin_flag')}catch(_){}}
+    if(document.getElementById('r160Gate'))return;
+    let e=null;try{e=currentEmployee}catch(_){}if(e)return;
+    if(B.contains('guard-session-active')||B.contains('hr-session-active'))return;
+    if(window.rcadsTopManagementSession||window.currentManagerSession)return;
+    const vis=id=>{const x=document.getElementById(id);return !!x&&!x.classList.contains('hidden')&&x.offsetParent!==null};
+    if(vis('selectScreen')||vis('normalScreen')||vis('simpleHrAdminModal')){
+      ['selectScreen','normalScreen','simpleHrAdminModal'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+      if(od&&od.o)openOwnerGate({o:od.o});else{try{sessionStorage.removeItem('rcads_active_guard_session');sessionStorage.removeItem('rcads_attendance_operator')}catch(_){}openGuardGate(gd)}
+    }
+  }catch(err){}},900);
   ['logout','logoutManager','logoutAssistantSousChef'].forEach(name=>{
     const previous=window[name];if(typeof previous!=='function')return;
     window[name]=function(){
@@ -25268,7 +25285,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const vw=t.closest('[data-r178-view]');if(vw){try{localStorage.setItem('r178_hr_view',vw.getAttribute('data-r178-view'))}catch(_){}section='';sync();return}
     if(t.closest('[data-r178-hrpin]')){try{rcadsChangeLocalHrPin()}catch(_){}return}
     if(t.closest('[data-r178-close]')){if(confirm('Close the HR dashboard?')){section='';try{closeSimpleHrAdmin()}catch(_){}}return}
-    const su=t.closest('[data-r178-setup]');if(su){const [c,b]=su.getAttribute('data-r178-setup').split('|');const e2=staff(b).find(x=>U(x.code)===c);if(!window.rcadsR160||!window.rcadsR160.issueSetup){alert('PIN module unavailable.');return}const acc=lsGet('rcads_r160_emp_access_v1',{})||{};const r=(acc.people||{})[c];if(r&&r.status==='ACTIVE'&&!confirm('RESET: the current PIN will stop working for '+(e2?e2.name:c)+'. Continue?'))return;const code=await window.rcadsR160.issueSetup(c,b,e2?e2.name:'');if(code){alert('SETUP CODE ni '+(e2?e2.name:c)+': '+code+'\nValid 7 days. Give it in person.\nThey will create their own PIN.');render(true)}return}
+    const su=t.closest('[data-r178-setup]');if(su){const [c,b]=su.getAttribute('data-r178-setup').split('|');const e2=staff(b).find(x=>U(x.code)===c);if(!window.rcadsR160||!window.rcadsR160.issueSetup){alert('PIN module unavailable.');return}const acc=lsGet('rcads_r160_emp_access_v1',{})||{};const r=(acc.people||{})[c];if(r&&r.status==='ACTIVE'&&!confirm('RESET: the current PIN will stop working for '+(e2?e2.name:c)+'. Continue?'))return;const code=await window.rcadsR160.issueSetup(c,b,e2?e2.name:'');if(code){alert('SETUP CODE ni '+(e2?e2.name:c)+': '+code+'\nValid 2 days. Give it in person.\nThey will create their own PIN.');render(true)}return}
     const f2=t.closest('[data-r178-201]');if(f2){const c=f2.getAttribute('data-r178-201');openSection('r173HrSection');setTimeout(()=>{const i=document.getElementById('r173Find');if(i){i.value=c;document.getElementById('r173FindBtn')?.click()}},400);return}
   });
   // a "📱 Mobile view" button on the desktop dashboard (only on small screens / or to try it)
@@ -25356,7 +25373,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   async function hmac(keyHex,msg){const kb=new Uint8Array(keyHex.match(/../g).map(h=>parseInt(h,16)));const k=await crypto.subtle.importKey('raw',kb,{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg))).slice(0,32)}
   function canon(p){return ['RCADS-R181',p.t,p.c,p.b,p.ts,p.g||'',p.gl||'',p.geo||'',p.ph||''].join('|')}
   function qrSvg(data){const QR=window.RCADSQRCode,E=window.RCADSQRErrorCorrectLevel;if(!QR||!E)return '<div>QR encoder unavailable</div>';const q=new QR(-1,E.M);q.addData(data);q.make();const n=q.getModuleCount(),z=4,s=n+z*2;let d='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+='M'+(c+z)+' '+(r+z)+'h1v1h-1z';return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+s+' '+s+'"><rect width="100%" height="100%" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>'}
-  function nowStampLocal(){const d=new Date();return {date:d,time:d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}}
+  function nowStampLocal(){const tn=(window.rcadsTrueNow&&window.rcadsTrueNow());const sk=tn==null?0:Date.now()-tn;window.__r301skew=sk;const d=(tn!=null&&Math.abs(sk)>120000)?new Date(tn):new Date(); /* R301: phone clock wrong → internet time */return {date:d,time:d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}}
   function fmtT(iso){const d=new Date(iso);return isNaN(d)?'':d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
 
   /* ---------------- attendance store (same key the DTR uses) ---------------- */
@@ -25373,6 +25390,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   }
   function appendRecord(c,name,rec){
     if(r287Off&&rec&&typeof rec==='object'){rec.offline=true;rec.offlineSavedAt=new Date().toISOString()}
+    if(rec&&typeof rec==='object'&&Math.abs(window.__r301skew||0)>120000){rec.phoneClockOffMin=Math.round((window.__r301skew||0)/60000);rec.clockCorrected=true} /* R301: HR sees it */
     const k=attKey(c);const s=lsGet(k,null)||{employeeCode:U(c),employeeName:name||'',records:[]};
     s.records=(s.records||[]).concat([rec]).sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0));s.employeeName=s.employeeName||name||'';s.savedAt=new Date().toISOString();
     const ok=lsSet(k,s);try{window.dispatchEvent(new CustomEvent('rcads:dtr-refresh'))}catch(e){}return ok;
@@ -25514,7 +25532,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   /* ---------------- GUARD: scan the employee PASS ---------------- */
   function guardLabel(){try{return getLoggedGuardLabel()||''}catch(e){return ''}}
   function guardTokens(){const t=[];try{t.push(rcadsGuardCurrentToken(new Date()));t.push(rcadsGuardCurrentToken(new Date(Date.now()-PASS_MS)))}catch(e){}return t.filter(Boolean)}
-  function resultBox(id,html,cls){if(r287Off&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r287off">📴 OFFLINE MODE — records are saved on this phone and will sync automatically when internet returns. Do not clear browser data.</span>'+html;const b=document.getElementById(id);if(b){b.className='r181-result '+(cls||'');b.innerHTML=html;b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
+  function resultBox(id,html,cls){if(Math.abs(window.__r301skew||0)>120000&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r301-clock">⚠ This phone\'s clock is wrong by '+Math.abs(Math.round((window.__r301skew||0)/60000))+' min. RCADS used the correct internet time. HR can see this.</span>'+html;if(r287Off&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r287off">📴 OFFLINE MODE — records are saved on this phone and will sync automatically when internet returns. Do not clear browser data.</span>'+html;const b=document.getElementById(id);if(b){b.className='r181-result '+(cls||'');b.innerHTML=html;b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
   async function guardHandle(raw){
     pendingOut=null;
     if(!(await refreshAttendanceStatus('r181GuardRes')))return;
@@ -25758,7 +25776,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     return d;
   }
   async function enrollHr(pin){const eb=branch();const d=await rpc('rustica_rcads_enroll_hr',{p_branch_code:eb,p_hr_pin:String(pin||''),p_label:'HR • '+devLabel()});setKey(d.key,'HR','HR • '+devLabel());try{window.rcadsSetSyncBranch&&window.rcadsSetSyncBranch(eb)}catch(e){}return d}
-  async function issueTicket(label,emp){if(role()!=='HR'||!key())throw new Error('This device is not enrolled as HR');const d=await rpc('rustica_rcads_issue_ticket',{p_branch_code:branch(),p_key:key(),p_label:label||'',p_emp_code:emp||'',p_hours:168});return d.ticket}
+  async function issueTicket(label,emp){if(role()!=='HR'||!key())throw new Error('This device is not enrolled as HR');const d=await rpc('rustica_rcads_issue_ticket',{p_branch_code:branch(),p_key:key(),p_label:label||'',p_emp_code:emp||'',p_hours:48});return d.ticket}
   async function redeem(t){const d=await rpc('rustica_rcads_redeem_ticket',{p_ticket:t,p_label:devLabel()});setKey(d.key,'DEVICE',(d.label||'')+' • '+devLabel());try{window.rcadsSetSyncBranch&&window.rcadsSetSyncBranch(d.branch_code)}catch(e){}return d}
   async function guardTicket(label){if(!key())throw new Error('This phone has no device key');const d=await rpc('rustica_rcads_guard_ticket',{p_branch_code:branch(),p_key:key(),p_label:label||''});return d.ticket}
   async function guardTicket2(label,target){if(!key())throw new Error('This phone has no device key');try{const d=await rpc('rustica_rcads_guard_ticket2',{p_branch_code:branch(),p_key:key(),p_label:label||'',p_target:target||branch()});return d.ticket}catch(e){if(/not set up|could not find/i.test(e.message)&&(!target||target===branch()))return guardTicket(label);throw e}}
@@ -30220,5 +30238,39 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
 })();
 </script>
 <script>/* R297: version + phone owner on the main screen (for checking) */setInterval(function(){try{var e=document.getElementById('r297Ver');if(!e)return;var m=String(document.title).match(/—\s*(R\d+)/);var d=null;try{d=JSON.parse(localStorage.getItem('rustica_r160_mypin_device')||'null')}catch(x){}var t=(m?m[1]:'')+' • '+(d&&d.c?'PHONE OF '+d.c:'PHONE NOT LINKED');if(e.textContent!==t)e.textContent=t}catch(x){}},1500);</script>
+
+<!-- RCADS R301: ANTI-SCAM -->
+<style>
+#r301Fake{position:fixed;inset:0;z-index:2147483646;background:#7a1010;color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;font:800 16px system-ui,sans-serif}
+#r301Fake b{display:block;font-size:22px;margin-bottom:10px}
+.r301-trust{margin-top:10px;font-size:10.5px;line-height:1.35;color:#5b3519;background:#f3ead9;border-radius:10px;padding:7px 9px;text-align:center}
+.r301-clock{display:block;margin-top:8px;padding:8px 10px;border-radius:10px;background:#fde8e6;border:1px solid #d9534f;color:#7a1e16;font-weight:800;font-size:12px}
+</style>
+<script>
+(function(){
+  'use strict';
+  var OFFICIAL='jovilitofetizanan-hub.github.io';
+  /* 1) FAKE SITE: RCADS copied to another website → stop, no PIN can be typed there */
+  function fakeSite(){var h=String(location.hostname||'').toLowerCase();if(!/^https?:$/.test(location.protocol))return false;if(h==='localhost'||h==='127.0.0.1')return false;return h!==OFFICIAL}
+  window.rcadsR301FakeSite=fakeSite;
+  function guardFake(){if(!fakeSite())return;if(!document.body)return;if(!document.getElementById('r301Fake')){var d=document.createElement('div');d.id='r301Fake';d.innerHTML='<div><b>⚠ THIS IS NOT THE OFFICIAL RCADS</b>Do NOT type your PIN here.<br><br>The only official RCADS is:<br><u>'+OFFICIAL+'</u><br><br>Close this page and tell HR right away.</div>';document.body.appendChild(d)}
+    document.querySelectorAll('input[type=password]').forEach(function(i){i.disabled=true})}
+  /* 2) Trust line on every PIN screen */
+  function trust(){var g=document.getElementById('r160Gate');if(!g)return;var c=g.querySelector('.r160-card');if(!c||c.querySelector('.r301-trust'))return;
+    var t=document.createElement('div');t.className='r301-trust';t.innerHTML='🔒 Official RCADS: <b>'+OFFICIAL+'</b><br>Never give your PIN or your QR to anyone. HR will NEVER ask for your PIN by chat, text or call.';c.appendChild(t)}
+  setInterval(function(){try{guardFake();trust()}catch(e){}},700);
+  /* 3) TRUE TIME: internet time from the official site — a phone whose clock was changed cannot fake TIME IN / OUT */
+  var base=null;
+  async function syncClock(){
+    if(!navigator.onLine||!/^https?:$/.test(location.protocol))return;
+    try{var t0=performance.now();var r=await fetch(location.pathname+'?clock='+Date.now(),{method:'HEAD',cache:'no-store'});var t1=performance.now();
+      var d=Date.parse(r.headers.get('Date')||'');if(!isNaN(d))base={srv:d+500,perf:t1-(t1-t0)/2}}catch(e){}
+  }
+  window.rcadsTrueNow=function(){return base?base.srv+(performance.now()-base.perf):null};
+  window.rcadsClockSkewMs=function(){var t=window.rcadsTrueNow();return t==null?0:Date.now()-t};
+  window.addEventListener('online',function(){setTimeout(syncClock,1500)});
+  setInterval(syncClock,10*60000);setTimeout(syncClock,2500);
+})();
+</script>
 </body>
 </html>
