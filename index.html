@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R310 LOST ID TWO LEVELS</title>
+<title>Rustica RCADS App — R314 COMPLETE ID DETAILS FIRST</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -23818,7 +23818,7 @@ body.r162-has-nav{padding-bottom:78px!important}
   function r191Front(c){
     const nm=r191Name(c.name);
     const photo=c.photo?'<img src="'+c.photo+'" alt="">':'<span>1×1<br>PHOTO</span>';
-    return '<div class="r167-card port r255"><div class="r255-top"></div><div class="r255-slot"></div><img class="r255-logo" src="'+R255_LOGO+'" alt="">'
+    return '<div class="r167-card port r255"><div class="r255-top r313-top"></div><div class="r255-slot"></div><div class="r313-head"><img class="r313-logo" src="'+R255_LOGO+'" alt=""><div class="r313-txt"><b>rustica</b><span>RESTAURANT</span></div></div>'
       +'<div class="r255-photo">'+photo+'</div>'
       +'<div class="r255-name" style="font-size:'+r191Fit(nm,3.6,48,0.74)+'">'+esc(nm)+'</div>'
       +'<div class="r255-pos" style="font-size:'+r191Fit(c.position,1.95,40,0.78)+'">'+esc(U(c.position))+'</div>'
@@ -23887,9 +23887,9 @@ body.r162-has-nav{padding-bottom:78px!important}
     const e=(r&&r.emg)||{};
     return '<div class="r167-form" data-r167-form="'+esc(code)+'">'
       +'<label>1×1 PHOTO (white background, facing front, no hat)</label><input type="file" accept="image/*" capture="user" data-r167-photo>'
-      +'<label>SIGNATURE — sign in the box with your finger, or upload a photo of the signature</label>'
-      +'<canvas class="r167-pad" width="600" height="200" data-r167-pad></canvas>'
-      +'<div class="r167-row"><button type="button" class="r167-mini" data-r167-clear>CLEAR</button><input type="file" accept="image/*" data-r167-sigfile></div>'
+      +'<label>SIGNATURE — sign on a clean WHITE paper with a black pen, take a photo, then upload it here</label>'
+      +'<input type="file" accept="image/*" data-r167-sigfile>'
+      +'<details class="r312-pad"><summary>or sign here with your finger instead</summary><canvas class="r167-pad" width="600" height="200" data-r167-pad></canvas><div class="r167-row"><button type="button" class="r167-mini" data-r167-clear>CLEAR</button></div></details>'
       +'<label>EMERGENCY CONTACT — NAME</label><input data-r167-f="name" value="'+esc(e.name||'')+'" maxlength="60">'
       +'<div class="r167-row2"><div><label>RELATIONSHIP</label><input data-r167-f="rel" value="'+esc(e.rel||'')+'" maxlength="30" placeholder="e.g. Spouse, Mother"></div><div><label>CONTACT NO.</label><input data-r167-f="phone" value="'+esc(e.phone||'')+'" maxlength="20" inputmode="tel" placeholder="09xx xxx xxxx"></div></div>'
       +'<label>ADDRESS</label><input data-r167-f="addr" value="'+esc(e.addr||'')+'" maxlength="90">'
@@ -23924,6 +23924,14 @@ body.r162-has-nav{padding-bottom:78px!important}
       const emg={};form.querySelectorAll('[data-r167-f]').forEach(i=>emg[i.getAttribute('data-r167-f')]=i.value.trim());
       const photo=p.photo||old.photo,sig=p.sig||old.sig||(U(code)==='RUS-HR01'?(hrSig().img||''):'');
       if(byHr&&!rustId(code)){info(form,'No RUSTICA ID NO. for '+code+'. Add them to the Rustica ID Registry first before making an ID.',true);return}
+      if(!byHr){ /* R314: an employee request reaches HR only when ALL ID details are complete */
+        const miss=[];if(!photo)miss.push('1×1 PHOTO');if(!sig)miss.push('SIGNATURE (photo of your signature)');
+        if(!emg.name)miss.push('EMERGENCY CONTACT — NAME');if(!emg.rel)miss.push('RELATIONSHIP');
+        if(!emg.phone)miss.push('CONTACT NO.');else if(!/^[0-9+()\-\s]{7,20}$/.test(emg.phone))miss.push('CONTACT NO. (wrong format, e.g. 0917 123 4567)');
+        if(!emg.addr)miss.push('ADDRESS');
+        if(miss.length){info(form,'⚠ NOT SENT TO HR — complete first: '+miss.join(', ')+'.',true);try{document.activeElement&&document.activeElement.blur()}catch(_){}
+          alert('⚠ YOUR ID DETAILS ARE NOT COMPLETE\n\nPlease fill in first:\n• '+miss.join('\n• ')+'\n\nHR will only see your request for approval when everything is complete.');return}
+      }
       if(!photo){info(form,'A 1×1 photo is required.',true);return}
       if(!sig){info(form,'A signature is required.',true);return}
       if(!emg.name||!emg.phone){info(form,'Enter the name and contact no. of the emergency contact.',true);return}
@@ -23966,7 +23974,7 @@ body.r162-has-nav{padding-bottom:78px!important}
       +'<div data-r167-preview="'+esc(U(code))+'">'+cardsHtml(cardData(code,previewCode(code)))+'</div>'
       +'<div class="r167-actions"><button type="button" class="r167-btn" data-r167-print="'+esc(code)+'"'+(r&&r.status==='ACTIVE'&&!isExpired(r)?'':' disabled')+'>🖨 PRINT MY ID (ATM SIZE)</button><button type="button" class="r167-mini light" data-r167-refresh>↻ REFRESH STATUS</button></div>'
       +(r&&r.status==='ACTIVE'&&!lostOpen(code)?'<div class="r308-box"><button type="button" class="r308-btn" data-r308-open>🚨 REPORT LOST ID</button><div class="r308-form" hidden data-r308-form="'+esc(U(code))+'"><b>Report your LOST Rustica ID right away.</b><label>WHEN DID YOU LOSE IT? (date and time)</label><input type="datetime-local" data-r308-when><label>WHERE / HOW (short)</label><input data-r308-note maxlength="200" placeholder="e.g. lost in the jeepney going home"><button type="button" class="r308-btn" data-r308-send>SEND REPORT TO HR</button><small>Report within 24 hours. Your old ID will be NOT VALID at once. A lost ID has a penalty (see the Memo). Never lend your ID to anyone.</small></div></div>':'')
-      +((!r||r.status==='PENDING'||r.status==='REJECTED'||isExpired(r))?'<div class="r167-head" style="margin-top:12px">📤 SEND MY DETAILS TO HR</div>'+formHtml(code,r,false):'')
+      +((!r||r.status==='PENDING'||r.status==='REJECTED'||isExpired(r))?'<div class="r167-head" style="margin-top:12px">📤 SEND MY DETAILS TO HR</div><div class="r314-rem">⚠ Complete ALL details before you press SUBMIT: 1×1 photo, signature, emergency contact name, relationship, contact no. and address. HR will only see your request when everything is complete.</div>'+formHtml(code,r,false):'')
       +'<div class="r167-note">'+(r&&r.status==='ACTIVE'&&!isExpired(r)?'To change your photo, signature or emergency contact, see HR. ':'')+'Print at 100% / Actual size and laminate.</div>';
   }
   function mountEmp(host,tagEl){
@@ -24076,6 +24084,22 @@ body.r162-has-nav{padding-bottom:78px!important}
       if(!confirm('Record the ID of '+code+' as LOST? The old ID becomes NOT VALID until you issue a replacement.'))return;addLost(code,new Date(w).toISOString(),n,'HR');renderHrList();renderHrDetail(U(code));return}
   });
   {const st=document.createElement('style');st.textContent='.r308-box{margin:10px 0;text-align:center}.r308-btn{width:100%;padding:12px;border:0;border-radius:12px;background:#a1281f;color:#fff;font-weight:900;font-size:13px;margin-top:6px}.r308-form{margin-top:8px;padding:10px;border:1px solid #e3b2ad;border-radius:12px;background:#fff6f5;text-align:left;font-size:12px}.r308-form label{display:block;font-weight:900;font-size:11px;margin-top:8px}.r308-form input{width:100%;box-sizing:border-box;padding:9px;border:1px solid #d8bfa1;border-radius:9px}.r308-form small{display:block;margin-top:6px;color:#7a1e16}.r308-hr{margin:10px 0;padding:10px;border:1px solid #e3b2ad;border-radius:12px;background:#fff6f5;font-size:12px}.r308-h{font-weight:900;color:#7a1e16}.r308-list div{padding:6px 0;border-bottom:1px dashed #e3b2ad}.r308-late{color:#a1281f;font-weight:900}.r308-adv{margin-top:6px;font-weight:800;color:#5b3519}.r308-rec{margin-top:6px}.r308-rec input{width:100%;box-sizing:border-box;padding:8px;margin:3px 0;border:1px solid #d8bfa1;border-radius:8px}';document.head.appendChild(st)}
+
+  /* R311: the HR's own Rustica ID at the bottom of the HR main screen (like MY ID of the employees) */
+  function r311HrDev(){try{return localStorage.getItem(HR_FLAG)==='1'||localStorage.getItem('r182_device_role')==='HR'}catch(_){return false}}
+  setInterval(()=>{try{
+    const sel=document.getElementById('selectScreen');let box=document.getElementById('r311HrId');
+    if(!sel||!r311HrDev()){if(box)box.remove();return}
+    if(!box){box=document.createElement('div');box.id='r311HrId';box.className='r167-panel';box.style.cssText='margin:16px 0;padding:12px;border-radius:16px;background:#fffaf2;border:1px solid #e0cdb2';sel.appendChild(box)}
+    else if(box.parentElement!==sel||box.nextElementSibling)sel.appendChild(box);
+    const r=rec('RUS-HR01');const sig=JSON.stringify([r&&r.status,r&&r.approvedAt,r&&r.validUntil,r&&r.photo&&r.photo.length,hrSig().updatedAt||'',(read(CEOSIG_KEY,{})||{}).updatedAt||'',lostList('RUS-HR01').length,tpl().updatedAt||'']);
+    if(box.dataset.sig===sig)return;box.dataset.sig=sig;
+    const ok=r&&r.status==='ACTIVE'&&!isExpired(r)&&!lostOpen('RUS-HR01');
+    box.innerHTML='<div class="r167-head">🪪 MY RUSTICA ID — RUST-001</div>'
+      +(ok?'<div class="r167-st ok">✓ ACTIVE • '+esc(r.empType||'REGULAR')+' • VALID UNTIL '+esc(fmtD(r.validUntil))+'</div>':(r&&r.status==='ACTIVE'&&isExpired(r)?'<div class="r167-st bad">⛔ EXPIRED on '+esc(fmtD(r.validUntil))+' — renew it in 🪪 Rustica ID Cards (HR — All Branches).</div>':'<div class="r167-st none">Not issued yet — make it in 🪪 Rustica ID Cards → BRANCH: HR — All Branches.</div>'))
+      +'<div>'+cardsHtml(cardData('RUS-HR01',r))+'</div>'
+      +'<div class="r167-actions"><button type="button" class="r167-btn" data-r167-print="RUS-HR01"'+(ok?'':' disabled')+'>🖨 PRINT MY ID (ATM SIZE)</button></div>';
+  }catch(e){}},1500);
   function rebind(sec){sec.remove();ensureHr();renderHrList();if(hrSel)renderHrDetail(hrSel)}
   document.addEventListener('click',ev=>{
     const t=ev.target;if(!t.closest)return;
@@ -30330,5 +30354,8 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
   setInterval(syncClock,10*60000);setTimeout(syncClock,2500);
 })();
 </script>
+<style>.r312-pad{margin:6px 0 4px;font-size:12px}.r312-pad summary{cursor:pointer;color:#7a6250;font-weight:800}</style>
+<script>(function(){var t="/* R313: ID front header like the RCADS header \u2014 logo left, \"rustica / RESTAURANT\" right */\n.r255 .r255-top.r313-top{height:21mm;background:linear-gradient(180deg,#2d150b 0%,#432414 100%);border-bottom:.5mm solid #d7ad63}\n.r255 .r313-head{position:absolute;left:3.2mm;right:3mm;top:4.2mm;height:14mm;display:flex;align-items:center;gap:2.4mm;z-index:2}\n.r255 .r313-logo{width:14mm;height:14mm;flex:0 0 14mm;border-radius:50%;filter:drop-shadow(0 .3mm .6mm rgba(0,0,0,.45))}\n.r255 .r313-txt{display:flex;flex-direction:column;justify-content:center;line-height:1;min-width:0}\n.r255 .r313-txt b{font-family:Georgia,\"DejaVu Serif\",serif;font-weight:700;font-size:7.2mm;color:#d7ad63;letter-spacing:.2mm}\n.r255 .r313-txt span{font-family:Georgia,\"DejaVu Serif\",serif;font-size:2.35mm;letter-spacing:.55mm;color:#f5e5c4;margin-top:1mm;white-space:nowrap}\n.r255 .r255-slot{z-index:3;background:rgba(255,255,255,.25)}\n";function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent.indexOf('R313')<0){e.textContent+='\n'+t;return true}return false}if(!add()){var n=0,iv=setInterval(function(){if(add()||++n>40)clearInterval(iv)},250)}})();</script>
+<style>.r314-rem{margin:6px 0 8px;padding:8px 10px;border-radius:10px;background:#fff4d6;border:1px solid #e0b64a;color:#6b4a00;font-weight:800;font-size:12px}</style>
 </body>
 </html>
