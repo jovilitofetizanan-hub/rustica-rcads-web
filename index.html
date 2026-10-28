@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R305 ID QR 5 FIELDS ONLY</title>
+<title>Rustica RCADS App — R310 LOST ID TWO LEVELS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -23715,6 +23715,27 @@ body.r162-has-nav{padding-bottom:78px!important}
   function empType(code){return (read(TYPE_KEY,{})||{})[U(code)]||'CONTRACTUAL'}
   function fmtD(iso){if(!iso)return '—';const d=new Date(iso);return isNaN(d)?'—':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
   function addMonths(d,m){const x=new Date(d);const day=x.getDate();x.setMonth(x.getMonth()+m);if(x.getDate()<day)x.setDate(0);return x}
+  /* R307: ID validity starts on the CONTRACT SIGNING date (Contractual 5 months, Probationary 6 months — ends automatically)
+     or on the REGULARIZATION date (Regular → valid until Dec 31; long-time regulars renew every end of year). */
+  const START_KEY='rcads_r307_id_start_v1';
+  function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function startOf(code){const m=read(START_KEY,{})||{};return m[U(code)]||''}
+  function r307Until(type,startStr){const st=startStr?new Date(startStr+'T00:00:00'):new Date();if(isNaN(st))return null;
+    if(type==='REGULAR'){const y=Math.max(st.getFullYear(),new Date().getFullYear());return new Date(y,11,31,23,0,0)}
+    const e=addMonths(st,type==='PROBATIONARY'?6:5);e.setDate(e.getDate()-1);e.setHours(23,0,0,0);return e}
+  function r307Read(code){const ts=document.getElementById('r167Type'),ds=document.getElementById('r307Start');const type=ts?ts.value:empType(code);const start=(ds&&ds.value)||startOf(code)||ymd(new Date());return {type,start,until:r307Until(type,start)}}
+  function r307Save(code,type,start){const m=read(START_KEY,{})||{};m[U(code)]=start;write(START_KEY,m);const t=read(TYPE_KEY,{})||{};t[U(code)]=type;write(TYPE_KEY,t)}
+  /* R308: LOST ID — report at once; the old ID becomes NOT VALID until HR issues a replacement. */
+  const LOST_PREFIX='rcads_r308_lost_';
+  function lostList(code){const l=read(LOST_PREFIX+safeKey(code),[]);return Array.isArray(l)?l:[]}
+  function lostOpen(code){const rr=read(recKey(code),null);const L=lostList(code);if(!L.length)return null;const last=L[L.length-1];if(rr&&rr.approvedAt&&String(rr.approvedAt)>String(last.reportedAt))return null;return last}
+  function lostLate(x){const a=Date.parse(x.lostAt||''),b=Date.parse(x.reportedAt||'');return !isNaN(a)&&!isNaN(b)&&b-a>24*3600e3}
+  function lostCount12(code){const lim=Date.now()-365*864e5;return lostList(code).filter(x=>Date.parse(x.reportedAt||'')>=lim).length}
+  function lostAdvice(code){const L=lostList(code);if(!L.length)return '';const n=lostCount12(code),last=L[L.length-1],lvl=Math.min(2,n+(lostLate(last)?1:0)); /* R310: only 2 levels */
+    const txt=['','LEVEL 1 — Written warning + replacement fee.','LEVEL 2 — Disciplinary action under the Code of Discipline + Affidavit of Loss.'][lvl];
+    return 'Loss no. '+n+' in 12 months'+(lostLate(last)?', reported LATE (over 24 h) → one level heavier':'')+'. '+txt+' Deductions from pay need due process and the employee\'s written consent.'}
+  function addLost(code,lostAt,note,by){const L=lostList(code);L.push({lostAt:lostAt||'',reportedAt:new Date().toISOString(),note:String(note||'').slice(0,300),by:by||'EMPLOYEE'});return write(LOST_PREFIX+safeKey(code),L)}
+  window.rcadsR308={lostList,lostOpen,addLost};
   function isExpired(r){return r&&r.validUntil&&Date.now()>Date.parse(r.validUntil)+864e5-1}
   function logoSrc(){const i=document.querySelector('img.rcads-rustica-logo');return i?i.src:''}
 
@@ -23731,9 +23752,9 @@ body.r162-has-nav{padding-bottom:78px!important}
     window.rcadsCloudShouldSyncKey=function(k){
       if(!origShould.apply(this,arguments))return false;
       k=String(k||'');
-      if(k.indexOf(IDC_PREFIX)===0){
+      if(k.indexOf(IDC_PREFIX)===0||k.indexOf(LOST_PREFIX)===0){
         let applying=false;try{applying=rcadsCloudApplyingRemote}catch(e){}
-        if(applying){if(localStorage.getItem(HR_FLAG)==='1')return true;return ownCodes().has(k.slice(IDC_PREFIX.length))}
+        if(applying){if(localStorage.getItem(HR_FLAG)==='1')return true;return ownCodes().has(k.slice(k.indexOf(IDC_PREFIX)===0?IDC_PREFIX.length:LOST_PREFIX.length))}
       }
       return true;
     };
@@ -23766,8 +23787,8 @@ body.r162-has-nav{padding-bottom:78px!important}
     const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.drawImage(im,0,0,W,H);
     return {img:c.toDataURL('image/jpeg',0.8),orient:land?'landscape':'portrait'};
   }
-  /* R305: the ID QR holds ONLY Name, Position, Branch, Emp. Code and Rustica ID No. */
-  function idQrText(c){return 'Name: '+(c.name||'')+'\nPosition: '+String(c.position||'').toUpperCase()+'\nBranch: '+bName(c.branch)+'\nEmp. Code: '+(c.code||'')+'\nRustica ID: '+(c.rid||'')}
+  /* R305/R306: the ID QR holds ONLY Name, Position, Branch, Emp. Code, Rustica ID No. and Valid Until */
+  function idQrText(c){return 'Name: '+(c.name||'')+'\nPosition: '+String(c.position||'').toUpperCase()+'\nBranch: '+bName(c.branch)+'\nEmp. Code: '+(c.code||'')+'\nRustica ID: '+(c.rid||'')+'\nValid Until: '+(c.valid?fmtD(c.valid):'—')}
   function qrSvg(data){
     const QR=window.RCADSQRCode,E=window.RCADSQRErrorCorrectLevel;if(!QR||!E)return '';
     const q=new QR(-1,E.M);q.addData(data);q.make();const n=q.getModuleCount(),z=2,s=n+z*2;let d='';
@@ -23782,6 +23803,7 @@ body.r162-has-nav{padding-bottom:78px!important}
       photo:r&&r.photo,sig:(r&&r.sig)||(U(code)==='RUS-HR01'?(hrSig().img||''):''), /* R304: HR's saved signature = his own ID signature */emg:(r&&r.emg)||{},type:(r&&r.empType)||empType(code),issued:r&&r.approvedAt,valid:r&&r.validUntil,status:r?r.status:'NONE'};
   }
   function stamp(c){
+    if(c.status==='ACTIVE'&&c.code&&lostOpen(c.code))return '<div class="r167-stamp">LOST — NOT VALID</div>';
     if(c.status==='ACTIVE'&&isExpired({validUntil:c.valid}))return '<div class="r167-stamp">EXPIRED</div>';
     if(c.status!=='ACTIVE')return '<div class="r167-stamp">'+(c.status==='PENDING'?'PENDING HR APPROVAL':'SAMPLE ONLY')+'</div>';
     return '';
@@ -23852,6 +23874,7 @@ body.r162-has-nav{padding-bottom:78px!important}
     const r=rec(code);const c=cardData(code,r);
     if(!r||r.status!=='ACTIVE'){alert('The ID is not yet approved by HR. Wait for approval before printing.');return}
     if(isExpired(r)){alert('The ID has EXPIRED. See HR for renewal.');return}
+    if(lostOpen(code)){alert('This ID was reported LOST — it is NOT valid. HR must issue a replacement first.');return}
     const css=[...document.querySelectorAll('#rcadsR167Css')].map(s=>s.textContent).join('\n');
     const w=window.open('','_blank');if(!w){alert('Allow pop-ups to be able to print.');return}
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Rustica ID — '+esc(c.name)+'</title><style>'+css+'\nbody{margin:8mm;font-family:Arial,sans-serif;background:#fff}.r167-printrow{display:flex;gap:6mm;flex-wrap:wrap}.r167-printrow .r167-card{outline:0.2mm dashed #999;outline-offset:1.5mm}.r167-help{font:11px Arial;color:#444;margin-bottom:6mm;max-width:170mm}@page{size:A4;margin:8mm}@media print{.r167-help button,.r167-help{display:none}}</style></head><body><div class="r167-help"><button onclick="print()" style="padding:9px 16px;font-weight:900">PRINT</button><p>Print at <b>100% / Actual size</b> (not "Fit to page"). Cut along the dashed line, stick the back to the front, and laminate. Size: 85.6 × 54 mm (ATM card).</p></div><div class="r167-printrow">'+front(c)+back(c)+'</div></body></html>');
@@ -23909,11 +23932,12 @@ body.r162-has-nav{padding-bottom:78px!important}
       const r={...old,code:U(code),name:e.name||old.name||'',position:e.position||old.position||'',branch:f.branch||old.branch||curBranch(),photo,sig,emg,
         status:byHr?'ACTIVE':'PENDING',submittedAt:now,submittedBy:byHr?'HR':'EMPLOYEE',rejectReason:''};
       if(byHr){
-        const keep=old.status==='ACTIVE'&&!isExpired(old)&&old.validUntil;
-        const typeSel=document.getElementById('r167Type');const type=typeSel?typeSel.value:empType(code);
+        const RS=r307Read(code);
+        const keep=old.status==='ACTIVE'&&!isExpired(old)&&old.validUntil&&old.empType===RS.type&&(old.validFrom||'')===RS.start;
+        const type=RS.type;
         const types=read(TYPE_KEY,{})||{};types[U(code)]=type;write(TYPE_KEY,types);
         r.empType=keep?old.empType:type;
-        if(!keep){r.approvedAt=now;r.validUntil=addMonths(new Date(),type==='REGULAR'?12:5).toISOString()}
+        if(!keep){r.approvedAt=now;r.validFrom=RS.start;r.validUntil=(RS.until||addMonths(new Date(),5)).toISOString();r307Save(code,type,RS.start)}
         r.approvedBy='HR OPERATION OFFICER';
       }else{r.approvedAt='';r.validUntil=''}
       r.history=[{at:now,by:r.submittedBy,action:'SUBMIT'}].concat(old.history||[]).slice(0,20);
@@ -23929,6 +23953,7 @@ body.r162-has-nav{padding-bottom:78px!important}
 
   /* ---------- employee / approver MY ID tab ---------- */
   function statusLine(r){
+    if(r&&r.code&&lostOpen(r.code)){const lo=lostOpen(r.code);return '<div class="r167-st bad">🚨 LOST ID REPORTED on '+esc(fmtD(lo.reportedAt))+' — your old ID is NOT valid anymore. Go to HR for a replacement.</div>'}
     if(!r)return '<div class="r167-st none">NO RUSTICA ID YET — fill in the form below (1×1 photo, signature, emergency contact) and press SUBMIT TO HR. HR will approve it and your ID will appear here.</div>';
     if(r.status==='PENDING')return '<div class="r167-st pend">⏳ SENT TO HR — waiting for approval. You can still correct and submit again below.</div>';
     if(r.status==='REJECTED')return '<div class="r167-st bad">✗ RETURNED BY HR: '+esc(r.rejectReason||'please fix and submit again')+'</div>';
@@ -23940,6 +23965,7 @@ body.r162-has-nav{padding-bottom:78px!important}
     return '<div class="r167-head">🪪 MY RUSTICA ID</div>'+statusLine(r)
       +'<div data-r167-preview="'+esc(U(code))+'">'+cardsHtml(cardData(code,previewCode(code)))+'</div>'
       +'<div class="r167-actions"><button type="button" class="r167-btn" data-r167-print="'+esc(code)+'"'+(r&&r.status==='ACTIVE'&&!isExpired(r)?'':' disabled')+'>🖨 PRINT MY ID (ATM SIZE)</button><button type="button" class="r167-mini light" data-r167-refresh>↻ REFRESH STATUS</button></div>'
+      +(r&&r.status==='ACTIVE'&&!lostOpen(code)?'<div class="r308-box"><button type="button" class="r308-btn" data-r308-open>🚨 REPORT LOST ID</button><div class="r308-form" hidden data-r308-form="'+esc(U(code))+'"><b>Report your LOST Rustica ID right away.</b><label>WHEN DID YOU LOSE IT? (date and time)</label><input type="datetime-local" data-r308-when><label>WHERE / HOW (short)</label><input data-r308-note maxlength="200" placeholder="e.g. lost in the jeepney going home"><button type="button" class="r308-btn" data-r308-send>SEND REPORT TO HR</button><small>Report within 24 hours. Your old ID will be NOT VALID at once. A lost ID has a penalty (see the Memo). Never lend your ID to anyone.</small></div></div>':'')
       +((!r||r.status==='PENDING'||r.status==='REJECTED'||isExpired(r))?'<div class="r167-head" style="margin-top:12px">📤 SEND MY DETAILS TO HR</div>'+formHtml(code,r,false):'')
       +'<div class="r167-note">'+(r&&r.status==='ACTIVE'&&!isExpired(r)?'To change your photo, signature or emergency contact, see HR. ':'')+'Print at 100% / Actual size and laminate.</div>';
   }
@@ -23949,7 +23975,7 @@ body.r162-has-nav{padding-bottom:78px!important}
     let el=document.getElementById('r167EmpId');
     if(!el){el=document.createElement('div');el.id='r167EmpId';el.className='r167-panel';el.setAttribute('data-r162-tab','id');host.appendChild(el)}
     else if(el.parentElement!==host)host.appendChild(el);
-    const r=rec(e.code);const sig=JSON.stringify([e.code,r&&r.status,r&&r.submittedAt,r&&r.approvedAt,r&&r.validUntil,tpl().updatedAt||'']);
+    const r=rec(e.code);const sig=JSON.stringify([e.code,r&&r.status,r&&r.submittedAt,r&&r.approvedAt,r&&r.validUntil,tpl().updatedAt||'',lostList(e.code).length]);
     if(el.dataset.sig!==sig&&!el.contains(document.activeElement)){el.dataset.sig=sig;el.innerHTML=empPanelHtml(e.code);el.querySelectorAll('[data-r167-pad]').forEach(cv=>bindPad(cv,e.code))}
   }
   setInterval(()=>{
@@ -23965,16 +23991,16 @@ body.r162-has-nav{padding-bottom:78px!important}
   function hrHtml(){
     const bo=branchList().map(b=>'<option value="'+esc(b.code)+'">'+esc(b.name)+'</option>').join('')+'<option value="HR_OFFICE">HR — All Branches</option>';const t=tpl();
     return '<div class="r160-hr-title">🪪 RUSTICA ID CARDS (ATM SIZE 85.6 × 54 mm)</div>'
-      +'<div class="r160-hr-note">1) The Rustica ID design (front and back) is already built in — upload a design below ONLY if you want to replace it. 2) Choose the BRANCH, then click the employee in the list (FILTER: No ID yet), or search by RUSTICA ID NO. / EMPCODE. 3) Upload the 1×1 photo and signature they gave, enter the emergency contact, choose REGULAR or CONTRACTUAL, and press SAVE &amp; ISSUE. The ID is valid for 5 months (Contractual) or 1 year (Regular). The employee can then see and print it in the MY ID tab of their app.</div>'
+      +'<div class="r160-hr-note">1) The Rustica ID design (front and back) is already built in — upload a design below ONLY if you want to replace it. 2) Choose the BRANCH, then click the employee in the list (FILTER: No ID yet), or search by RUSTICA ID NO. / EMPCODE. 3) Upload the 1×1 photo and signature they gave, enter the emergency contact, choose CONTRACTUAL / PROBATIONARY / REGULAR and the DATE (contract signed, or date regularized), then press SAVE &amp; ISSUE. Validity starts on that date: Contractual 5 months, Probationary 6 months (ends automatically), Regular until December 31 (renew every end of year). The employee can then see and print it in the MY ID tab of their app.</div>'
       +'<div class="r167-tplrow"><div><label>ID DESIGN — FRONT (JPG/PNG)</label><input type="file" accept="image/*" id="r167TplFront"></div><div><label>ID DESIGN — BACK (JPG/PNG)</label><input type="file" accept="image/*" id="r167TplBack"></div><div class="r167-tplinfo" id="r167TplInfo">'+(t.updatedAt?'Design uploaded '+esc(fmtD(t.updatedAt))+' • '+esc(t.orient||'portrait'):'Using the built-in Rustica ID design.')+(t.front||t.back?' <button type="button" class="r167-mini red" id="r167TplClear">REMOVE DESIGN</button>':'')+'</div></div>'
       +(()=>{const h=hrSig();return '<div class="r167-hrsigbox"><div class="r167-hrsig-h">✍ HR SIGNATURE ON THE BACK OF THE ID</div><div class="r167-hrsig-grid"><div><label>NAME</label><input id="r167HrName" value="'+esc(h.name||'JOVILITO F. FETIZANAN')+'" maxlength="40"><label>TITLE</label><input id="r167HrTitle" value="'+esc(h.title||'HR Operation Officer')+'" maxlength="40"><label>UPLOAD THE SIGNATURE (photo on white paper)</label><input type="file" accept="image/*" id="r167HrSigFile"><label>OR SIGN HERE</label><canvas class="r167-pad" id="r167HrPad" width="600" height="200"></canvas><div class="r167-row"><button type="button" class="r167-mini light" id="r167HrPadClear">CLEAR</button><button type="button" class="r167-mini" id="r167HrSave">SAVE HR SIGNATURE</button>'+(h.img?'<button type="button" class="r167-mini red" id="r167HrRemove">REMOVE</button>':'')+'</div><div class="r167-info" id="r167HrInfo">'+(h.updatedAt?'Saved '+esc(fmtD(h.updatedAt))+' — it will appear on the back of every ID.':'No HR signature yet.')+'</div></div><div class="r167-hrsig-prev">'+(h.img?'<img src="'+h.img+'" alt="HR signature">':'<span>Signature preview</span>')+'</div></div></div>'})()
       +'<div class="r167-hrsigbox" id="r303Box"><div class="r167-hrsig-h">✍ CEO SIGNATURE — only on the HR\'s own ID (RUST-001 • RUS-HR01)</div>'+(()=>{const c=ceoSig();return '<div class="r167-hrsig-grid"><div><label>NAME</label><input id="r303Name" value="'+esc(c.name)+'" maxlength="40"><label>TITLE</label><input id="r303Title" value="'+esc(c.title)+'" maxlength="40"><label>UPLOAD THE CEO SIGNATURE (photo on white paper)</label><input type="file" accept="image/*" id="r303File"><button type="button" class="r167-btn" id="r303Save">SAVE CEO SIGNATURE</button><div class="r167-tplinfo">'+(c.img?'CEO signature saved '+esc(fmtD(c.updatedAt))+'.':'No CEO signature yet.')+'</div></div><div class="r167-hrsig-prev">'+(c.img?'<img src="'+c.img+'" alt="CEO signature">':'<span>Signature preview</span>')+'</div></div>'})()+'</div>'
       +'<div class="r167-find"><label>SEARCH BY RUSTICA ID NO. OR EMPCODE</label><div class="r167-row"><input id="r167Find" placeholder="e.g. RUST-034 or SRF-EMP10" list="r167FindList"><datalist id="r167FindList"></datalist><button type="button" class="r160-mini" id="r167FindBtn">SEARCH</button></div></div>'
-      +'<div class="r160-hr-bar"><label>BRANCH <select id="r167Branch">'+bo+'</select></label><label>FILTER <select id="r167Filter"><option value="">All</option><option value="PENDING">Pending approval</option><option value="ACTIVE">Active</option><option value="EXPIRED">Expired / expiring 30 days</option><option value="NONE">No ID yet</option></select></label></div>'
+      +'<div class="r160-hr-bar"><label>BRANCH <select id="r167Branch">'+bo+'</select></label><label>FILTER <select id="r167Filter"><option value="">All</option><option value="PENDING">Pending approval</option><option value="ACTIVE">Active</option><option value="EXPIRED">Expired / expiring 30 days</option><option value="NONE">No ID yet</option><option value="LOST">🚨 Lost — needs replacement</option></select></label></div>'
       +'<div id="r167Counts" class="r160-counts"></div>'
       +'<div class="r160-hr-grid"><div id="r167List" class="r160-list"></div><div id="r167Detail" class="r160-detail"><div class="r160-empty">Choose an employee.</div></div></div>';
   }
-  function hrStatus(code){const r=rec(code);if(!r)return {k:'NONE',t:'NO ID',c:'none'};if(r.status==='PENDING')return {k:'PENDING',t:'PENDING',c:'pend'};if(r.status==='REJECTED')return {k:'NONE',t:'RETURNED',c:'bad'};if(isExpired(r))return {k:'EXPIRED',t:'EXPIRED',c:'bad'};const soon=Date.parse(r.validUntil)-Date.now()<30*864e5;return {k:soon?'EXPIRED':'ACTIVE',t:soon?'EXPIRES '+fmtD(r.validUntil):'ACTIVE',c:soon?'pend':'ok'}}
+  function hrStatus(code){const r=rec(code);const lo=lostOpen(code);if(lo)return {k:'LOST',t:'🚨 LOST — reported '+fmtD(lo.reportedAt),c:'bad'};if(!r)return {k:'NONE',t:'NO ID',c:'none'};if(r.status==='PENDING')return {k:'PENDING',t:'PENDING',c:'pend'};if(r.status==='REJECTED')return {k:'NONE',t:'RETURNED',c:'bad'};if(isExpired(r))return {k:'EXPIRED',t:'EXPIRED',c:'bad'};const soon=Date.parse(r.validUntil)-Date.now()<30*864e5;return {k:soon?'EXPIRED':'ACTIVE',t:soon?'EXPIRES '+fmtD(r.validUntil):'ACTIVE',c:soon?'pend':'ok'}}
   let hrSel='';
   function renderHrList(){
     const list=document.getElementById('r167List');if(!list)return;const b=document.getElementById('r167Branch').value,flt=document.getElementById('r167Filter').value;
@@ -23988,8 +24014,13 @@ body.r162-has-nav{padding-bottom:78px!important}
     d.innerHTML='<div class="r160-d-name">'+esc(f.emp.name)+'</div><div class="r160-d-sub">'+esc(f.emp.code)+' • '+esc(rustId(code)||'NO RUSTICA ID')+' • '+esc(bName(f.branch))+' • '+esc(f.emp.position||'')+'</div>'
       +'<div class="r160-st big '+s.c+'">'+esc(s.t)+'</div>'
       +'<div data-r167-preview="'+esc(U(code))+'">'+cardsHtml(cardData(code,previewCode(code)))+'</div>'
-      +'<div class="r167-approve"><label>EMPLOYMENT <select id="r167Type"><option value="CONTRACTUAL"'+(type==='CONTRACTUAL'?' selected':'')+'>CONTRACTUAL — 5 months</option><option value="REGULAR"'+(type==='REGULAR'?' selected':'')+'>REGULAR — 1 year</option></select></label>'
-      +'<button type="button" class="r160-btn" data-r167-approve="'+esc(code)+'"'+(r&&r.photo&&r.sig?'':' disabled')+'>'+(r&&r.status==='ACTIVE'?'RENEW / RE-ISSUE (new validity starting today)':'ISSUE ID')+'</button>'
+      +(()=>{const L=lostList(code);const lo=lostOpen(code);return '<div class="r308-hr"><div class="r308-h">🚨 LOST ID — '+L.length+' report(s) • '+lostCount12(code)+' in the last 12 months'+(lo?' • <b>OLD ID NOT VALID — issue a replacement</b>':'')+'</div>'
+        +(L.length?'<div class="r308-list">'+L.slice().reverse().map(x=>'<div>Lost: <b>'+esc(x.lostAt?fmtD(x.lostAt)+' '+new Date(x.lostAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):'—')+'</b> • Reported: <b>'+esc(fmtD(x.reportedAt))+' '+esc(new Date(x.reportedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}))+'</b> by '+esc(x.by)+(lostLate(x)?' • <span class="r308-late">LATE (over 24 h)</span>':' • on time')+(x.note?'<br><i>'+esc(x.note)+'</i>':'')+'</div>').join('')+'</div><div class="r308-adv">Suggested penalty: '+esc(lostAdvice(code))+'</div>':'')
+        +'<details class="r308-rec"><summary>Record a lost ID report (told to HR)</summary><label>WHEN WAS IT LOST?</label><input type="datetime-local" id="r308HrWhen"><label>NOTE</label><input id="r308HrNote" maxlength="200"><button type="button" class="r160-mini red" data-r308-hr="'+esc(U(code))+'">SAVE LOST REPORT</button></details></div>'})()
+      +'<div class="r167-approve"><label>EMPLOYMENT <select id="r167Type" data-r307-code="'+esc(U(code))+'"><option value="CONTRACTUAL"'+(type==='CONTRACTUAL'?' selected':'')+'>CONTRACTUAL — 5 months</option><option value="PROBATIONARY"'+(type==='PROBATIONARY'?' selected':'')+'>PROBATIONARY — 6 months</option><option value="REGULAR"'+(type==='REGULAR'?' selected':'')+'>REGULAR — until Dec 31 (every end of year)</option></select></label>'
+      +'<label><span id="r307Lbl">'+(type==='REGULAR'?'DATE REGULARIZED':'DATE THE CONTRACT WAS SIGNED')+'</span> <input type="date" id="r307Start" data-r307-code="'+esc(U(code))+'" value="'+esc(startOf(code)||ymd(new Date()))+'"></label>'
+      +'<div id="r307Prev" class="r160-hint" style="font-weight:800;color:#2f6b3a">'+(()=>{const u=r307Until(type,startOf(code)||ymd(new Date()));return u?'ID VALID UNTIL: '+esc(fmtD(u.toISOString())):''})()+'</div>'
+      +'<button type="button" class="r160-btn" data-r167-approve="'+esc(code)+'"'+(r&&r.photo&&r.sig?'':' disabled')+'>'+(r&&r.status==='ACTIVE'?'RENEW / RE-ISSUE (validity from the date above)':'ISSUE ID')+'</button>'
       +(r&&r.status==='PENDING'?'<button type="button" class="r160-mini red" data-r167-reject="'+esc(code)+'">RETURN / REJECT</button>':'')
       +(r&&r.status==='ACTIVE'?'<button type="button" class="r160-mini" data-r167-print="'+esc(code)+'">PRINT</button>':'')+'</div>'
       +(r?'<div class="r160-d-log">Submitted '+esc(fmtD(r.submittedAt))+' by '+esc(r.submittedBy||'—')+(r.approvedAt?' • Approved '+esc(fmtD(r.approvedAt)):'')+(r.validUntil?' • Valid until '+esc(fmtD(r.validUntil)):'')+'</div>':'')
@@ -24031,6 +24062,20 @@ body.r162-has-nav{padding-bottom:78px!important}
   document.addEventListener('click',ev=>{const t=ev.target;if(!t.closest||!t.closest('#r303Save'))return;const c=ceoSig();const img=r303Img||c.img;if(!img){alert('Upload the CEO signature first.');return}
     write(CEOSIG_KEY,{img,name:(document.getElementById('r303Name').value.trim()||'MS. EVANGELINE BALINGIT'),title:(document.getElementById('r303Title').value.trim()||'Chief Executive Officer'),updatedAt:new Date().toISOString()});r303Img='';
     const s2=document.getElementById('r167HrSection');if(s2)rebind(s2);alert('✓ CEO signature saved — it is on the back of the HR\'s own Rustica ID (RUST-001).')});
+  document.addEventListener('change',ev=>{const t=ev.target;if(!t||!(t.id==='r167Type'||t.id==='r307Start'))return;const code=t.getAttribute('data-r307-code')||'';
+    const ty=document.getElementById('r167Type'),ds=document.getElementById('r307Start'),lb=document.getElementById('r307Lbl'),pv=document.getElementById('r307Prev');
+    if(lb&&ty)lb.textContent=ty.value==='REGULAR'?'DATE REGULARIZED':'DATE THE CONTRACT WAS SIGNED';
+    const u=r307Until(ty?ty.value:'CONTRACTUAL',ds?ds.value:'');if(pv)pv.textContent=u?'ID VALID UNTIL: '+fmtD(u.toISOString())+(u.getTime()<Date.now()?' (ALREADY ENDED)':''):'Choose the date.'});
+  document.addEventListener('click',ev=>{const t=ev.target;if(!t.closest)return;
+    if(t.closest('[data-r308-open]')){const f=t.closest('.r308-box').querySelector('[data-r308-form]');f.hidden=!f.hidden;return}
+    const sd=t.closest('[data-r308-send]');if(sd){const f=sd.closest('[data-r308-form]');const code=f.getAttribute('data-r308-form');const w=f.querySelector('[data-r308-when]').value,n=f.querySelector('[data-r308-note]').value.trim();
+      if(!w){alert('Enter WHEN you lost it.');return}if(Date.parse(w)>Date.now()+60000){alert('The date is in the future.');return}
+      if(!confirm('Report your Rustica ID as LOST?\n\nYour old ID will be NOT VALID at once. Go to HR for a replacement.'))return;
+      if(addLost(code,new Date(w).toISOString(),n,'EMPLOYEE')){try{document.activeElement&&document.activeElement.blur()}catch(_){}alert('✓ Lost ID reported to HR.');const el=document.getElementById('r167EmpId');if(el)el.dataset.sig=''}return}
+    const hb=t.closest('[data-r308-hr]');if(hb){const code=hb.getAttribute('data-r308-hr');const w=document.getElementById('r308HrWhen').value,n=document.getElementById('r308HrNote').value.trim();if(!w){alert('Enter when it was lost.');return}
+      if(!confirm('Record the ID of '+code+' as LOST? The old ID becomes NOT VALID until you issue a replacement.'))return;addLost(code,new Date(w).toISOString(),n,'HR');renderHrList();renderHrDetail(U(code));return}
+  });
+  {const st=document.createElement('style');st.textContent='.r308-box{margin:10px 0;text-align:center}.r308-btn{width:100%;padding:12px;border:0;border-radius:12px;background:#a1281f;color:#fff;font-weight:900;font-size:13px;margin-top:6px}.r308-form{margin-top:8px;padding:10px;border:1px solid #e3b2ad;border-radius:12px;background:#fff6f5;text-align:left;font-size:12px}.r308-form label{display:block;font-weight:900;font-size:11px;margin-top:8px}.r308-form input{width:100%;box-sizing:border-box;padding:9px;border:1px solid #d8bfa1;border-radius:9px}.r308-form small{display:block;margin-top:6px;color:#7a1e16}.r308-hr{margin:10px 0;padding:10px;border:1px solid #e3b2ad;border-radius:12px;background:#fff6f5;font-size:12px}.r308-h{font-weight:900;color:#7a1e16}.r308-list div{padding:6px 0;border-bottom:1px dashed #e3b2ad}.r308-late{color:#a1281f;font-weight:900}.r308-adv{margin-top:6px;font-weight:800;color:#5b3519}.r308-rec{margin-top:6px}.r308-rec input{width:100%;box-sizing:border-box;padding:8px;margin:3px 0;border:1px solid #d8bfa1;border-radius:8px}';document.head.appendChild(st)}
   function rebind(sec){sec.remove();ensureHr();renderHrList();if(hrSel)renderHrDetail(hrSel)}
   document.addEventListener('click',ev=>{
     const t=ev.target;if(!t.closest)return;
@@ -24048,9 +24093,9 @@ body.r162-has-nav{padding-bottom:78px!important}
     const ap=t.closest('[data-r167-approve]');
     if(ap){
       const code=ap.getAttribute('data-r167-approve');const r=rec(code);if(!rustId(code)){alert('No RUSTICA ID NO. for '+code+'.');return}if(!r||!r.photo||!r.sig){alert('The photo or signature is still missing.');return}
-      const type=document.getElementById('r167Type').value;const now=new Date();const until=addMonths(now,type==='REGULAR'?12:5);
+      const RS=r307Read(code);const type=RS.type;const now=new Date();const until=RS.until||addMonths(now,5);if(until.getTime()<Date.now()){if(!confirm('This validity already ENDED on '+fmtD(until.toISOString())+' ('+type+' from '+RS.start+'). Issue it anyway (it will show EXPIRED)?'))return}r307Save(code,type,RS.start);
       const types=read(TYPE_KEY,{})||{};types[U(code)]=type;write(TYPE_KEY,types);
-      Object.assign(r,{status:'ACTIVE',empType:type,approvedAt:now.toISOString(),validUntil:until.toISOString(),approvedBy:'HR OPERATION OFFICER',rejectReason:''});
+      Object.assign(r,{status:'ACTIVE',empType:type,validFrom:RS.start,approvedAt:now.toISOString(),validUntil:until.toISOString(),approvedBy:'HR OPERATION OFFICER',rejectReason:''});
       r.history=[{at:now.toISOString(),by:'HR',action:'APPROVE '+type}].concat(r.history||[]).slice(0,20);
       if(write(recKey(code),r)){renderHrList();renderHrDetail(U(code));alert('ID APPROVED ✓\n'+r.name+' • '+type+'\nValid until '+fmtD(r.validUntil)+'\nThey can now see and print it in the MY ID tab.')}
       return;
