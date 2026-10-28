@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R289 GUARD PIN AFTER UPDATE</title>
+<title>Rustica RCADS App — R291 NO SETUP CODE ON OWN PHONE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22129,9 +22129,10 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     const db=read();const r=db.people[U(code)];
     if(!r||r.status!=='SETUP')return {ok:false,msg:'There is no SETUP CODE for you. See HR.'};
     if(locked(r))return {ok:false,msg:'Locked for '+LOCK_MIN+' minutes because of a wrong SETUP CODE.'};
-    if(setupExpired(r))return {ok:false,msg:'The SETUP CODE has expired. Ask HR for a new one.'};
+    const LNK=setupCode==='__RCADS_LINKED__'&&(()=>{const d=deviceOwner();return !!(d&&String(d.c||'').toUpperCase()===U(code))})(); /* R291: own linked phone — no setup code */
+    if(setupExpired(r)&&!LNK)return {ok:false,msg:'The SETUP CODE has expired. Ask HR for a new one.'};
     if(!db.hrPub)return {ok:false,msg:'HR has not set up PIN control yet. See HR.'};
-    let good=false;try{good=(await pbkdf2(String(setupCode||'').trim(),r.setupSalt))===r.setupHash}catch(e){return {ok:false,msg:'Secure crypto unavailable. Open RCADS using the HTTPS link.'}}
+    let good=LNK;if(!good)try{good=(await pbkdf2(String(setupCode||'').trim(),r.setupSalt))===r.setupHash}catch(e){return {ok:false,msg:'Secure crypto unavailable. Open RCADS using the HTTPS link.'}}
     if(!good){noteFail(code);return {ok:false,msg:'Wrong SETUP CODE.'}}
     newPin=String(newPin||'').trim();
     if(!validPin(newPin))return {ok:false,msg:'The PIN must be 4 digits and not easy to guess (1234, 0000, 1111, 2580 etc. are not allowed).'};
@@ -22323,7 +22324,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     const r=rec(p.c);
     if(r&&r.status==='SETUP'){
       const fromQr=!!p.s;
-      gateShell(p,'<div class="r160-info">FIRST TIME — CREATE YOUR OWN PIN'+(fromQr?'<br><small>✓ QR from HR scanned</small>':'')+'</div>'+(fromQr?'<input id="r176Code" type="hidden" value="'+esc(p.s)+'">':'<label>SETUP CODE (6 digits from HR)</label><input id="r176Code" type="password" inputmode="numeric" maxlength="6" autocomplete="one-time-code">')
+      gateShell(p,'<div class="r160-info">FIRST TIME — CREATE YOUR OWN PIN'+(fromQr?'<br><small>✓ QR from HR scanned</small>':'')+'</div>'+(fromQr?'<input id="r176Code" type="hidden" value="'+esc(p.s)+'">':((()=>{const d=deviceOwner();return !!(d&&String(d.c||'').toUpperCase()===String(p.c||'').toUpperCase())})()?'<input id="r176Code" type="hidden" value="__RCADS_LINKED__"><div class="r160-hint" style="margin-top:0">✓ This phone is already yours — no setup code needed. Just create your PIN.</div>':'<label>SETUP CODE (6 digits from HR)</label><input id="r176Code" type="password" inputmode="numeric" maxlength="6" autocomplete="one-time-code">'))
         +'<label>YOUR OWN 4-DIGIT PIN</label><input id="r176P1" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"><label>REPEAT THE PIN</label><input id="r176P2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password">'
         +'<button type="button" class="r160-btn" id="r176Save">SAVE MY PIN</button><div class="r160-hint">You create your own PIN. Do not share it with anyone. Easy-to-guess PINs are not allowed (1234, 0000, 1111, 2580…). For account control, HR can see it.</div>');
       const save1=async()=>{
@@ -22741,8 +22742,9 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   async function completeGuardSetup(k,code,p){
     const r=gRec(k);if(!r||r.status!=='SETUP')return {ok:false,msg:'No SETUP CODE for this guard. Ask HR for a new QR.'};
     if(locked(r))return {ok:false,msg:'Locked for '+LOCK_MIN+' minutes because of a wrong SETUP CODE.'};
-    if(setupExpired(r))return {ok:false,msg:'The SETUP CODE has expired. Ask HR for a new QR.'};
-    let good=false;try{good=(await pbkdf2(String(code||'').trim(),r.setupSalt))===r.setupHash}catch(e){return {ok:false,msg:'Secure crypto unavailable. Open RCADS using the HTTPS link.'}}
+    const LNK=code==='__RCADS_LINKED__'&&(()=>{const d=gDevice();return !!(d&&gKey(d.b,d.g)===k)})(); /* R291 */
+    if(setupExpired(r)&&!LNK)return {ok:false,msg:'The SETUP CODE has expired. Ask HR for a new QR.'};
+    let good=LNK;if(!good)try{good=(await pbkdf2(String(code||'').trim(),r.setupSalt))===r.setupHash}catch(e){return {ok:false,msg:'Secure crypto unavailable. Open RCADS using the HTTPS link.'}}
     if(!good){guardNote(k,false);return {ok:false,msg:'Wrong SETUP CODE.'}}
     if(!validPin(String(p||''))) return {ok:false,msg:'The PIN is 4 digits and must not be easy to guess (1234, 0000, 1111, 2580…).'};
     if(!read().hrPub)return {ok:false,msg:'HR has not set up PIN control (HR KEY) yet. See HR.'};
@@ -22781,7 +22783,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     if(acctOff){gShell(p,'<div class="r160-info bad">'+esc(gSlotLbl(p.g))+' access is OFF in HR PIN CONTROL. Call HR.</div><button type="button" class="r160-btn" id="r206Retry">TRY AGAIN</button>');document.getElementById('r206Retry').onclick=()=>openGuardGate(p);return}
     if(r&&r.status==='SETUP'){
       const fromQr=!!p.s;
-      gShell(p,'<div class="r160-info">FIRST TIME — CREATE YOUR OWN GUARD PIN'+(fromQr?'<br><small>✓ QR scanned</small>':'')+'</div>'+(fromQr?'<input id="r206Code" type="hidden" value="'+esc(p.s)+'">':'<label>SETUP CODE (6 digits from HR)</label><input id="r206Code" type="password" inputmode="numeric" maxlength="6" autocomplete="one-time-code">')
+      gShell(p,'<div class="r160-info">FIRST TIME — CREATE YOUR OWN GUARD PIN'+(fromQr?'<br><small>✓ QR scanned</small>':'')+'</div>'+(fromQr?'<input id="r206Code" type="hidden" value="'+esc(p.s)+'">':((()=>{const d=gDevice();return !!(d&&d.b===p.b&&d.g===p.g)})()?'<input id="r206Code" type="hidden" value="__RCADS_LINKED__"><div class="r160-hint" style="margin-top:0">✓ This phone is already yours — no setup code needed. Just create your PIN.</div>':'<label>SETUP CODE (6 digits from HR)</label><input id="r206Code" type="password" inputmode="numeric" maxlength="6" autocomplete="one-time-code">'))
         +'<label>YOUR OWN 4-DIGIT PIN</label><input id="r206P1" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"><label>REPEAT THE PIN</label><input id="r206P2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password">'
         +'<button type="button" class="r160-btn" id="r206Save">SAVE MY PIN</button><div class="r160-hint">You create your own PIN. Do not share it with anyone. Easy-to-guess PINs are not allowed (1234, 0000, 1111, 2580…). For account control, HR can see it.</div>');
       const save1=async()=>{
@@ -22937,22 +22939,27 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
       c.addEventListener('click',async e=>{const pk=e.target.closest&&e.target.closest('[data-r210-pick]');if(pk){const it=(c.querySelector('#r210Res')._res||[])[+pk.getAttribute('data-r210-pick')];if(it)await homePick(it);return}if(e.target.closest&&e.target.closest('#r210Next')){homeSel=null;homeLink='';homeCode='';homeRender(true);setTimeout(()=>{const q=document.getElementById('r210Q');if(q)q.focus()},50)}})}
     const h=homeCardHtml();if(force||(c.dataset.h!==h&&!c.contains(document.activeElement))){c.dataset.h=h;c.innerHTML=h}
   }
+  /* R290: in the HR HOME search too, OK = SAME PIN (the QR only opens the app). Resetting the PIN needs a second, clear confirmation. */
+  function askReset(name,what,app){
+    if(confirm(name+' already has '+what+'.\n\nOK = SAME PIN — the QR only opens '+app+' on the phone (use this for a new / changed phone or if they were logged out).\n\nCancel = more choices (reset the PIN).'))return false;
+    return confirm('RESET THE PIN of '+name+'?\n\nTheir current PIN will STOP working and they must create a NEW PIN with the new QR.\nOnly do this if they FORGOT their PIN.\n\nOK = RESET • Cancel = keep the same PIN');
+  }
   async function homePick(it){
     if(!(await unlockIssue()))return;
     let sc='',link='';const label=it.name+' • '+(it.t==='O'?'OWNER':it.t==='G'?'GUARD':it.code);
     if(it.t==='O'){await refreshOwnerPins();const r=ownerRec(it.k);const has=!!(r&&r.pinHash&&r.status!=='SETUP');
-      const fresh=has&&confirm(it.name+' already has a PIN.\n\nOK = NEW PIN (the old PIN stops working).\nCancel = the QR only opens Top Management (same PIN).');
+      const fresh=has&&askReset(it.name,'a PIN','Top Management');
       if(fresh||!has){if(r&&r.status==='SETUP'&&!setupExpired(r))sc=(pinCache['OWNER:'+it.k]||{}).setup||'';if(!sc)sc=await issueOwnerSetup(it.k);if(!sc)return}
       let tk='';try{if(window.rcadsR182&&window.rcadsR182.canIssue())tk=await window.rcadsR182.issueTicket(label,'OWNER-'+it.k)}catch(e){}
       link=oLink(it.k,sc,tk);
     }else if(it.t==='G'){const k=gKey(it.branch,it.slot);await refreshGuardPins();const r=gRec(k);
-      const fresh=!!(r&&r.status==='ACTIVE')&&confirm(it.name+' already has a Guard PIN.\n\nOK = NEW PIN (the old PIN stops working).\nCancel = the QR only opens the Guard app (same PIN).');
+      const fresh=!!(r&&r.status==='ACTIVE')&&askReset(it.name,'a Guard PIN','the Guard app');
       if(fresh||!(r&&r.status==='ACTIVE')){const cur=gRec(k);if(cur&&cur.status==='SETUP'&&!setupExpired(cur))sc=(pinCache['GUARD:'+k]||{}).setup||'';if(!sc)sc=await issueGuardSetup(it.branch,it.slot);if(!sc)return}
       let tk='';try{if(window.rcadsR182&&window.rcadsR182.canIssue())tk=await window.rcadsR182.issueTicket(label,'GUARD-'+it.branch+'-'+it.slot)}catch(e){}
       link=gLink(it.branch,it.slot,it.name,sc,tk);
     }else{
       await refreshPinCache();const r=rec(it.code);
-      const fresh=!!(r&&r.status==='ACTIVE')&&confirm(it.name+' already has a PIN.\n\nOK = NEW PIN: the QR lets him/her create a NEW PIN (the old PIN stops working).\nCancel = the QR only opens the app (same PIN).');
+      const fresh=!!(r&&r.status==='ACTIVE')&&askReset(it.name,'a PIN','the app');
       if(fresh||!(r&&r.status==='ACTIVE')){if(r&&r.status==='SETUP'&&!setupExpired(r))sc=knownSetup(it.code);if(!sc)sc=await issueSetup(it.code,it.branch,it.name);if(!sc)return}
       let tk='';try{if(window.rcadsR182&&window.rcadsR182.canIssue())tk=await window.rcadsR182.issueTicket(label,it.code)}catch(e){}
       link=personalLink(it.code,it.branch,it.name,sc,tk);
@@ -22979,11 +22986,11 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
   async function openOwnerGate(p){
     const k=p.o;if(!OWNER_KEYS.includes(k))return;oShell(k,'<div class="r160-wait">Connecting to RCADS…</div>');await cloudPull();await waitSetup(()=>ownerRec(k),h=>oShell(k,h),p);const r=ownerRec(k);
     if(r&&r.status==='SETUP'){const fromQr=!!p.s;
-      oShell(k,'<div class="r160-info">FIRST TIME — CREATE YOUR OWN PIN'+(fromQr?'<br><small>✓ QR scanned</small>':'')+'</div>'+(fromQr?'<input id="r220Code" type="hidden" value="'+esc(p.s)+'">':'<label>SETUP CODE (6 digits from HR)</label><input id="r220Code" type="password" inputmode="numeric" maxlength="6">')
+      oShell(k,'<div class="r160-info">FIRST TIME — CREATE YOUR OWN PIN'+(fromQr?'<br><small>✓ QR scanned</small>':'')+'</div>'+(fromQr?'<input id="r220Code" type="hidden" value="'+esc(p.s)+'">':((()=>{const d=oDevice();return !!(d&&d.o===k)})()?'<input id="r220Code" type="hidden" value="__RCADS_LINKED__"><div class="r160-hint" style="margin-top:0">✓ This phone is already yours — no setup code needed. Just create your PIN.</div>':'<label>SETUP CODE (6 digits from HR)</label><input id="r220Code" type="password" inputmode="numeric" maxlength="6">'))
         +'<label>YOUR OWN PIN (4 to 8 digits)</label><input id="r220P1" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"><label>REPEAT THE PIN</label><input id="r220P2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"><button type="button" class="r160-btn" id="r220Save">SAVE MY PIN</button><div class="r160-hint">Only you know it. Easy PINs are not allowed (1234, 0000, 1111…). For account control, HR can see it.</div>');
       const save1=async()=>{const c=document.getElementById('r220Code').value,a=document.getElementById('r220P1').value,b2=document.getElementById('r220P2').value;const cur=ownerRec(k);
-        if(!cur||cur.status!=='SETUP'){msg('No SETUP CODE. Ask HR for a new QR.');return}if(locked(cur)){msg('Locked for '+LOCK_MIN+' minutes.');return}if(setupExpired(cur)){msg('The SETUP CODE has expired. Ask HR for a new QR.');return}
-        let good=false;try{good=(await pbkdf2(String(c).trim(),cur.setupSalt))===cur.setupHash}catch(e){msg('Open RCADS using the HTTPS link.');return}if(!good){ownerNote(k,false);msg('Wrong SETUP CODE.');return}
+        if(!cur||cur.status!=='SETUP'){msg('No SETUP CODE. Ask HR for a new QR.');return}if(locked(cur)){msg('Locked for '+LOCK_MIN+' minutes.');return}const LNK=c==='__RCADS_LINKED__'&&(()=>{const d=oDevice();return !!(d&&d.o===k)})(); /* R291 */if(setupExpired(cur)&&!LNK){msg('The SETUP CODE has expired. Ask HR for a new QR.');return}
+        let good=LNK;if(!good)try{good=(await pbkdf2(String(c).trim(),cur.setupSalt))===cur.setupHash}catch(e){msg('Open RCADS using the HTTPS link.');return}if(!good){ownerNote(k,false);msg('Wrong SETUP CODE.');return}
         if(a!==b2){msg('The PINs do not match.');return}if(!validOwnerPin(a)){msg('4 to 8 digits, not easy to guess.');return}if(!read().hrPub){msg('HR has not set up PIN control yet. Call HR.');return}
         if(!(await setOwnerPin(k,a,'SELF (SETUP)'))){msg('Could not save.');return}
         try{if(oPayload())history.replaceState(null,'',location.pathname+location.search)}catch(e){}oRemember(k);
@@ -23093,7 +23100,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     if(!p||!p.b||!p.g)return;gShell(p,'<div class="r160-wait">Connecting to RCADS…</div>');await cloudPull();await waitSetup(()=>gRec(gKey(p.b,p.g)),h=>gShell(p,h),p);
     p.n=gName(p.b,p.g)||p.n||'';const k=gKey(p.b,p.g);const r=gRec(k);
     if(r&&r.status==='SETUP'){const fromQr=!!p.s;
-      gShell(p,'<div class="r160-info">FIRST TIME — CREATE YOUR OWN GUARD PIN'+(fromQr?'<br><small>✓ QR scanned</small>':'')+'</div>'+(fromQr?'<input id="r206Code" type="hidden" value="'+esc(p.s)+'">':'<label>SETUP CODE (6 digits)</label><input id="r206Code" type="password" inputmode="numeric" maxlength="6">')
+      gShell(p,'<div class="r160-info">FIRST TIME — CREATE YOUR OWN GUARD PIN'+(fromQr?'<br><small>✓ QR scanned</small>':'')+'</div>'+(fromQr?'<input id="r206Code" type="hidden" value="'+esc(p.s)+'">':((()=>{const d=gDevice();return !!(d&&d.b===p.b&&d.g===p.g)})()?'<input id="r206Code" type="hidden" value="__RCADS_LINKED__"><div class="r160-hint" style="margin-top:0">✓ This phone is already yours — no setup code needed. Just create your PIN.</div>':'<label>SETUP CODE (6 digits)</label><input id="r206Code" type="password" inputmode="numeric" maxlength="6">'))
         +'<label>YOUR OWN 4-DIGIT PIN</label><input id="r206P1" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"><label>REPEAT THE PIN</label><input id="r206P2" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"><button type="button" class="r160-btn" id="r206Save">SAVE MY PIN</button><div class="r160-hint">You create your own PIN. Do not share it. For account control, HR can see it.</div>');
       const save1=async()=>{const c=document.getElementById('r206Code').value,a=document.getElementById('r206P1').value,b2=document.getElementById('r206P2').value;if(!c){msg('Enter the SETUP CODE.');return}if(a!==b2){msg('The PINs do not match.');return}
         const res=await completeGuardSetup(k,c,a);if(!res.ok){msg(res.msg);return}try{if(gPayload())history.replaceState(null,'',location.pathname+location.search)}catch(e){}gRemember(p);
