@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R330 HRA ACCESS + OFF-DUTY LOCK</title>
+<title>Rustica RCADS App — R331 GUARD HANDOVER SCAN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25650,6 +25650,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function guardTokens(){const t=[];try{t.push(rcadsGuardCurrentToken(new Date()));t.push(rcadsGuardCurrentToken(new Date(Date.now()-PASS_MS)))}catch(e){}return t.filter(Boolean)}
   function resultBox(id,html,cls){if(Math.abs(window.__r301skew||0)>120000&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r301-clock">⚠ This phone\'s clock is wrong by '+Math.abs(Math.round((window.__r301skew||0)/60000))+' min. RCADS used the correct internet time. HR can see this.</span>'+html;if(r287Off&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r287off">📴 OFFLINE MODE — records are saved on this phone and will sync automatically when internet returns. Do not clear browser data.</span>'+html;const b=document.getElementById(id);if(b){b.className='r181-result '+(cls||'');b.innerHTML=html;b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
   async function guardHandle(raw){
+    if(/^RCADSGPASS:/.test(String(raw||''))&&window.rcadsR331){return window.rcadsR331.onDutyScan(String(raw))}
     pendingOut=null;
     if(!(await refreshAttendanceStatus('r181GuardRes')))return;
     const gl=guardLabel();if(!gl){alert('Log in as a Guard first.');return}
@@ -31028,6 +31029,148 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   }
   setInterval(()=>{try{lockTick()}catch(e){console.warn('R330 lock',e)}},1000);
   window.rcadsR330={lockState:()=>{const e=emp();return e?state(e.code):null},pollHr,_hra:()=>HRA};
+})();
+
+</script>
+<style id="rcadsR331Css">
+#r331Hand{position:fixed;inset:0;z-index:2147483000;background:rgba(30,12,4,.94);overflow-y:auto;font-family:Arial,Helvetica,sans-serif;padding:16px 12px}
+.r331-box{max-width:440px;margin:0 auto;background:#fffaf2;border-radius:18px;padding:16px;border-top:6px solid #2f6b3a;color:#3d2615;text-align:center}
+.r331-h{font-size:18px;font-weight:900;color:#2f6b3a}.r331-sub{font-size:13px;margin:4px 0 10px}
+.r331-info{font-size:13px;line-height:1.45;background:#fff4d6;border:1px solid #e0b64a;border-radius:12px;padding:10px;margin-bottom:10px}
+.r331-step{font-size:13px;font-weight:800;margin:10px 0 6px}.r331-step.ok{color:#1d7a3a}
+.r331-big{display:block;width:100%;padding:16px;border:0;border-radius:14px;background:#5b3519;color:#fff;font-size:15px;font-weight:900;cursor:pointer;min-height:auto!important}
+.r331-qr{background:#fff;border:2px solid #2f6b3a;border-radius:14px;padding:8px;width:min(78vw,300px);margin:6px auto}.r331-qr svg{display:block;width:100%;height:auto}
+.r331-left{font-size:12px;color:#5b3519}.r331-warn{margin-top:8px;color:#a1281f;font-weight:800;font-size:12px}
+.r331-more{margin-top:14px;text-align:left;font-size:12px}.r331-more summary{font-weight:800;color:#7a5a3d;cursor:pointer}.r331-more small{display:block;margin:6px 0;color:#5b3519}
+.r331-mini{display:block;width:100%;margin-top:8px;border:0;border-radius:10px;padding:10px;font-weight:900;font-size:12px;min-height:auto!important;cursor:pointer}.r331-mini.red{background:#a1281f;color:#fff}.r331-mini.light{background:#efe2cf;color:#5b3519;margin-top:14px}
+</style>
+<script id="rcadsR331Script">
+(function(){
+  'use strict';
+  /* ============================================================
+     R331 — GUARD HANDOVER BY MUTUAL QR SCAN (same as employees)
+       1) The INCOMING guard logs in on his own phone → if another guard is ON DUTY, nothing is recorded yet:
+          a HANDOVER screen opens. He scans the ON-DUTY guard's 2-minute QR (Location ON, at the branch).
+       2) His phone shows a HANDOVER QR (valid 2 minutes, signed with his own PIN record).
+       3) The ON-DUTY guard scans it with his normal scanner (Location ON, at the branch) →
+          ON-DUTY guard = TIME OUT, INCOMING guard = TIME IN (same minute) → the outgoing guard's app logs out.
+       • LOG OUT no longer times in the other guard by itself (it only ends the duty of the one logging out).
+     ============================================================ */
+  if(window.RCADS_PREVIEW)return;
+  const QR_MS=120000,MAX_AGE=150000,FRESH=16*3600000;
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function U(c){return String(c||'').trim().toUpperCase()}
+  function b64u(s){return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+  function unb64u(s){s=String(s).replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)))}
+  function hex(buf){return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+  async function hmac(key,msg){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(String(key)),{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg))).slice(0,32)}
+  function canon(p){return ['RCADS-R331',p.t,p.b,p.in,p.out,p.ts,p.g,p.geo].join('|')}
+  function branch(){try{return U(rusticaGetCurrentBranchCode())||'SAN_RAFAEL'}catch(e){return 'SAN_RAFAEL'}}
+  function isG(l){return /^Guard \d+$/.test(String(l||''))}
+  function num(l){return parseInt(String(l||'').replace(/\D/g,''),10)||0}
+  function slotOf(l){return 'guard'+String(num(l)).padStart(2,'0')}
+  function labels(b){try{return window.rcadsGuardLabels?window.rcadsGuardLabels(b||branch()):['Guard 1','Guard 2']}catch(e){return ['Guard 1','Guard 2']}}
+  function gName(b,l){try{const v=JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+U(b))||'{}')||{};return String(v[slotOf(l)]||'').trim()}catch(e){return ''}}
+  function gRec(b,l){try{return window.rcadsR206.gRec(window.rcadsR206.gKey(b,slotOf(l)))}catch(e){return null}}
+  function logged(){try{return getLoggedGuardLabel()||''}catch(e){return ''}}
+  function openDuty(l){try{return getCurrentGuardOpenDuty(l)}catch(e){return null}}
+  function onDutyOthers(me){const set=new Set(labels());try{getGuardDutyLogs().forEach(r=>{if(r&&isG(r.guard))set.add(r.guard)})}catch(e){}set.delete(me);
+    return [...set].filter(g=>{const r=openDuty(g);return r&&Date.now()-Date.parse(r.timestamp)<FRESH})}
+  function tokenFor(label,b,slot){const raw='RCADS|GUARD|'+b+'|'+label+'|'+slot;const h=(typeof rcadsEmployeeHashText==='function')?rcadsEmployeeHashText(raw):String(slot);return 'GUARD-'+label.replace(/\s+/g,'').toUpperCase()+'-'+slot+'-'+h}
+  async function myGeo(label){try{const r=await window.rcadsR159VerifyLocation({id:'GUARD_'+label,name:label,role:'GUARD'});return r||{ok:null}}catch(e){return {ok:null,state:'Location check failed.'}}}
+  function flush(){try{rcadsCloudFlushQueue()}catch(e){}}
+  function noScanLog(ev){try{const k='rcads_r331_guard_noscan_log_v1';const a=JSON.parse(localStorage.getItem(k)||'[]')||[];a.push(Object.assign({at:new Date().toISOString(),branch:branch()},ev));localStorage.setItem(k,JSON.stringify(a.slice(-300)));flush()}catch(e){}}
+  function qrSvg(data){const QR=window.RCADSQRCode,E=window.RCADSQRErrorCorrectLevel;if(!QR||!E)return '<div>QR encoder unavailable</div>';const q=new QR(-1,E.M);q.addData(data);q.make();const n=q.getModuleCount(),z=4,s=n+z*2;let d='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+='M'+(c+z)+' '+(r+z)+'h1v1h-1z';return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+s+' '+s+'"><rect width="100%" height="100%" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>'}
+  function refresh(){['refreshGuardHome','updateGuardDutyUI','renderGuardDutyHistory','updateTopGuardDutyStatus','updateApproverGuardDutyStatus','updateGuardSessionBanner'].forEach(f=>{try{if(typeof window[f]==='function')window[f]()}catch(e){}})}
+
+  /* ---------- LOGIN of a guard: wait for the handover scan when another guard is on duty ---------- */
+  const prevLogin=window.rcadsAutoGuardHandoverOnLogin;
+  let PEND=null; // {me, others, pass:{txt,until}|null}
+  window.rcadsAutoGuardHandoverOnLogin=function(active){
+    if(!isG(active))return;
+    if(openDuty(active)){PEND=null;paint();return} /* already on duty (handover done / reload) */
+    const others=onDutyOthers(active);
+    if(!others.length){PEND=null;paint();if(typeof prevLogin==='function')return prevLogin(active);return}
+    PEND={me:active,others,pass:null};paint();
+  };
+  /* LOG OUT: end only my own duty — never time in another guard by itself */
+  window.rcadsAutoReliefOnGuardLogout=function(out){if(!isG(out))return;try{if(openDuty(out))rcadsAppendAutoGuardDutyEvent(out,'OUT','LOG OUT — end of duty ('+out+')')}catch(e){}flush()};
+  const prevLogout=window.guardLogout;
+  if(typeof prevLogout==='function'){window.guardLogout=function(){
+    const me=logged();
+    if(!window.__r331Silent&&isG(me)&&openDuty(me)&&!PEND){
+      if(!confirm('⚠ LOG OUT = TIME OUT now (end of your duty).\n\nIf your RELIEF guard is here, do NOT log out. Do the HANDOVER SCAN instead:\n1) Your relief logs in on his phone and scans YOUR QR.\n2) You scan HIS handover QR.\n\nLog out and TIME OUT now?'))return;
+    }
+    PEND=null;paint();return prevLogout.apply(this,arguments)}}
+
+  function paint(){
+    let o=document.getElementById('r331Hand');
+    if(!PEND||logged()!==PEND.me){if(o)o.remove();if(PEND&&logged()!==PEND.me)PEND=null;return}
+    if(!o){o=document.createElement('div');o.id='r331Hand';document.documentElement.appendChild(o)}
+    const A=PEND.others;const nm=l=>l+(gName(branch(),l)?' ('+gName(branch(),l)+')':'');
+    let h='<div class="r331-box"><div class="r331-h">🛡 GUARD HANDOVER</div><div class="r331-sub">You: <b>'+esc(nm(PEND.me))+'</b></div>'
+      +'<div class="r331-info">'+esc(A.map(nm).join(', '))+' '+(A.length>1?'are':'is')+' still <b>ON DUTY</b>. Do the handover face to face — <b>Location ON</b> on both phones, at the branch.</div>';
+    if(PEND.pass&&Date.now()<PEND.pass.until){const left=Math.ceil((PEND.pass.until-Date.now())/1000);
+      h+='<div class="r331-step ok">✓ STEP 1 DONE — you scanned the QR of '+esc(PEND.pass.out)+'</div><div class="r331-step">STEP 2 — Let <b>'+esc(PEND.pass.out)+'</b> scan this HANDOVER QR with his guard scanner:</div><div class="r331-qr">'+qrSvg(PEND.pass.txt)+'</div><div class="r331-left">Valid for <b data-r331-left>'+left+'</b>s • waiting for '+esc(PEND.pass.out)+' to scan…</div>';
+    }else h+='<div class="r331-step">STEP 1 — Scan the QR on the phone of the guard on duty (it changes every 2 minutes).</div><button type="button" class="r331-big" data-r331-scan>📷 SCAN THE QR OF THE GUARD ON DUTY</button>'+(PEND.pass?'<div class="r331-warn">Your handover QR expired. Scan his QR again.</div>':'');
+    h+='<details class="r331-more"><summary>Guard on duty already left / phone dead?</summary><small>Start your duty WITHOUT the handover scan. The other guard will be timed OUT now and HR will see it as <b>NO HANDOVER SCAN</b>.</small><button type="button" class="r331-mini red" data-r331-noscan>START MY DUTY WITHOUT HANDOVER SCAN</button></details>'
+      +'<button type="button" class="r331-mini light" data-r331-logout>LOG OUT</button></div>';
+    if(o.dataset.h!==h.replace(/data-r331-left>\d+/,'')){o.dataset.h=h.replace(/data-r331-left>\d+/,'');o.innerHTML=h}else{const l=o.querySelector('[data-r331-left]');if(l&&PEND.pass)l.textContent=Math.max(0,Math.ceil((PEND.pass.until-Date.now())/1000))}
+  }
+  async function scanOnDuty(){
+    if(!PEND)return;const me=PEND.me;
+    if(typeof window.rcadsR181Scan!=='function'){alert('Scanner not available.');return}
+    window.rcadsR181Scan('SCAN THE QR OF THE GUARD ON DUTY',async raw=>{
+      const m=String(raw).match(/GUARD-([A-Z0-9]+)-(\d+)-[A-Za-z0-9]+/);if(!m){alert('This is not a Guard QR.');return}
+      const tok=m[0],slot=+m[2],b=branch();if(Math.abs(Math.floor(Date.now()/QR_MS)-slot)>1){alert('That QR is old (it changes every 2 minutes). Scan the NEW QR.');return}
+      const out=PEND.others.find(l=>l.replace(/\s+/g,'').toUpperCase()===m[1]&&tokenFor(l,b,slot)===tok);
+      if(!out){alert('That is not the QR of the guard on duty ('+PEND.others.join(', ')+'). RED FLAG if it is fake.');return}
+      const geo=await myGeo(me);if(geo.ok!==true){alert('⛔ HANDOVER NOT ALLOWED\n\n'+(geo.state||'Location is OFF or not available.')+'\n\nTurn ON Location, stand at the branch in front of the guard on duty, then scan again.');return}
+      const r=gRec(b,me);if(!r||!r.pinHash){alert('No personal Guard PIN record on this phone. See HR.');return}
+      const p={v:1,t:'GHAND',b,in:me,out,ts:Date.now(),g:tok,geo:'OK'};p.s=await hmac(r.pinHash,canon(p));
+      PEND.pass={txt:'RCADSGPASS:'+b64u(JSON.stringify(p)),until:Date.now()+QR_MS,out};paint();watch();
+    });
+  }
+  let watchT=null;
+  function watch(){clearTimeout(watchT);if(!PEND)return;watchT=setTimeout(async()=>{if(!PEND)return;
+    try{if(typeof window.rcadsCloudPullMerge==='function'&&navigator.onLine)await window.rcadsCloudPullMerge()}catch(e){}
+    if(PEND&&openDuty(PEND.me)){const me=PEND.me;PEND=null;paint();refresh();try{navigator.vibrate&&navigator.vibrate([150,80,150])}catch(e){}alert('✓ HANDOVER DONE\n\n'+me+' is now ON DUTY. TIME IN recorded.');return}
+    paint();watch()},4000)}
+  setInterval(()=>{if(PEND)paint()},1000);
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest||!t.closest('#r331Hand'))return;
+    if(t.closest('[data-r331-scan]')){scanOnDuty();return}
+    if(t.closest('[data-r331-logout]')){PEND=null;paint();window.__r331Silent=true;try{guardLogout()}finally{window.__r331Silent=false}return}
+    if(t.closest('[data-r331-noscan]')){if(!PEND)return;const me=PEND.me,others=PEND.others.slice();
+      if(!confirm('START DUTY WITHOUT HANDOVER SCAN?\n\n'+others.join(', ')+' will be timed OUT now and '+me+' timed IN.\nHR will see this as NO HANDOVER SCAN.'))return;
+      others.forEach(g=>{try{if(openDuty(g))rcadsAppendAutoGuardDutyEvent(g,'OUT','NO HANDOVER SCAN — timed out when '+me+' started duty')}catch(e){}});
+      try{rcadsAppendAutoGuardDutyEvent(me,'IN','NO HANDOVER SCAN — '+me+' started duty without scanning '+others.join(', '))}catch(e){}
+      noScanLog({in:me,out:others.join(', ')});flush();PEND=null;paint();refresh();return}});
+
+  /* ---------- ON-DUTY guard scans the HANDOVER QR (called from the normal guard scanner) ---------- */
+  async function onDutyScan(raw){
+    const res=(html,cls)=>{const b=document.getElementById('r181GuardRes');if(b){b.className='r181-res '+(cls||'');b.innerHTML=html;b.style.display='block'}else alert(html.replace(/<[^>]+>/g,' '))};
+    const A=logged();if(!isG(A)){alert('Log in as a Guard first.');return}
+    let p;try{p=JSON.parse(unb64u(String(raw).slice(11)))}catch(e){res('<b>✗ NOT RECORDED</b><span>The handover QR is damaged. Ask him to make it again.</span>','bad');return}
+    if(p.t!=='GHAND'||p.out!==A){res('<b>✗ NOT FOR YOU</b><span>This handover QR is for '+esc(p.out||'another guard')+'. He must scan YOUR QR first.</span>','bad');return}
+    const tk=[];try{tk.push(rcadsGuardCurrentToken(new Date()));tk.push(rcadsGuardCurrentToken(new Date(Date.now()-QR_MS)))}catch(e){}
+    if(!tk.includes(p.g)){res('<b>✗ HE DID NOT SCAN YOUR CURRENT QR</b><span>Let him scan your QR again (it changes every 2 minutes).</span>','bad');return}
+    const age=Date.now()-Number(p.ts);if(!(age<=MAX_AGE&&age>-60000)){res('<b>✗ EXPIRED</b><span>The handover QR is valid for 2 minutes only. Do it again.</span>','bad');return}
+    if(p.geo!=='OK'){res('<b>✗ NOT AT THE BRANCH</b><span>His location was not OK.</span>','bad');return}
+    const r=gRec(p.b,p.in);if(!r||!r.pinHash){res('<b>✗ NOT RECORDED</b><span>No PIN record of '+esc(p.in)+' on this phone. Press GET THE DATA (cloud) or see HR.</span>','bad');return}
+    if(r.status&&r.status!=='ACTIVE'){res('<b>✗ NOT RECORDED</b><span>'+esc(p.in)+' app is '+esc(r.status)+'.</span>','bad');return}
+    let good=false;try{good=(await hmac(r.pinHash,canon(p)))===p.s}catch(e){}
+    if(!good){res('<b>✗ FAKE OR ALTERED QR (RED FLAG)</b><span>Do not hand over. Call the Manager / HR.</span>','bad');return}
+    const geo=await myGeo(A);if(geo.ok!==true){res('<b>✗ NOT RECORDED</b><span>YOUR location: '+esc(geo.state||'OFF / not available')+'. Turn ON Location at the branch and scan again.</span>','bad');return}
+    const nameIn=gName(p.b,p.in),nameOut=gName(p.b,A);
+    if(!confirm('HANDOVER\n\n'+A+(nameOut?' ('+nameOut+')':'')+' → TIME OUT now\n'+p.in+(nameIn?' ('+nameIn+')':'')+' → TIME IN now\n\nContinue?'))return;
+    try{if(openDuty(A))rcadsAppendAutoGuardDutyEvent(A,'OUT','HANDOVER SCAN → '+p.in+' (mutual QR • GPS ✓ both)')}catch(e){}
+    try{if(!openDuty(p.in))rcadsAppendAutoGuardDutyEvent(p.in,'IN','HANDOVER SCAN ← '+A+' (mutual QR • GPS ✓ both)')}catch(e){}
+    flush();try{if(typeof window.rcadsR287Sync==='function')await window.rcadsR287Sync()}catch(e){}flush();
+    const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    alert('✓ HANDOVER DONE • '+t+'\n\n'+A+' — TIME OUT\n'+p.in+' — TIME IN\n\nYour Guard app will now log out. Thank you!');
+    window.__r331Silent=true;try{guardLogout()}catch(e){}finally{window.__r331Silent=false}
+  }
+  window.rcadsR331={onDutyScan,_pend:()=>PEND,scanOnDuty};
 })();
 
 </script>
