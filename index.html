@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R322 LIGHT ID HEADER</title>
+<title>Rustica RCADS App — R323 SIGNATURE SYNC CHECK</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -24123,8 +24123,14 @@ body.r162-has-nav{padding-bottom:78px!important}
     box.innerHTML='<div class="r167-head">🪪 MY RUSTICA ID — RUST-001</div>'
       +(ok?'<div class="r167-st ok">✓ ACTIVE • '+esc(r.empType||'REGULAR')+' • VALID UNTIL '+esc(fmtD(r.validUntil))+'</div>':(r&&r.status==='ACTIVE'&&isExpired(r)?'<div class="r167-st bad">⛔ EXPIRED on '+esc(fmtD(r.validUntil))+' — renew it in 🪪 Rustica ID Cards (HR — All Branches).</div>':'<div class="r167-st none">Not issued yet — make it in 🪪 Rustica ID Cards → BRANCH: HR — All Branches.</div>'))
       +'<div>'+cardsHtml(cardData('RUS-HR01',r))+'</div>'
-      +'<div class="r167-actions"><button type="button" class="r167-btn" data-r167-print="RUS-HR01"'+(ok?'':' disabled')+'>🖨 PRINT MY ID (ATM SIZE)</button></div>';
+      +'<div class="r167-actions"><button type="button" class="r167-btn" data-r167-print="RUS-HR01"'+(ok?'':' disabled')+'>🖨 PRINT MY ID (ATM SIZE)</button></div>'
+      +(()=>{const c=read(CEOSIG_KEY,{})||{},h=hrSig();const f=x=>x?new Date(x).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+        return '<div class="r323-diag"><b>ON THIS DEVICE:</b> CEO signature '+(c.img?'✓ saved '+esc(f(c.updatedAt)):'✗ NOT YET')+' • HR signature '+(h.img?'✓ saved '+esc(f(h.updatedAt)):'✗ NOT YET')+'<br><button type="button" class="r167-mini" data-r323-sync>↻ SYNC SIGNATURES NOW</button> <span data-r323-msg></span></div>'})();
   }catch(e){}},1500);
+  document.addEventListener('click',async ev=>{const t=ev.target;if(!t.closest||!t.closest('[data-r323-sync]'))return;const m=document.querySelector('[data-r323-msg]');
+    if(m)m.textContent='Syncing…';try{if(typeof rcadsCloudFlushQueue==='function')await rcadsCloudFlushQueue();if(typeof rcadsCloudPullMerge==='function')await rcadsCloudPullMerge();if(typeof rcadsCloudFlushQueue==='function')await rcadsCloudFlushQueue();if(m)m.textContent='✓ Synced';}catch(e){if(m)m.textContent='✗ No connection to the cloud — check the internet.'}
+    const b=document.getElementById('r311HrId');if(b)b.dataset.sig=''});
+  {const st=document.createElement('style');st.textContent='.r323-diag{margin-top:8px;padding:8px;border-radius:10px;background:#f3ead9;font-size:11px;line-height:1.5;text-align:center;color:#5b3519}';document.head.appendChild(st)}
   function rebind(sec){sec.remove();ensureHr();renderHrList();if(hrSel)renderHrDetail(hrSel)}
   document.addEventListener('click',ev=>{
     const t=ev.target;if(!t.closest)return;
