@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R328 MEMO LIBRARY + SIGN MEMO</title>
+<title>Rustica RCADS App — R330 HRA ACCESS + OFF-DUTY LOCK</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -24576,7 +24576,7 @@ body.r162-has-nav{padding-bottom:78px!important}
     return data;
   }
   window.rcads201Put=async function(code,type,name,mime,b64){if(!PASS)throw new Error('Open 🗂 201 Files first and enter the 201 password, then press ACCEPT again.');const f=findEmp(code);await rpc('rustica_201_put',{p_pass:PASS,p_emp_code:U(code),p_rustica_id:rustId(code)||null,p_emp_name:f?f.emp.name:null,p_doc_type:type,p_file_name:name,p_mime:mime,p_data_b64:b64});await refreshAll();return true};
-  window.rcads201Rpc=rpc;window.rcads201Unlocked=()=>!!PASS;window.rcads201PassRpc=async(name,body)=>{if(!PASS)throw new Error('Open 🗂 201 Files first and enter the 201 password.');return rpc(name,Object.assign({p_pass:PASS},body||{}))};
+  window.rcads201Rpc=rpc;window.rcads201Unlocked=()=>!!PASS;window.rcads201Staff=()=>SF;window.rcads201PassRpc=async(name,body)=>{if(!PASS)throw new Error('Open 🗂 201 Files first and enter the 201 password.');return rpc(name,Object.assign({p_pass:PASS},body||{}))};
   async function refreshAll(){const d=await rpc('rustica_201_list',{p_pass:PASS,p_emp_code:null});ALL=d.rows||[];try{USAGE=await rpc('rustica_201_usage',{p_pass:PASS})}catch(e){USAGE=null}try{const i=await rpc('rustica_201_info_list',{p_pass:PASS});INFO=infoMap(i.info);STAFFL=(i.staff||[]).map(x=>({code:U(x.emp_code),role:x.role,name:x.emp_name||''}));lsSet(STAFF_KEY,STAFFL)}catch(e){console.warn('R175 info',e)}branchList().forEach(b=>saveFlags(b.code,ALL,INFO));return ALL}
   function filesOf(code){return (ALL||[]).filter(f=>f.emp_code===U(code))}
   function completeness(code){const have=new Set(filesOf(code).map(f=>f.doc_type));const n=REQUIRED.filter(t=>have.has(t)).length;return {n,total:REQUIRED.length,missing:REQUIRED.filter(t=>!have.has(t))}}
@@ -30776,6 +30776,258 @@ body.r328-open{overflow:hidden}
   window.rcadsR328Files=filesFor;
 
   window.rcadsR328={openLib,mineButton,count:k=>items(k).length-legacyItems(k).length,sig:()=>VER+'|'+JSON.stringify(PMC),refreshAll,libRefresh,parseName,jpegPdf,_pm:()=>PM,_lib:LIB};
+})();
+
+</script>
+<style id="rcadsR329Css">
+.r329-card{margin:14px 0;padding:12px;border:2px solid #b07a3c;border-radius:14px;background:#fffaf2;color:#3d2615}
+.r329-h{font-weight:900;font-size:14px}.r329-s{font-size:11.5px;color:#6d5845;margin:4px 0 8px}
+.r329-up{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.r329-up input[type=file]{flex:1;min-width:200px}
+.r329-msg{margin:6px 0;font-weight:800;font-size:12px}
+.r329-prev{margin-top:8px;padding:8px;border-radius:10px;background:#eef7ef;border:1px solid #9fc7a4;font-size:12px}
+.r329-miss{margin:6px 0;color:#a1281f;font-weight:700;font-size:11.5px}
+.r329-tw{max-height:380px;overflow:auto;margin:6px 0;border:1px solid #e6d3b8;border-radius:10px;background:#fff}
+.r329-tw table{border-collapse:collapse;width:100%;font-size:11.5px}.r329-tw th{position:sticky;top:0;background:#5b3519;color:#fff;padding:6px;text-align:left;white-space:nowrap}
+.r329-tw td{padding:5px 6px;border-bottom:1px solid #f0e4d2;white-space:nowrap}.r329-tw td small{display:block;color:#8a7058;font-size:10px}.r329-tw tr.inc td{background:#fff3f1}
+.r329-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}.r329-bar input[data-r329-q]{flex:1;min-width:180px;padding:8px;border:1px solid #d8bfa1;border-radius:10px}.r329-bar label{font-size:12px;font-weight:800;display:flex;gap:5px;align-items:center}.r329-bar label input{width:auto}
+</style>
+<script id="rcadsR329Script">
+(function(){
+  'use strict';
+  /* R329 — GOV'T NUMBERS (SSS • PhilHealth • Pag-IBIG • TIN): upload ONE Excel/CSV list of all employees.
+     HR (201 password, in 🗂 201 Files) and the HR ASSISTANT (own PIN, in 🗂 STAFF 201). Kept only in Supabase. */
+  if(window.RCADS_PREVIEW)return;
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function U(c){return String(c||'').trim().toUpperCase()}
+  function branchList(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&e.code&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  function allEmp(){const out=[],seen=new Set();branchList().forEach(b=>staff(b.code).forEach(e=>{const c=U(e.code);if(!seen.has(c)){seen.add(c);out.push({code:c,name:String(e.name||''),branch:b.name,sep:!!(window.rcadsIsSeparated&&window.rcadsIsSeparated(c))})}}));return out}
+  function toks(s){return U(s).replace(/[^A-ZÑ ]+/g,' ').split(/\s+/).filter(t=>t.length>1)}
+  function matchName(n,emps){const a=toks(n);if(a.length<2)return null;const hit=emps.filter(e=>{const b=toks(e.name);if(b.length<2)return false;const A=new Set(a),B=new Set(b);const small=a.length<=b.length?a:b,big=a.length<=b.length?B:A;return small.every(t=>big.has(t))});return hit.length===1?hit[0]:null}
+  const CODE_RE=/^[A-Z]{2,4}-[A-Z0-9.]+$/;
+  /* ---------- read the Excel / CSV ---------- */
+  async function parseFile(file){
+    if(!window.XLSX)throw new Error('The Excel reader did not load. Check the internet and open RCADS again.');
+    const wb=XLSX.read(new Uint8Array(await file.arrayBuffer()),{type:'array'});const emps=allEmp();const out=[],miss=[];
+    for(const sn of wb.SheetNames){
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:false,defval:''});
+      let h=-1;for(let i=0;i<Math.min(rows.length,25);i++){const t=rows[i].map(U).join(' | ');if(/SSS/.test(t)&&/(PHIL|PHIC|PAG|HDMF)/.test(t)){h=i;break}}
+      if(h<0)continue;const H=rows[h].map(U);const col=re=>H.findIndex(x=>re.test(x));
+      const c={code:col(/EMP.?CODE|EMPLOYEE.?(NO|CODE|ID)|^CODE$|^ID.?NO/),name:col(/^(FULL.?)?NAME|EMPLOYEE.?NAME|NAME OF/),last:col(/LAST|SURNAME|FAMILY/),first:col(/FIRST|GIVEN/),mid:col(/MIDDLE|^M\.?I\.?$/),
+        sss:col(/SSS/),phic:col(/PHIL|PHIC/),hdmf:col(/PAG.?IBIG|HDMF/),tin:col(/^TIN|TIN.?NO|TAX/)};
+      for(let i=h+1;i<rows.length;i++){const r=rows[i];const g=k=>c[k]>=0?String(r[c[k]]||'').trim():'';
+        const nm=g('name')||[g('last')&&g('last')+',',g('first'),g('mid')].filter(Boolean).join(' ');
+        const v={sss:g('sss'),phic:g('phic'),hdmf:g('hdmf'),tin:g('tin')};if(!nm&&!g('code'))continue;if(!v.sss&&!v.phic&&!v.hdmf&&!v.tin)continue;
+        let e=null;const cd=U(g('code'));if(CODE_RE.test(cd))e=emps.find(x=>x.code===cd)||{code:cd,name:nm};if(!e)e=matchName(nm,emps);
+        if(e)out.push(Object.assign({emp_code:e.code,name:e.name||nm,src:nm},v));else miss.push(nm||cd)}
+    }
+    if(!out.length&&!miss.length)throw new Error('No list found. The file needs a header row with SSS and PhilHealth / Pag-IBIG columns, plus EMPCODE or NAME.');
+    const m=new Map();out.forEach(x=>m.set(x.emp_code,Object.assign(m.get(x.emp_code)||{},Object.fromEntries(Object.entries(x).filter(([k,v])=>v)))));
+    return {rows:[...m.values()],miss}}
+  /* ---------- server ---------- */
+  function hrMode(){return document.getElementById('r329Hr')?'HR':'HRA'}
+  async function call(kind,rows){
+    if(kind==='HR'){if(!(window.rcads201Unlocked&&window.rcads201Unlocked()))throw new Error('Unlock 🗂 201 Files first (201 password).');return rows?window.rcads201PassRpc('rustica_gov_put',{p_rows:rows}):window.rcads201PassRpc('rustica_gov_list',{})}
+    const S=window.rcads201Staff&&window.rcads201Staff();if(!S||!S.pin)throw new Error('Open STAFF 201 with your PIN first.');
+    const fn=rows?'rustica_gov_staff_put':'rustica_gov_staff_list';const b={p_code:S.code,p_pin:S.pin};if(rows)b.p_rows=rows;
+    try{return await window.rcads201Rpc(fn,b)}catch(e){if(/could not find|not set up/i.test(e.message))throw new Error('Gov’t numbers are not set up in Supabase yet. HR: run RCADS_R329_GOV_NUMBERS_SUPABASE.sql once.');throw e}}
+  const ST={HR:{rows:null,prev:null,msg:'',q:'',flt:''},HRA:{rows:null,prev:null,msg:'',q:'',flt:''}};
+  function cardHtml(k){const s=ST[k];
+    let h='<div class="r329-h">🪪 GOV’T NUMBERS — SSS • PhilHealth • Pag-IBIG • TIN</div><div class="r329-s">Upload the COMPLETE LIST of employees (Excel or CSV). It needs a header row with <b>SSS</b>, <b>PhilHealth</b>, <b>Pag-IBIG</b> (and TIN if any) and <b>EMPCODE</b> or <b>NAME</b>. Blank cells never erase a saved number. Kept only on the Supabase server — HR and HR Assistant only.</div>'
+      +'<div class="r329-up"><input type="file" data-r329-file="'+k+'" accept=".xlsx,.xls,.csv"><button type="button" class="r160-mini" data-r329-load="'+k+'">↻ SHOW SAVED LIST</button></div>'
+      +(s.msg?'<div class="r329-msg">'+esc(s.msg)+'</div>':'');
+    if(s.prev){h+='<div class="r329-prev"><b>READY TO SAVE: '+s.prev.rows.length+' employee(s) matched</b>'+(s.prev.miss.length?'<div class="r329-miss">⚠ NOT MATCHED ('+s.prev.miss.length+') — check the name / EMPCODE in the file: '+esc(s.prev.miss.slice(0,40).join(' • '))+(s.prev.miss.length>40?' …':'')+'</div>':'')
+      +'<div class="r329-tw"><table><tr><th>EMPCODE</th><th>NAME</th><th>SSS</th><th>PHILHEALTH</th><th>PAG-IBIG</th><th>TIN</th></tr>'+s.prev.rows.slice(0,15).map(r=>'<tr><td>'+esc(r.emp_code)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.sss||'')+'</td><td>'+esc(r.phic||'')+'</td><td>'+esc(r.hdmf||'')+'</td><td>'+esc(r.tin||'')+'</td></tr>').join('')+'</table>'+(s.prev.rows.length>15?'<small>… and '+(s.prev.rows.length-15)+' more</small>':'')+'</div>'
+      +'<button type="button" class="r160-btn" data-r329-save="'+k+'">✓ SAVE '+s.prev.rows.length+' TO SUPABASE</button> <button type="button" class="r160-mini light" data-r329-cancel="'+k+'">CANCEL</button></div>'}
+    if(s.rows){const emps=allEmp().filter(e=>!e.sep);const by=new Map(s.rows.map(r=>[r.emp_code,r]));const q=U(s.q);
+      const list=emps.map(e=>Object.assign({emp_code:e.code,name:e.name,branch:e.branch},by.get(e.code)||{}));
+      const inc=x=>!x.sss||!x.phic||!x.hdmf;const nInc=list.filter(inc).length;
+      const show=list.filter(x=>(!q||U([x.emp_code,x.name,x.sss,x.phic,x.hdmf,x.tin].join(' ')).includes(q))&&(s.flt!=='INC'||inc(x)));
+      h+='<div class="r329-bar"><input data-r329-q="'+k+'" value="'+esc(s.q)+'" placeholder="🔎 Search name / EMPCODE / number"><label><input type="checkbox" data-r329-inc="'+k+'"'+(s.flt==='INC'?' checked':'')+'> Missing only ('+nInc+')</label></div>'
+        +'<div class="r329-tw"><table><tr><th>EMPCODE</th><th>NAME</th><th>SSS</th><th>PHILHEALTH</th><th>PAG-IBIG</th><th>TIN</th></tr>'+show.map(x=>'<tr'+(inc(x)?' class="inc"':'')+'><td>'+esc(x.emp_code)+'</td><td>'+esc(x.name)+'<small>'+esc(x.branch)+'</small></td><td>'+esc(x.sss||'—')+'</td><td>'+esc(x.phic||'—')+'</td><td>'+esc(x.hdmf||'—')+'</td><td>'+esc(x.tin||'—')+'</td></tr>').join('')+'</table></div>'}
+    return h}
+  function paint(k){const el=document.getElementById(k==='HR'?'r329Hr':'r329Hra');if(!el)return;const a=document.activeElement;const keep=a&&el.contains(a)&&a.getAttribute('data-r329-q');el.innerHTML=cardHtml(k);if(keep){const i=el.querySelector('[data-r329-q]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}}
+  async function load(k){ST[k].msg='Loading…';paint(k);try{const d=await call(k);ST[k].rows=d.rows||[];ST[k].msg=''}catch(e){ST[k].msg='⚠ '+e.message}paint(k)}
+  setInterval(()=>{try{
+    const sec=document.getElementById('r173HrSection');const un=window.rcads201Unlocked&&window.rcads201Unlocked();let c=document.getElementById('r329Hr');
+    if(sec&&un){if(!c){c=document.createElement('div');c.id='r329Hr';c.className='r329-card';sec.appendChild(c);paint('HR');if(!ST.HR.rows)load('HR')}else if(c.parentElement!==sec||c.nextElementSibling)sec.appendChild(c)}else if(c){c.remove();ST.HR.rows=null}
+    const S=window.rcads201Staff&&window.rcads201Staff();const ob=document.querySelector('#r175Staff.show .r175-ob');let d=document.getElementById('r329Hra');
+    const isHra=S&&S.rows&&S.pin&&(S.role==='HRA'||(!S.role&&S.cardRole==='HRA'));
+    if(ob&&isHra){if(!d||!ob.contains(d)){if(d)d.remove();d=document.createElement('div');d.id='r329Hra';d.className='r329-card';ob.appendChild(d);paint('HRA');if(!ST.HRA.rows)load('HRA')}}else if(d){d.remove();if(!S||!S.pin)ST.HRA={rows:null,prev:null,msg:'',q:'',flt:''}}
+  }catch(e){console.warn('R329',e)}},1200);
+  document.addEventListener('change',async e=>{const t=e.target;if(!t.getAttribute)return;const k=t.getAttribute('data-r329-file');
+    if(k&&t.files&&t.files[0]){ST[k].msg='Reading '+t.files[0].name+'…';ST[k].prev=null;paint(k);try{ST[k].prev=await parseFile(t.files[0]);ST[k].msg=''}catch(err){ST[k].msg='⚠ '+err.message}paint(k);return}
+    const ik=t.getAttribute('data-r329-inc');if(ik){ST[ik].flt=t.checked?'INC':'';paint(ik)}});
+  document.addEventListener('input',e=>{const k=e.target.getAttribute&&e.target.getAttribute('data-r329-q');if(k){ST[k].q=e.target.value;paint(k)}});
+  document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
+    const l=t.closest('[data-r329-load]');if(l){load(l.getAttribute('data-r329-load'));return}
+    const c=t.closest('[data-r329-cancel]');if(c){const k=c.getAttribute('data-r329-cancel');ST[k].prev=null;paint(k);return}
+    const s=t.closest('[data-r329-save]');if(s){const k=s.getAttribute('data-r329-save');const P=ST[k].prev;if(!P)return;s.disabled=true;ST[k].msg='Saving…';
+      try{let n=0;const rows=P.rows.map(r=>({emp_code:r.emp_code,name:r.name,sss:r.sss||'',phic:r.phic||'',hdmf:r.hdmf||'',tin:r.tin||''}));for(let i=0;i<rows.length;i+=200){const d=await call(k,rows.slice(i,i+200));n+=d.saved||0}
+        ST[k].prev=null;ST[k].msg='✓ Saved '+n+' employee(s).';await load(k);ST[k].msg='✓ Saved '+n+' employee(s).'}catch(err){ST[k].msg='⚠ NOT SAVED: '+err.message}paint(k)}});
+  window.rcadsR329={parseFile,allEmp,matchName};
+})();
+
+</script>
+<style id="rcadsR330Css">
+.r330-hide{display:none!important}
+body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go="home"]):not([data-r162-go="notices"]){display:none!important}
+#r330Lock{margin:10px 0;padding:14px;border-radius:14px;background:#3d2412;color:#fff;text-align:center;border:2px solid #c8862a}
+#r330Lock>b{display:block;font-size:15px;color:#ffd38a;margin-bottom:6px}#r330Lock span b{color:#ffd38a}#r330Lock>span{display:block;font-size:12.5px;line-height:1.45;margin-top:4px}
+#r330Soon{margin:8px 0;padding:9px 12px;border-radius:12px;background:#fff4d6;border:1px solid #e0b64a;color:#6b4a00;font-size:12px;font-weight:700;text-align:center}
+#r330HrAlert{position:fixed;left:8px;right:8px;top:8px;z-index:2147483400;display:flex;gap:10px;align-items:center;justify-content:space-between;background:#a1281f;color:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.35);font-family:Arial,sans-serif;animation:r330p 1.6s infinite}
+#r330HrAlert b{display:block;font-size:13px}#r330HrAlert span{display:block;font-size:11.5px;margin-top:2px}
+#r330HrAlert button{flex:0 0 auto;border:0;border-radius:10px;padding:10px 12px;background:#fff;color:#a1281f;font-weight:900;font-size:12px;cursor:pointer;min-height:auto!important}
+@keyframes r330p{0%,100%{box-shadow:0 8px 24px rgba(0,0,0,.35)}50%{box-shadow:0 0 0 6px rgba(161,40,31,.35)}}
+.r330-toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:2147483500;background:#1d7a3a;color:#fff;font:800 13px Arial,sans-serif;padding:12px 16px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.3);max-width:90vw;text-align:center}.r330-toast.bad{background:#a1281f}
+.r330-card{margin:10px 0;padding:12px;border:2px solid #a1281f;border-radius:14px;background:#fff8f6}
+.r330-ch{font-weight:900;font-size:14px;color:#7a1e16}.r330-cs{font-size:11.5px;color:#5b3519;margin:4px 0 8px}
+.r330-row{display:flex;gap:6px;align-items:center;padding:8px 4px;border-top:1px solid #ecd2cd;font-size:12.5px}.r330-row>div{flex:1}
+.r330-st{display:block;font-weight:900;font-size:11.5px;margin-top:2px;color:#7a5a3d}.r330-st.req{color:#a1281f}.r330-st.ok{color:#1d7a3a}.r330-st.open{color:#a86200}
+#simpleHrAdminModal .rcads-hr-nav button[data-r330]:not([data-r330=""])::after{content:attr(data-r330);margin-left:6px;background:#a1281f;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:900}
+.r330-ask,.r330-wait{margin-top:10px;padding:12px;border-radius:12px;background:#fff4f2;border:2px solid #d9645a;display:flex;flex-direction:column;gap:6px;text-align:left}.r330-wait{background:#fff8e6;border-color:#e0b64a}
+.r330-ask small,.r330-wait small{font-size:11.5px;color:#5b3519}.r330-err{color:#a1281f;font-weight:800;font-size:12px}
+#r330Bar{margin:6px 0;padding:8px 10px;border-radius:10px;background:#e3f4e7;color:#1d7a3a;font-size:11.5px;font-weight:800}
+</style>
+<script id="rcadsR330Script">
+(function(){
+  'use strict';
+  /* ============================================================
+     R330 — (1) HR ASSISTANT 201 ACCESS: ask HR every time • HR allows (201 password) • closes after 2 min idle
+            (2) HR signal (banner on every HR screen + 201 card + tab title + desktop alert)
+            (3) RANK-AND-FILE app closes 1 hour after TIME OUT and on day off / absent / leave —
+                opens again when they TIME IN with the Guard. NOTICES stay readable.
+     Needs RCADS_R330_HRA_ACCESS_SUPABASE.sql for (1) and (2).
+     ============================================================ */
+  if(window.RCADS_PREVIEW)return;
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function U(c){return String(c||'').trim().toUpperCase()}
+  function DB(){try{return RUSTICA_CENTRAL_DB||{}}catch(e){return {}}}
+  function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+  function now(){try{const t=window.rcadsTrueNow&&window.rcadsTrueNow();if(t&&Math.abs(t-Date.now())>120000)return t}catch(e){}return Date.now()}
+  function fmtT(t){return new Date(t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+  function fmtDT(s){const d=new Date(s);return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+fmtT(d)}
+  async function rpc(name,body){
+    const url=DB().url,anon=DB().anonKey;if(!url||!anon)throw new Error('No Supabase settings.');
+    let r;try{r=await fetch(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('No internet / no connection to Supabase.')}
+    const txt=await r.text();let d=null;try{d=txt?JSON.parse(txt):null}catch(e){}
+    if(!r.ok){const m=(d&&(d.message||d.hint))||txt||('HTTP '+r.status);if(/could not find the function|PGRST202/i.test(m))throw new Error('HR Assistant access is not set up in Supabase yet. HR: run RCADS_R330_HRA_ACCESS_SUPABASE.sql once.');throw new Error(m)}
+    if(d&&d.ok===false)throw new Error(String(d.error||'failed').replace(/^[A-Z_]+:\s*/,''));return d}
+  function hrKeyAuth(){const R=window.rcadsR182;return {p_branch_code:(R&&R.branch&&R.branch())||DB().branch||'SAN_RAFAEL',p_key:(R&&R.key&&R.key())||''}}
+  function isHrDevice(){try{return localStorage.getItem('rustica_r167_hrdevice_pin_flag')==='1'||localStorage.getItem('r182_device_role')==='HR'}catch(e){return false}}
+  function toast(t,bad){const d=document.createElement('div');d.className='r330-toast'+(bad?' bad':'');d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),6000)}
+
+  /* =================== (1) HR ASSISTANT side (inside 🗂 STAFF 201) =================== */
+  const IDLE_MS=120000;let LASTPIN='',lastAct=Date.now(),lastPing=0,waitT=null,wasOpen=false;
+  function SF(){try{return window.rcads201Staff&&window.rcads201Staff()}catch(e){return null}}
+  function isHra(S){return S&&(S.role==='HRA'||S.cardRole==='HRA')}
+  document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#r175Unlock')){const p=document.getElementById('r175Pin');if(p&&p.value)LASTPIN=p.value.trim()}},true);
+  document.addEventListener('keydown',e=>{if(e.target&&e.target.id==='r175Pin'&&e.key==='Enter')LASTPIN=String(e.target.value||'').trim()},true);
+  ['pointerdown','keydown','scroll','input','touchstart','wheel'].forEach(ev=>document.addEventListener(ev,e=>{if(e.target&&e.target.closest&&(e.target.closest('#r175Staff')||e.target.closest('#r159Reader')))lastAct=Date.now()},{capture:true,passive:true}));
+  function requestBox(state,msg){
+    const m=document.getElementById('r175Msg');if(!m)return;let b=document.getElementById('r330Req');if(!b){b=document.createElement('div');b.id='r330Req';m.insertAdjacentElement('afterend',b)}
+    b.innerHTML=state==='WAIT'?'<div class="r330-wait">⏳ <b>Waiting for HR to allow…</b><small>HR was alerted. This opens by itself once HR allows it (open it within 15 minutes).</small><button type="button" class="r160-mini light" data-r330-cancelwait>CANCEL</button></div>'
+      :'<div class="r330-ask"><b>🔒 201 FILES are closed.</b><small>HR must allow your access each time. It closes by itself after 2 minutes with no activity.</small><button type="button" class="r160-btn" data-r330-ask>📨 ASK HR TO OPEN 201 FILES</button>'+(msg?'<div class="r330-err">'+esc(msg)+'</div>':'')+'</div>'}
+  async function ask(){const S=SF();const pin=LASTPIN||String((document.getElementById('r175Pin')||{}).value||'').trim();if(!S||!pin){requestBox('ASK','Enter your PIN first.');return}
+    try{await rpc('rustica_201_hra_request',{p_code:S.code,p_pin:pin});LASTPIN=pin;requestBox('WAIT');wait()}catch(e){requestBox('ASK',e.message)}}
+  function wait(){clearTimeout(waitT);const S=SF();if(!S||S.rows||!document.getElementById('r330Req'))return;
+    waitT=setTimeout(async()=>{try{const d=await rpc('rustica_201_hra_status',{p_code:S.code});
+      if(d.state==='GRANTED'||d.state==='OPEN'){const p=document.getElementById('r175Pin');if(p)p.value=LASTPIN;const u=document.getElementById('r175Unlock');if(u)u.click();try{navigator.vibrate&&navigator.vibrate(200)}catch(e){}return}
+      if(d.state!=='REQUESTED'){requestBox('ASK','HR did not allow it ('+(d.state==='CLOSED'?'denied or expired':d.state)+'). You may ask again.');return}}catch(e){}wait()},8000)}
+  async function closeHra(reason,silent){const S=SF();if(!S)return;const code=S.code;try{await rpc('rustica_201_hra_close',{p_code:code,p_reason:reason})}catch(e){}
+    const rc=document.getElementById('r159ReaderClose');if(rc&&document.body.classList.contains('r159-reading'))rc.click();
+    wasOpen=false;const x=document.getElementById('r175Close');if(x)x.click();if(!silent)toast('🔒 201 FILES closed — '+reason+'. Ask HR again to open it.')}
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('[data-r330-ask]')){ask();return}
+    if(t.closest('[data-r330-cancelwait]')){clearTimeout(waitT);requestBox('ASK');return}
+    if(t.closest('#r175Close')){const S=SF();if(isHra(S)&&S.rows&&wasOpen){wasOpen=false;const code=S.code;rpc('rustica_201_hra_close',{p_code:code,p_reason:'CLOSED BY HR ASSISTANT'}).catch(()=>{})}}},true);
+  setInterval(()=>{try{
+    const S=SF();const ov=document.querySelector('#r175Staff.show');
+    if(!ov||!isHra(S)){wasOpen=false;return}
+    const m=document.getElementById('r175Msg');
+    if(!S.rows){if(m&&/Ask HR to open your 201 access/i.test(m.textContent)&&!document.getElementById('r330Req'))requestBox('ASK');
+      if(!document.getElementById('r330Bar')){}return}
+    if(!wasOpen){wasOpen=true;lastAct=Date.now();lastPing=Date.now()}
+    const idle=Date.now()-lastAct;let bar=document.getElementById('r330Bar');const ob=ov.querySelector('.r175-ob');
+    if(ob&&!bar){bar=document.createElement('div');bar.id='r330Bar';ob.insertBefore(bar,ob.children[1]||null)}
+    if(bar)bar.innerHTML='🔓 201 FILES OPEN (allowed by HR) • closes after 2 minutes with no activity'+(idle>60000?' — <b>closing in '+Math.max(0,Math.ceil((IDLE_MS-idle)/1000))+'s</b>':'');
+    if(idle>=IDLE_MS){closeHra('2 minutes with no activity');return}
+    if(idle<60000&&Date.now()-lastPing>45000){lastPing=Date.now();rpc('rustica_201_hra_ping',{p_code:S.code}).then(d=>{if(d.state!=='OPEN')closeHra('HR closed it or it expired')}).catch(()=>{})}
+  }catch(e){console.warn('R330 hra',e)}},1000);
+
+  /* =================== (2) HR side: signal + allow / deny =================== */
+  let HRA=[],lastSeenReq='',baseTitle='';
+  async function pollHr(){if(!isHrDevice()||!navigator.onLine)return;const a=hrKeyAuth();if(!a.p_key)return;
+    try{const d=await rpc('rustica_201_hra_list',a);HRA=d.rows||[];paintHr()}catch(e){}}
+  function pending(){return HRA.filter(x=>x.state==='REQUESTED')}
+  function paintHr(){
+    const P=pending();let b=document.getElementById('r330HrAlert');
+    if(P.length&&isHrDevice()){
+      if(!b){b=document.createElement('div');b.id='r330HrAlert';document.body.appendChild(b)}
+      const h='<div><b>🔔 HR ASSISTANT REQUEST</b><span>'+P.map(x=>esc(x.name||x.emp_code)+' ('+esc(x.emp_code)+') is asking to open 201 FILES • '+esc(fmtDT(x.requested_at))).join('<br>')+'</span></div><button type="button" data-r330-goto>OPEN 201 FILES → ALLOW</button>';
+      if(b.dataset.h!==h){b.dataset.h=h;b.innerHTML=h}
+      const key=P.map(x=>x.emp_code+x.requested_at).join('|');
+      if(key!==lastSeenReq){lastSeenReq=key;try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+        try{if(window.Notification&&Notification.permission==='granted')new Notification('RCADS — HR Assistant request',{body:P.map(x=>(x.name||x.emp_code)+' is asking to open 201 FILES').join('\n')})}catch(e){}}
+      if(!baseTitle)baseTitle=document.title.replace(/^🔔 \(\d+\) /,'');document.title='🔔 ('+P.length+') '+baseTitle;
+    }else{if(b)b.remove();if(baseTitle){document.title=baseTitle;baseTitle=''}lastSeenReq=''}
+    const nb=[...document.querySelectorAll('#simpleHrAdminModal .rcads-hr-nav button')].find(x=>/201 Files/i.test(x.textContent));if(nb)nb.dataset.r330=P.length?'🔔 '+P.length:'';
+    paintCard()}
+  function cardHtml(){const un=window.rcads201Unlocked&&window.rcads201Unlocked();
+    return '<div class="r330-ch">👩‍💼 HR ASSISTANT — 201 ACCESS</div><div class="r330-cs">The HR Assistant opens 201 FILES with her own PIN <b>only after you ALLOW it here</b>. She must open it within 15 minutes; it closes by itself after <b>2 minutes with no activity</b>, then she must ask again.'
+      +(window.Notification&&Notification.permission==='default'?' <button type="button" class="r160-mini light" data-r330-notif>🔔 TURN ON DESKTOP ALERTS</button>':'')+'</div>'
+      +(HRA.length?HRA.map(x=>{const st={REQUESTED:'<span class="r330-st req">🔔 ASKING NOW • '+esc(fmtDT(x.requested_at))+'</span>',GRANTED:'<span class="r330-st ok">✓ ALLOWED — waiting for her to open (15 min)</span>',OPEN:'<span class="r330-st open">🔓 OPEN NOW • last activity '+esc(fmtDT(x.last_seen))+'</span>'}[x.state]||'<span class="r330-st">🔒 CLOSED'+(x.closed_reason?' • '+esc(x.closed_reason)+' '+esc(fmtDT(x.closed_at)):'')+'</span>';
+        return '<div class="r330-row"><div><b>'+esc(x.name||'')+'</b> • '+esc(x.emp_code)+st+'</div>'+(un?(x.state==='REQUESTED'?'<button type="button" class="r160-mini" data-r330-g="ALLOW|'+esc(x.emp_code)+'">✓ ALLOW</button><button type="button" class="r160-mini red" data-r330-g="DENY|'+esc(x.emp_code)+'">✕ DENY</button>':(x.state==='OPEN'||x.state==='GRANTED')?'<button type="button" class="r160-mini red" data-r330-g="CLOSE|'+esc(x.emp_code)+'">🔒 CLOSE NOW</button>':'<button type="button" class="r160-mini light" data-r330-g="ALLOW|'+esc(x.emp_code)+'">ALLOW NOW</button>'):'')+'</div>'}).join(''):'<div class="r160-empty">No HR Assistant yet. Add her in ⚙ STAFF ACCESS as HR ASSISTANT.</div>')}
+  function paintCard(){const sec=document.getElementById('r173HrSection');let c=document.getElementById('r330Card');
+    if(!sec||!(window.rcads201Unlocked&&window.rcads201Unlocked())){if(c)c.remove();return}
+    if(!c){c=document.createElement('div');c.id='r330Card';c.className='r330-card'}
+    const t=sec.querySelector('.r160-hr-title,.r173-title');if(t&&t.parentElement===sec){if(t.nextElementSibling!==c)t.insertAdjacentElement('afterend',c)}else if(c.parentElement!==sec)sec.insertBefore(c,sec.firstChild);
+    const h=cardHtml();if(c.dataset.h!==h){c.dataset.h=h;c.innerHTML=h}}
+  setInterval(()=>{try{paintCard()}catch(e){}},1500);
+  setInterval(pollHr,15000);setTimeout(pollHr,4000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollHr()});
+  document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('[data-r330-notif]')){try{await Notification.requestPermission()}catch(_){}paintHr();return}
+    if(t.closest('[data-r330-goto]')){const m=document.getElementById('simpleHrAdminModal');const open=m&&!m.classList.contains('hidden')&&getComputedStyle(m).display!=='none';
+      if(open&&typeof rcadsHrGo==='function')rcadsHrGo('r173HrSection');else{const hb=document.getElementById('hrOperationOfficerButton');if(hb)hb.click();toast('Log in to HR, then open 🗂 201 Files (201 password) and press ✓ ALLOW.')}return}
+    const g=t.closest('[data-r330-g]');if(g){const [act,code]=g.getAttribute('data-r330-g').split('|');g.disabled=true;
+      try{await window.rcads201PassRpc('rustica_201_hra_grant',{p_code:code,p_action:act});toast(act==='ALLOW'?'✓ Allowed. She can open 201 FILES now (within 15 minutes).':act==='DENY'?'Request denied.':'201 FILES of the HR Assistant closed.')}catch(err){toast(err.message,true)}
+      await pollHr()}});
+
+  /* =================== (3) RANK-AND-FILE: closed when off duty =================== */
+  const AFTER_OUT=3600000,SCAN_GRACE=20*60000;
+  function staffRole(code){const l=lsGet('rcads_r175_201staff_v1',[])||[];const r=l.find(x=>U(x.code)===U(code));return r?r.role:''}
+  function emp(){try{return (typeof currentEmployee!=='undefined'&&currentEmployee)||null}catch(e){return null}}
+  function state(code){
+    const R=window.rcadsR181;if(!R||typeof R.shiftState!=='function')return {open:true};
+    try{if(R._pass&&R._pass()){localStorage.setItem('r330_scan_'+U(code),String(Date.now()))}}catch(e){}
+    const g=+(localStorage.getItem('r330_scan_'+U(code))||0);
+    const s=R.shiftState(code);const t=now();
+    if(s.state==='WORKING'||s.state==='BREAK')return {open:true,on:true};
+    if(s.state==='ENDED'){const out=Date.parse(s.last&&s.last.date);if(out&&t-out<AFTER_OUT)return {open:true,closesAt:out+AFTER_OUT}}
+    if(g&&Date.now()-g<SCAN_GRACE)return {open:true,grace:true};
+    return {open:false,out:s.state==='ENDED'?Date.parse(s.last&&s.last.date):0}}
+  const KEEP=el=>el.matches('.r162-nav,.r162-status,#r181Pass,.rcads-employee-simple-grid,#r159EmpBoard,#r330Lock,#r330Soon')||el.id==='rcadsR105EmployeeHeader';
+  function lockTick(){
+    const panel=document.getElementById('employeeSimplePanel');const e=emp();
+    const on=!!(panel&&e&&document.body.classList.contains('employee-simple-mode')&&getComputedStyle(panel).display!=='none');
+    const exempt=on&&['HRA','DH1','MANAGER'].includes(staffRole(e.code));
+    const st=on&&!exempt?state(e.code):{open:true};
+    const locked=on&&!exempt&&!st.open;
+    document.body.classList.toggle('r330-locked',locked);
+    if(!panel)return;
+    [...panel.children].forEach(c=>c.classList.toggle('r330-hide',locked&&!KEEP(c)));
+    let L=document.getElementById('r330Lock');
+    if(locked){if(!L){L=document.createElement('div');L.id='r330Lock';L.setAttribute('data-r162-tab','any')}
+      const st2=panel.querySelector(':scope > .r162-status');if(st2&&st2.parentElement===panel){if(st2.nextElementSibling!==L)st2.insertAdjacentElement('afterend',L)}else if(L.parentElement!==panel)panel.insertBefore(L,panel.firstChild);
+      const h='<b>🔒 RCADS IS CLOSED — OFF DUTY</b><span>'+(st.out?'You timed out at '+esc(fmtT(st.out))+'. RCADS closes 1 hour after TIME OUT.':'Day off, absent, on leave, or not yet timed in today.')+'</span><span>It opens again when you <b>TIME IN with the Guard</b> (scan the Guard’s QR). You can still read <b>📢 NOTICES</b>.</span>';
+      if(L.dataset.h!==h){L.dataset.h=h;L.innerHTML=h}
+      const act=panel.getAttribute('data-r162-active');if(act&&act!=='home'&&act!=='notices'&&window.rcadsR162Tab)window.rcadsR162Tab('home');
+    }else if(L)L.remove();
+    let S=document.getElementById('r330Soon');
+    if(on&&!exempt&&st.open&&st.closesAt){if(!S){S=document.createElement('div');S.id='r330Soon';S.setAttribute('data-r162-tab','home');const st2=panel.querySelector(':scope > .r162-status');if(st2)st2.insertAdjacentElement('afterend',S);else panel.insertBefore(S,panel.firstChild)}const h='⏰ You are timed out. RCADS closes at <b>'+esc(fmtT(st.closesAt))+'</b> (1 hour after TIME OUT).';if(S.dataset.h!==h){S.dataset.h=h;S.innerHTML=h}}else if(S)S.remove();
+  }
+  setInterval(()=>{try{lockTick()}catch(e){console.warn('R330 lock',e)}},1000);
+  window.rcadsR330={lockState:()=>{const e=emp();return e?state(e.code):null},pollHr,_hra:()=>HRA};
 })();
 
 </script>
