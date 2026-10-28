@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R315 BIGGER DARKER SIGNATURES</title>
+<title>Rustica RCADS App — R316 BIG CLEAN SIGNATURES</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -23770,12 +23770,32 @@ body.r162-has-nav{padding-bottom:78px!important}
     const sx=(im.width-s)/2,sy=im.height>im.width?Math.max(0,(im.height-s)*0.25):(im.height-s)/2;
     g.drawImage(im,sx,sy,s,s,0,0,360,360);return c.toDataURL('image/jpeg',0.82);
   }
-  async function sigFromFile(file){
-    const im=await readImg(file);const sc=Math.min(1,600/im.width,220/im.height);const c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
-    const g=c.getContext('2d');g.drawImage(im,0,0,c.width,c.height);const d=g.getImageData(0,0,c.width,c.height);
-    for(let i=0;i<d.data.length;i+=4){const l=0.3*d.data[i]+0.59*d.data[i+1]+0.11*d.data[i+2];if(l>185)d.data[i+3]=0;else{d.data[i]=d.data[i+1]=d.data[i+2]=20;d.data[i+3]=255}}
+  /* R316: signature clean-up that works with grey / shadowed paper: the paper colour is measured, everything lighter
+     becomes transparent and the ink becomes solid dark — so the signature is clear and has NO background box. */
+  function cleanSig(c){
+    const g=c.getContext('2d');const W=c.width,H=c.height;const d=g.getImageData(0,0,W,H);const n=W*H;const L=new Float32Array(n);
+    for(let i=0;i<n;i++){const a=d.data[i*4+3];L[i]=a<20?255:(0.3*d.data[i*4]+0.59*d.data[i*4+1]+0.11*d.data[i*4+2])}
+    /* local paper brightness (handles shadows): brightest value in blocks, then smoothed */
+    const B=24,bw=Math.ceil(W/B),bh=Math.ceil(H/B),bm=new Float32Array(bw*bh);
+    for(let by=0;by<bh;by++)for(let bx=0;bx<bw;bx++){const v=[];for(let y=by*B;y<Math.min(H,by*B+B);y++)for(let x=bx*B;x<Math.min(W,bx*B+B);x++)v.push(L[y*W+x]);v.sort((a,b)=>a-b);bm[by*bw+bx]=v[Math.floor(v.length*0.85)]}
+    const sm=new Float32Array(bw*bh);for(let by=0;by<bh;by++)for(let bx=0;bx<bw;bx++){let m=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const yy=by+dy,xx=bx+dx;if(yy>=0&&yy<bh&&xx>=0&&xx<bw)m=Math.max(m,bm[yy*bw+xx])}sm[by*bw+bx]=m}
+    const ink=new Uint8Array(n);
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;const bg=sm[Math.min(bh-1,Math.floor(y/B))*bw+Math.min(bw-1,Math.floor(x/B))];if(L[i]<Math.min(bg*0.78,bg-28))ink[i]=1}
+    /* thicken the ink a little so it prints dark and clear */
+    const th=new Uint8Array(n);const r=Math.max(1,Math.round(W/600));
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(!ink[y*W+x])continue;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const yy=y+dy,xx=x+dx;if(yy>=0&&yy<H&&xx>=0&&xx<W)th[yy*W+xx]=1}}
+    for(let i=0;i<n;i++){if(th[i]){d.data[i*4]=0;d.data[i*4+1]=0;d.data[i*4+2]=0;d.data[i*4+3]=255}else d.data[i*4+3]=0}
     g.putImageData(d,0,0);return trimCanvas(c);
   }
+  function imgToCanvas(im,maxW,maxH){const sc=Math.min(1,maxW/im.width,maxH/im.height);const c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*sc));c.height=Math.max(1,Math.round(im.height*sc));const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);return c}
+  async function sigFromFile(file){const im=await readImg(file);return cleanSig(imgToCanvas(im,900,320))}
+  function cleanSigUrl(u){return new Promise(res=>{const im=new Image();im.onload=()=>{try{res(cleanSig(imgToCanvas(im,900,320))||u)}catch(e){res(u)}};im.onerror=()=>res(u);im.src=u})}
+  /* already saved HR / CEO signatures are cleaned once, on the HR device */
+  let r316Busy=false;
+  setInterval(async()=>{if(r316Busy)return;r316Busy=true;try{
+    if(localStorage.getItem(HR_FLAG)!=='1'&&localStorage.getItem('r182_device_role')!=='HR')return;
+    for(const K of [HRSIG_KEY,CEOSIG_KEY]){const o=read(K,{})||{};if(o.img&&!o.clean316){const u=await cleanSigUrl(o.img);write(K,Object.assign({},o,{img:u,clean316:true}))}}
+  }catch(e){}finally{r316Busy=false}},3000);
   function trimCanvas(c){
     const g=c.getContext('2d');const d=g.getImageData(0,0,c.width,c.height).data;let x0=c.width,y0=c.height,x1=0,y1=0;
     for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){if(d[(y*c.width+x)*4+3]>20){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}}
@@ -24068,7 +24088,7 @@ body.r162-has-nav{padding-bottom:78px!important}
   let r303Img='';
   document.addEventListener('change',ev=>{const t=ev.target;if(!t||t.id!=='r303File'||!t.files||!t.files[0])return;sigFromFile(t.files[0]).then(d=>{if(!d){alert('No signature found in the image. Use a clear photo of the signature on white paper.');return}r303Img=d;const pv=document.querySelector('#r303Box .r167-hrsig-prev');if(pv)pv.innerHTML='<img src="'+r303Img+'" alt="">'}).catch(()=>alert('Cannot read the image.')) /* R315: same clean-up as the HR signature (white removed, ink darkened) */});
   document.addEventListener('click',ev=>{const t=ev.target;if(!t.closest||!t.closest('#r303Save'))return;const c=ceoSig();const img=r303Img||c.img;if(!img){alert('Upload the CEO signature first.');return}
-    write(CEOSIG_KEY,{img,name:(document.getElementById('r303Name').value.trim()||'MS. EVANGELINE BALINGIT'),title:(document.getElementById('r303Title').value.trim()||'Chief Executive Officer'),updatedAt:new Date().toISOString()});r303Img='';
+    write(CEOSIG_KEY,{clean316:true,img,name:(document.getElementById('r303Name').value.trim()||'MS. EVANGELINE BALINGIT'),title:(document.getElementById('r303Title').value.trim()||'Chief Executive Officer'),updatedAt:new Date().toISOString()});r303Img='';
     const s2=document.getElementById('r167HrSection');if(s2)rebind(s2);alert('✓ CEO signature saved — it is on the back of the HR\'s own Rustica ID (RUST-001).')});
   document.addEventListener('change',ev=>{const t=ev.target;if(!t||!(t.id==='r167Type'||t.id==='r307Start'))return;const code=t.getAttribute('data-r307-code')||'';
     const ty=document.getElementById('r167Type'),ds=document.getElementById('r307Start'),lb=document.getElementById('r307Lbl'),pv=document.getElementById('r307Prev');
@@ -24109,7 +24129,7 @@ body.r162-has-nav{padding-bottom:78px!important}
     if(t.closest('#r167HrSave')){
       const p=pending.__HR__||{};let img=p.sig||'';if(p.sigDrawn){const d=trimCanvas(document.getElementById('r167HrPad'));if(d)img=d}
       const h=hrSig();img=img||h.img||'';if(!img){alert('Upload or sign first.');return}
-      write(HRSIG_KEY,{img,name:document.getElementById('r167HrName').value.trim()||'JOVILITO F. FETIZANAN',title:document.getElementById('r167HrTitle').value.trim()||'HR Operation Officer',updatedAt:new Date().toISOString()});
+      write(HRSIG_KEY,{clean316:!(p.sigDrawn),img,name:document.getElementById('r167HrName').value.trim()||'JOVILITO F. FETIZANAN',title:document.getElementById('r167HrTitle').value.trim()||'HR Operation Officer',updatedAt:new Date().toISOString()});
       delete pending.__HR__;const s2=document.getElementById('r167HrSection');if(s2)rebind(s2);alert('✓ HR signature saved — it is now on the back of every Rustica ID.');return;
     }
     if(t.closest('#r167HrRemove')){if(!confirm('Remove the HR signature from the IDs?'))return;const h=hrSig();write(HRSIG_KEY,{name:h.name,title:h.title,updatedAt:new Date().toISOString()});const s2=document.getElementById('r167HrSection');if(s2)rebind(s2);return}
@@ -30358,5 +30378,6 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
 <script>(function(){var t="/* R313: ID front header like the RCADS header \u2014 logo left, \"rustica / RESTAURANT\" right */\n.r255 .r255-top.r313-top{height:21mm;background:linear-gradient(180deg,#2d150b 0%,#432414 100%);border-bottom:.5mm solid #d7ad63}\n.r255 .r313-head{position:absolute;left:3.2mm;right:3mm;top:4.2mm;height:14mm;display:flex;align-items:center;gap:2.4mm;z-index:2}\n.r255 .r313-logo{width:14mm;height:14mm;flex:0 0 14mm;border-radius:50%;filter:drop-shadow(0 .3mm .6mm rgba(0,0,0,.45))}\n.r255 .r313-txt{display:flex;flex-direction:column;justify-content:center;line-height:1;min-width:0}\n.r255 .r313-txt b{font-family:Georgia,\"DejaVu Serif\",serif;font-weight:700;font-size:7.2mm;color:#d7ad63;letter-spacing:.2mm}\n.r255 .r313-txt span{font-family:Georgia,\"DejaVu Serif\",serif;font-size:2.35mm;letter-spacing:.55mm;color:#f5e5c4;margin-top:1mm;white-space:nowrap}\n.r255 .r255-slot{z-index:3;background:rgba(255,255,255,.25)}\n";function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent.indexOf('R313')<0){e.textContent+='\n'+t;return true}return false}if(!add()){var n=0,iv=setInterval(function(){if(add()||++n>40)clearInterval(iv)},250)}})();</script>
 <style>.r314-rem{margin:6px 0 8px;padding:8px 10px;border-radius:10px;background:#fff4d6;border:1px solid #e0b64a;color:#6b4a00;font-weight:800;font-size:12px}</style>
 <script>(function(){var t="/* R315: bigger + darker HR / CEO signature on the back of the ID */\n.r255 .r255-hrsig{height:8.2mm;margin-top:.6mm}\n.r255 .r255-hrsig img{max-height:100%;max-width:80%;filter:grayscale(1) contrast(1.9)}\n.r255 .r255-note{margin-top:.2mm}\n.r255 .r255-qr{width:19.5mm;height:19.5mm;margin:.6mm auto}";function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent.indexOf('R315')<0){e.textContent+='\n'+t;return true}return false}if(!add()){var n=0,iv=setInterval(function(){if(add()||++n>40)clearInterval(iv)},250)}})();</script>
+<script>(function(){var t="/* R316: big, black signatures that fill the line \u2014 may sit over the line / behind the name */\n.r255 .r255-hrsig{position:relative;height:6.5mm;margin-top:.4mm;overflow:visible}\n.r255 .r255-hrsig img{position:absolute !important;left:50% !important;bottom:-1.8mm !important;transform:translateX(-50%) !important;width:33mm !important;height:auto !important;max-height:11mm !important;max-width:none !important;object-fit:contain !important;z-index:0 !important;filter:none !important;mix-blend-mode:multiply !important}\n.r255 .r255-hrname{position:relative;z-index:1}\n.r255 .r255-esig{position:relative;overflow:visible}\n.r255 .r255-esig img{position:absolute !important;left:50% !important;bottom:-1.2mm !important;transform:translateX(-50%) !important;width:92% !important;height:auto !important;max-height:7.5mm !important;max-width:none !important;object-fit:contain !important}";function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent.indexOf('R316')<0){e.textContent+='\n'+t;return true}return false}if(!add()){var n=0,iv=setInterval(function(){if(add()||++n>40)clearInterval(iv)},250)}})();</script>
 </body>
 </html>
