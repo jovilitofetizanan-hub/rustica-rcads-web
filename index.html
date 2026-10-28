@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R317 PURE BLACK SIGNATURES</title>
+<title>Rustica RCADS App — R319 RETURN TO NEAREST BRANCH</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -23851,7 +23851,7 @@ body.r162-has-nav{padding-bottom:78px!important}
     const e=c.emg||{},h=sigFor(c);
     const em=(e.name?e.name+(e.rel?' ('+e.rel+')':''):'')+(e.phone?(e.name?' • ':'')+e.phone:'');
     return '<div class="r167-card port back r255"><div class="r255-top"></div><div class="r255-slot"></div><div class="r255-in">'
-      +'<div class="r255-h">PROPERTY OF RUSTICA RESTAURANT</div>If found, please return to:<br><b>Rustica Restaurant</b><br>McArthur Highway, San Rafael, Tarlac City<br>(045) 606 9721 / 0967 364 1682'
+      +'<div class="r255-h">PROPERTY OF RUSTICA RESTAURANT</div>If found, please return it to the <b>nearest Rustica branch</b>, or call <b>Rustica</b>, the <b>ID owner</b> or the <b>emergency contact</b> below.<br><b>Rustica:</b> (045) 606 9721 / 0967 364 1682'
       +'<div class="r255-hr"></div><div class="r255-kv"><b>Emergency contact</b><span>'+esc(em||'—')+'</span><b>Status</b><span>'+esc(U(c.type||''))+'</span><b>Employee signature</b><div class="r255-esig">'+(c.sig?'<img src="'+c.sig+'" alt="">':'')+'</div></div>'
       +'<div class="r255-hr"></div><div class="r255-qrh">RUSTICA ID QR</div>'
       +'<div class="r255-qr">'+qrSvg(idQrText(c))+'</div>'
@@ -30380,5 +30380,6 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
 <script>(function(){var t="/* R315: bigger + darker HR / CEO signature on the back of the ID */\n.r255 .r255-hrsig{height:8.2mm;margin-top:.6mm}\n.r255 .r255-hrsig img{max-height:100%;max-width:80%;filter:grayscale(1) contrast(1.9)}\n.r255 .r255-note{margin-top:.2mm}\n.r255 .r255-qr{width:19.5mm;height:19.5mm;margin:.6mm auto}";function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent.indexOf('R315')<0){e.textContent+='\n'+t;return true}return false}if(!add()){var n=0,iv=setInterval(function(){if(add()||++n>40)clearInterval(iv)},250)}})();</script>
 <script>(function(){var t="/* R316: big, black signatures that fill the line \u2014 may sit over the line / behind the name */\n.r255 .r255-hrsig{position:relative;height:6.5mm;margin-top:.4mm;overflow:visible}\n.r255 .r255-hrsig img{position:absolute !important;left:50% !important;bottom:-1.8mm !important;transform:translateX(-50%) !important;width:33mm !important;height:auto !important;max-height:11mm !important;max-width:none !important;object-fit:contain !important;z-index:0 !important;filter:none !important;mix-blend-mode:multiply !important}\n.r255 .r255-hrname{position:relative;z-index:1}\n.r255 .r255-esig{position:relative;overflow:visible}\n.r255 .r255-esig img{position:absolute !important;left:50% !important;bottom:-1.2mm !important;transform:translateX(-50%) !important;width:92% !important;height:auto !important;max-height:7.5mm !important;max-width:none !important;object-fit:contain !important}";function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent.indexOf('R316')<0){e.textContent+='\n'+t;return true}return false}if(!add()){var n=0,iv=setInterval(function(){if(add()||++n>40)clearInterval(iv)},250)}})();</script>
 <script>(function(){var t="/* R317: every signature on the ID is printed pure black (backgrounds are already removed) */\n.r255 .r255-hrsig img,.r255 .r255-esig img{filter:brightness(0) !important;mix-blend-mode:normal !important;opacity:1 !important}";function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent.indexOf('R317')<0){e.textContent+='\n'+t;return true}return false}if(!add()){var n=0,iv=setInterval(function(){if(add()||++n>40)clearInterval(iv)},250)}})();</script>
+<script>(function(){var t="/* R318: the employee signature is as big as the CEO / HR signature and centred on the card */\n.r255 .r255-esig img{left:calc(50% - 3mm) !important;width:31mm !important;max-height:11mm !important;bottom:-1.8mm !important;transform:translateX(-50%) !important;z-index:0 !important}";function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent.indexOf('R318')<0){e.textContent+='\n'+t;return true}return false}if(!add()){var n=0,iv=setInterval(function(){if(add()||++n>40)clearInterval(iv)},250)}})();</script>
 </body>
 </html>
