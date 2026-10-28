@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R296 LOGOUT BACK TO MY PIN</title>
+<title>Rustica RCADS App — R297 VERSION ON MAIN SCREEN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -3857,7 +3857,7 @@ html.rcads-r133-enrollment-boot body{visibility:hidden!important}
       <button class="btn gray" onclick="logout()">CHANGE EMPLOYEE</button>
     </div>
   </div>
-  <div class="footer">RUSTICA RESTAURANT • Mobile Attendance </div>
+  <div class="footer">RUSTICA RESTAURANT • Mobile Attendance<br><small id="r297Ver" style="opacity:.75"></small></div>
 </div>
 
 
@@ -30185,5 +30185,6 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
   if(document.readyState!=='loading'){badge();setTimeout(sync,4000)}
 })();
 </script>
+<script>/* R297: version + phone owner on the main screen (for checking) */setInterval(function(){try{var e=document.getElementById('r297Ver');if(!e)return;var m=String(document.title).match(/—\s*(R\d+)/);var d=null;try{d=JSON.parse(localStorage.getItem('rustica_r160_mypin_device')||'null')}catch(x){}var t=(m?m[1]:'')+' • '+(d&&d.c?'PHONE OF '+d.c:'PHONE NOT LINKED');if(e.textContent!==t)e.textContent=t}catch(x){}},1500);</script>
 </body>
 </html>
