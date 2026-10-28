@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R331 GUARD HANDOVER SCAN</title>
+<title>Rustica RCADS App — R333 MANAGEMENT OT BY HR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -28549,7 +28549,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 /* R218 — OVERTIME APPROVED BY KITCHEN / DINING HEAD 1 (whole hours only, with reason) + MATCH WITH THE ACS
    • In the Head 1 app (APPROVALS): ⏱ APPROVE OVERTIME → employee of own department, date, hours (1, 2, 3 … no half hour), reason.
    • The ACS sent every Saturday / cut-off has the APRVD OT (hrs) column → RCADS checks both: ✓ match or ⚠ mismatch (Head + HR).
-   • DTR approved OT = whole hours only = the lower of (actual extra time, OT approved in the app, OT in the ACS). */
+   • R332: DTR approved OT counts ONLY when the app approval and the ACS APRVD OT are the SAME (else INVALID = 0); then whole hours, up to the actual extra time. */
 (function(){
   'use strict';
   const KEY='rcads_r218_ot_v1';const U=c=>String(c||'').trim().toUpperCase();
@@ -28578,11 +28578,11 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   const prev=window.getApprovedOtMinutesForDate;
   if(typeof prev==='function')window.getApprovedOtMinutesForDate=function(emp,dk,excess){
     let base=0;try{base=prev.apply(this,arguments)||0}catch(e){}
-    try{if(typeof isManagementEmployee==='function'&&isManagementEmployee(emp))return 0;
+    try{if(typeof isManagementEmployee==='function'&&isManagementEmployee(emp))return window.rcadsR333?window.rcadsR333.otMin(emp,dk,excess):0; /* R333: management = HR approval only */
       const a=appMin(emp&&emp.code,dk),c=acsMin(emp&&emp.code,dk);
-      if(a){const appr=c?Math.min(a,c):a;return hoursFloor(Math.min(Math.max(0,excess||0),appr))}if(c)return 0; // ACS-only OT (not approved on the day) does not count
+      if(a||c){if(!(a&&c&&a===c))return 0; /* R332: OT counts ONLY when the Head 1 approval and the ACS APRVD OT are the SAME — otherwise INVALID (0) */return hoursFloor(Math.min(Math.max(0,excess||0),a))}
       }catch(e){}
-    return hoursFloor(base)};
+    return 0; /* R332: no Head 1 approval + ACS = no OT (old approvals do not count) */};
 
   /* ---- match app ⇄ ACS ---- */
   function acsAll(b){const out=[];try{const L=(rcadsGetScheduleLibrary()||[]).filter(x=>x&&String(x.branch||'').toUpperCase()===b&&/\bACS\b/.test(U(x.category)));
@@ -28605,13 +28605,13 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     const emps=staff(c.b).filter(e=>deptOf(e)===c.dept&&!isSep(e.code)).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
     const cc=cut();const mine=all().filter(r=>!r.voided&&r.branch===c.b&&(!cc||(r.date>=cc.from&&r.date<=cc.to))&&emps.some(e=>U(e.code)===U(r.code))).sort((a,b)=>b.date.localeCompare(a.date)||String(b.at).localeCompare(String(a.at)));
     const mm=mismatches(c.b,c.dept);
-    return '<div class="r218-h">⏱ OVERTIME — '+esc(c.dept)+' • '+esc(bName(c.b))+'</div><div class="r218-n">TODAY ONLY — overtime is approved on the same day (no late entry). Whole hours only. It must MATCH the APRVD OT in the ACS you send every Saturday and on cut-off.</div>'
+    return '<div class="r218-h">⏱ OVERTIME — '+esc(c.dept)+' • '+esc(bName(c.b))+'</div><div class="r218-n">TODAY ONLY — overtime is approved on the same day (no late entry). Whole hours only. It must MATCH the APRVD OT in the ACS you send every Saturday and on cut-off — <b>if not the same, the OT is INVALID (not paid)</b>.</div>'
       +'<div class="r218-f"><label>EMPLOYEE<select id="r218Emp"><option value="">— choose —</option>'+emps.map(e=>'<option value="'+esc(U(e.code))+'">'+esc(e.name)+' • '+esc(U(e.code))+'</option>').join('')+'</select></label>'
       +'<label>DATE<input id="r218Date" value="'+esc(fmt(today()))+' (today only)" readonly></label>'
       +'<label>HOURS<select id="r218Hrs">'+[1,2,3,4,5,6].map(h=>'<option value="'+h+'">'+h+' hour'+(h>1?'s':'')+'</option>').join('')+'</select></label>'
       +'<label>REASON<select id="r218Reason">'+REASONS.map(r=>'<option>'+esc(r)+'</option>').join('')+'</select></label><input id="r218Other" placeholder="Type the reason" hidden>'
       +'<button type="button" class="r218-btn" data-r218-save>✓ APPROVE OVERTIME</button><div class="r218-msg">'+esc(MSG)+'</div></div>'
-      +(mm.length?'<div class="r218-mm"><b>⚠ NOT MATCHING THE ACS ('+mm.length+')</b>'+mm.map(x=>'<div>'+esc(x.name)+' • '+esc(fmt(x.date))+' — app '+x.app+' h • ACS '+x.acs+' h</div>').join('')+'<small>Fix the ACS (upload again) or the approval so both are the same.</small></div>':(mine.length?'<div class="r218-ok">✓ All overtime matches the ACS so far.</div>':''))
+      +(mm.length?'<div class="r218-mm"><b>⚠ NOT MATCHING THE ACS ('+mm.length+')</b>'+mm.map(x=>'<div>'+esc(x.name)+' • '+esc(fmt(x.date))+' — app '+x.app+' h • ACS '+x.acs+' h</div>').join('')+'<small>⛔ INVALID until fixed — this OT is NOT counted. Fix the ACS (upload again) or the approval so both are the same.</small></div>':(mine.length?'<div class="r218-ok">✓ All overtime matches the ACS so far.</div>':''))
       +(mine.length?'<details class="r218-list"><summary>Approved this cut-off ('+mine.length+')</summary>'+mine.map(r=>'<div><b>'+esc(r.name)+'</b> • '+esc(fmt(r.date))+' • '+r.hours+' h • '+esc(r.reason)+(r.date===today()?' <button type="button" data-r218-void="'+esc(r.id)+'">✕</button>':'')+'</div>').join('')+'</details>':'');
   }
   function tick(){
@@ -28635,14 +28635,14 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   }
   /* ---- HR section ---- */
   function hrMount(){const admin=document.getElementById('simpleHrAdminModal');if(!admin||getComputedStyle(admin).display==='none')return;const main=admin.querySelector('.rcads-hr-main');const nav=admin.querySelector('.rcads-hr-nav');
-    if(nav&&!document.getElementById('r218HrNavBtn')){const bt=document.createElement('button');bt.id='r218HrNavBtn';bt.type='button';bt.setAttribute('onclick',"rcadsHrGo('r218HrSection')");bt.textContent='⏱ Overtime (Head 1 / ACS)';nav.appendChild(bt)}
+    if(nav&&!document.getElementById('r218HrNavBtn')){const bt=document.createElement('button');bt.id='r218HrNavBtn';bt.type='button';bt.setAttribute('onclick',"rcadsHrGo('r218HrSection')");bt.textContent='⏱ Overtime (Head 1 / ACS / Mgmt)';nav.appendChild(bt)}
     if(!main)return;let sec=document.getElementById('r218HrSection');if(!sec){sec=document.createElement('div');sec.id='r218HrSection';sec.className='rcads-dashboard-section r160-hr';main.appendChild(sec)}
     const c=cut();const L=all().filter(r=>!r.voided&&(!c||(r.date>=c.from&&r.date<=c.to))).sort((a,b)=>b.date.localeCompare(a.date));
     const mm=[];branches().forEach(b=>['KITCHEN','DINING'].forEach(d=>mismatches(b.code,d).forEach(x=>mm.push(Object.assign({b:b.code,d},x)))));
-    const h='<div class="r160-hr-title">⏱ OVERTIME — approved by Head 1 • matched with the ACS</div><div class="r160-hr-note">Whole hours only. DTR approved OT = the lower of the actual extra time, the Head 1 approval and the ACS.</div>'
+    const h='<div class="r160-hr-title">⏱ OVERTIME — approved by Head 1 • matched with the ACS</div><div class="r160-hr-note">Whole hours only. OT counts in the DTR ONLY when the Head 1 approval and the ACS APRVD OT are the SAME — a mismatch or a missing ACS is INVALID (0 OT). It never exceeds the actual extra time.</div>'
       +(mm.length?'<div class="r218-mm"><b>⚠ NOT MATCHING ('+mm.length+')</b>'+mm.map(x=>'<div>'+esc(bName(x.b))+' • '+esc(x.d)+' • '+esc(x.name)+' • '+esc(fmt(x.date))+' — Head 1 '+x.app+' h • ACS '+x.acs+' h</div>').join('')+'</div>':'<div class="r218-ok">✓ No mismatch this cut-off.</div>')
       +(L.length?'<div style="overflow:auto"><table class="r217-t"><tr><th>DATE</th><th>EMPLOYEE</th><th>HOURS</th><th>REASON</th><th>APPROVED BY</th><th>ACS</th></tr>'+L.map(r=>{const s=acsMin(r.code,r.date)/60;return '<tr><td>'+esc(fmt(r.date))+'</td><td><b>'+esc(r.name)+'</b><br><small>'+esc(r.code)+' • '+esc(bName(r.branch))+'</small></td><td>'+r.hours+' h</td><td>'+esc(r.reason)+'</td><td>'+esc(r.by)+'</td><td>'+(s===appMin(r.code,r.date)/60?'✓ '+s+' h':'⚠ '+s+' h')+'</td></tr>'}).join('')+'</table></div>':'<div class="r160-empty">No approved overtime this cut-off.</div>');
-    if(sec.dataset.h!==h){sec.dataset.h=h;sec.innerHTML=h}}
+    if(sec.dataset.h!==h){sec.dataset.h=h;let w=sec.querySelector(':scope > .r218-wrap');if(!w){w=document.createElement('div');w.className='r218-wrap';sec.insertBefore(w,sec.firstChild)}w.innerHTML=h}}
   setInterval(()=>{try{hrMount()}catch(e){}},4000);
   /* ---- HR dots ---- */
   function flags(){const o=[];branches().forEach(b=>['KITCHEN','DINING'].forEach(d=>{const mm=mismatches(b.code,d);if(mm.length)o.push({lvl:mm.some(x=>x.late)?'yellow':'green',txt:'Overtime not matching the ACS — '+mm.length+' ('+d+')',who:bName(b.code),go:'r218HrSection'})}));return o}
@@ -31171,6 +31171,60 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     window.__r331Silent=true;try{guardLogout()}catch(e){}finally{window.__r331Silent=false}
   }
   window.rcadsR331={onDutyScan,_pend:()=>PEND,scanOnDuty};
+})();
+
+</script>
+<style id="rcadsR333Css">
+.r333-card{margin-top:16px;padding:12px;border:2px solid #5b3519;border-radius:14px;background:#fffaf2}
+.r333-h{font-weight:900;font-size:14px;color:#3d2412}.r333-n{font-size:12px;color:#5b3519;margin:4px 0 10px}
+.r333-f{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;align-items:end}.r333-f label{display:flex;flex-direction:column;font-size:11px;font-weight:900;color:#4c2b17;gap:3px}.r333-f label.w{grid-column:1/-1}
+.r333-f select,.r333-f input{padding:8px;border:1px solid #d8bfa1;border-radius:9px;font-size:13px}
+.r333-msg{margin:8px 0;font-weight:800;font-size:12px;color:#1d7a3a}
+</style>
+<script id="rcadsR333Script">
+(function(){
+  'use strict';
+  /* R333 — MANAGEMENT / MANAGERIAL employees (monthly fixed salary): extra hours are NOT overtime
+     unless HR approves it here (HR RCADS only). Whole hours, never more than the actual extra time. */
+  const KEY='rcads_r333_mgmt_ot_v1';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function U(c){return String(c||'').trim().toUpperCase()}
+  function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+  function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));try{rcadsCloudFlushQueue()}catch(_){}return true}catch(e){alert('Cannot save: '+e.message);return false}}
+  function pad(n){return String(n).padStart(2,'0')}
+  function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function fmt(iso){const [y,m,d]=String(iso).split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&e.code&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  function isMgmt(e){return U(e&&(e.dept||e.department))==='MANAGEMENT'}
+  function mgmtList(){const out=[];const seen=new Set();branches().forEach(b=>staff(b.code).forEach(e=>{const c=U(e.code);if(isMgmt(e)&&!seen.has(c)&&!(window.rcadsIsSeparated&&window.rcadsIsSeparated(c))){seen.add(c);out.push({code:c,name:e.name,position:e.position||'',branch:b.code,bname:b.name})}}));return out.sort((a,b)=>a.name.localeCompare(b.name))}
+  function all(){const v=lsGet(KEY,[]);return Array.isArray(v)?v:[]}
+  function approvedMin(code,dk){return all().filter(r=>!r.voided&&U(r.code)===U(code)&&r.date===dk).reduce((s,r)=>s+(+r.hours||0)*60,0)}
+  function otMin(emp,dk,excess){const a=approvedMin(emp&&emp.code,dk);if(!a)return 0;return Math.floor(Math.max(0,Math.min(Math.max(0,excess||0),a))/60)*60}
+  function cut(){try{const c=window.getSavedHrCutoffPeriod&&window.getSavedHrCutoffPeriod();if(c&&c.from&&c.to)return c}catch(e){}return null}
+  let MSG='';
+  function html(){const L=mgmtList();const c=cut();const rows=all().filter(r=>!r.voided&&(!c||(r.date>=c.from&&r.date<=c.to))).sort((a,b)=>b.date.localeCompare(a.date));
+    return '<div class="r333-h">👔 MANAGEMENT OVERTIME — approved by HR only</div>'
+      +'<div class="r333-n">Management / managerial employees have a <b>monthly fixed salary</b>: working more than 8 hours is <b>NOT overtime</b>. It counts in the DTR only when <b>HR approves it here</b> (whole hours, never more than the actual extra time).</div>'
+      +'<div class="r333-f"><label>EMPLOYEE<select id="r333Emp"><option value="">— choose —</option>'+L.map(e=>'<option value="'+esc(e.code)+'">'+esc(e.name)+' • '+esc(e.position)+' • '+esc(e.bname)+'</option>').join('')+'</select></label>'
+      +'<label>DATE<input type="date" id="r333Date" value="'+ymd(new Date())+'"></label>'
+      +'<label>HOURS<select id="r333Hrs">'+[1,2,3,4,5,6,7,8].map(h=>'<option value="'+h+'">'+h+' hour'+(h>1?'s':'')+'</option>').join('')+'</select></label>'
+      +'<label class="w">REASON<input id="r333Reason" maxlength="160" placeholder="e.g. Catering event — approved by HR"></label>'
+      +'<button type="button" class="r160-btn" id="r333Save">✓ APPROVE MANAGEMENT OT</button></div>'
+      +(MSG?'<div class="r333-msg">'+esc(MSG)+'</div>':'')
+      +(rows.length?'<div style="overflow:auto"><table class="r217-t"><tr><th>DATE</th><th>EMPLOYEE</th><th>HOURS</th><th>REASON</th><th></th></tr>'+rows.map(r=>'<tr><td>'+esc(fmt(r.date))+'</td><td><b>'+esc(r.name)+'</b><br><small>'+esc(r.code)+'</small></td><td>'+r.hours+' h</td><td>'+esc(r.reason)+'<br><small>HR • '+esc(new Date(r.at).toLocaleString())+'</small></td><td><button type="button" class="r160-mini red" data-r333-void="'+esc(r.id)+'">REMOVE</button></td></tr>').join('')+'</table></div>':'<div class="r160-empty">No management OT approved this cut-off.</div>')}
+  function mount(){const sec=document.getElementById('r218HrSection');if(!sec)return;let c=document.getElementById('r333Card');
+    if(!c){c=document.createElement('div');c.id='r333Card';c.className='r333-card';sec.appendChild(c);c.dataset.h=''}else if(c.parentElement!==sec||c.nextElementSibling)sec.appendChild(c);
+    if(c.contains(document.activeElement))return;const h=html();if(c.dataset.h!==h){c.dataset.h=h;c.innerHTML=h}}
+  setInterval(()=>{try{mount()}catch(e){console.warn('R333',e)}},1500);
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('#r333Save')){const code=document.getElementById('r333Emp').value,date=document.getElementById('r333Date').value,hours=+document.getElementById('r333Hrs').value,reason=document.getElementById('r333Reason').value.trim();
+      const e2=mgmtList().find(x=>x.code===code);if(!e2){alert('Choose the management employee.');return}if(!date){alert('Choose the date.');return}if(reason.length<4){alert('Type the reason.');return}
+      if(!confirm('Approve '+hours+' hour(s) OVERTIME for '+e2.name+' on '+fmt(date)+'?'))return;
+      const L=all();L.push({id:'M'+Date.now().toString(36),code,name:e2.name,branch:e2.branch,date,hours,reason,at:new Date().toISOString(),by:'HR OPERATION OFFICER'});lsSet(KEY,L);
+      MSG='✓ '+hours+' hour(s) OT approved for '+e2.name+' • '+fmt(date)+'.';const c=document.getElementById('r333Card');if(c){document.activeElement&&document.activeElement.blur();c.dataset.h=''}mount();return}
+    const v=t.closest('[data-r333-void]');if(v){if(!confirm('Remove this approved management overtime?'))return;const L=all();const r=L.find(x=>x.id===v.getAttribute('data-r333-void'));if(r){r.voided=true;r.voidedAt=new Date().toISOString();lsSet(KEY,L)}MSG='Removed.';const c=document.getElementById('r333Card');if(c)c.dataset.h='';mount()}});
+  window.rcadsR333={otMin,approvedMin,mgmtList,all};
 })();
 
 </script>
