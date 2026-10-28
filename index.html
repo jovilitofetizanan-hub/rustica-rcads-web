@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R292 OLD QR NO LOCK</title>
+<title>Rustica RCADS App — R293 PERSONAL PHONE NEVER SHOWS HR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22381,6 +22381,22 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     // Open synchronously before cloud checks, so logout never exposes HR home.
     openGate({c:d.c,b:d.b,n:d.n});
   }
+  /* R293: a phone linked to a person never stays on the main (HR) screen — whatever path led there
+     (logout, back button, iPhone reload…), the person's own PIN screen opens again. HR devices are not affected. */
+  setInterval(()=>{try{
+    const d=deviceOwner();if(!d||!d.c)return;
+    if(gPayload()||oPayload()||payloadFromHash())return;
+    if(document.getElementById('r160Gate'))return;
+    try{if(window.rcadsR182&&window.rcadsR182.role&&window.rcadsR182.role()==='HR')return}catch(_){}
+    let e=null;try{e=currentEmployee}catch(_){}if(e)return;
+    const B=document.body.classList;if(B.contains('guard-session-active')||B.contains('hr-session-active'))return;
+    if(window.rcadsTopManagementSession||window.currentManagerSession)return;
+    const vis=id=>{const x=document.getElementById(id);return !!x&&!x.classList.contains('hidden')&&x.offsetParent!==null};
+    if(vis('selectScreen')||vis('normalScreen')||vis('simpleHrAdminModal')){
+      ['selectScreen','normalScreen','simpleHrAdminModal'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+      verifiedFor='';openGate({c:d.c,b:d.b,n:d.n});
+    }
+  }catch(err){}},800);
   ['logout','logoutManager','logoutAssistantSousChef'].forEach(name=>{
     const previous=window[name];if(typeof previous!=='function')return;
     window[name]=function(){
