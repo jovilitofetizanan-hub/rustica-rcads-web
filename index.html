@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R297 VERSION ON MAIN SCREEN</title>
+<title>Rustica RCADS App — R298 MY PERSONAL RCADS IN APP</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22410,6 +22410,29 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
       verifiedFor='';openGate({c:d.c,b:d.b,n:d.n});
     }
   }catch(err){}},800);
+
+  /* R298: the installed app (iPhone home-screen icon) keeps its own storage, separate from Safari / Chrome.
+     On a phone that is not linked yet (and is not an HR device), the main screen shows MY PERSONAL RCADS:
+     the person types the EMPCODE once, then their OWN PIN → this app becomes theirs. */
+  function r298HrDev(){try{return localStorage.getItem('rustica_r167_hrdevice_pin_flag')==='1'||localStorage.getItem('r182_device_role')==='HR'}catch(_){return false}}
+  setInterval(()=>{try{
+    const sel=document.getElementById('selectScreen');if(!sel)return;
+    let card=document.getElementById('r298Card');
+    const show=!deviceOwner()&&!gDevice()&&!oDevice()&&!r298HrDev();
+    if(!show){if(card)card.remove();return}
+    if(card)return;
+    card=document.createElement('div');card.id='r298Card';
+    card.style.cssText='margin:12px 0;padding:14px;border-radius:16px;background:#fffaf2;border:2px solid #2f6b3a;text-align:center;color:#3d2615';
+    card.innerHTML='<div style="font-weight:900;font-size:16px;color:#2f6b3a">👤 MY PERSONAL RCADS</div><div style="font-size:12px;margin:4px 0 8px">Employees: type your EMPCODE, then your own PIN. You do this only once on this app.</div>'
+      +'<input id="r298Code" placeholder="EMPCODE (e.g. SRF-EMP44)" autocapitalize="characters" autocomplete="off" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8bfa1;border-radius:11px;font-size:16px;text-align:center;text-transform:uppercase">'
+      +'<button type="button" id="r298Go" style="width:100%;margin-top:8px;padding:13px;border:0;border-radius:12px;background:#2f6b3a;color:#fff;font-weight:900;font-size:14px">NEXT → MY PIN</button><div id="r298Msg" style="min-height:14px;color:#a1281f;font-weight:800;font-size:12px;margin-top:6px"></div>';
+    {const hc=[...document.querySelectorAll('button')].find(x=>/HIDE\s*&\s*CLOSE/i.test(x.textContent||'')&&x.offsetParent);let anchor=hc;while(anchor&&anchor.parentElement&&anchor.parentElement!==document.body&&anchor.parentElement.children.length<2)anchor=anchor.parentElement;if(anchor&&anchor.parentElement)anchor.parentElement.insertBefore(card,anchor);else sel.insertBefore(card,sel.firstChild)}
+    const go=()=>{const c=String(card.querySelector('#r298Code').value||'').trim().toUpperCase().replace(/\s+/g,'');const m=card.querySelector('#r298Msg');
+      if(!/^[A-Z]+-[A-Z]*EMP\d+$/.test(c)){m.textContent='Type your EMPCODE, e.g. SRF-EMP44.';return}
+      const f=findEmp(c);if(!f){m.textContent='EMPCODE not found. Check it or ask HR.';return}
+      m.textContent='';verifiedFor='';openGate({c:c,b:f.branch,n:f.emp.name||''});};
+    card.querySelector('#r298Go').onclick=go;card.querySelector('#r298Code').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+  }catch(err){}},1000);
   ['logout','logoutManager','logoutAssistantSousChef'].forEach(name=>{
     const previous=window[name];if(typeof previous!=='function')return;
     window[name]=function(){
