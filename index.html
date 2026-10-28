@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R298 MY PERSONAL RCADS IN APP</title>
+<title>Rustica RCADS App — R299 SCAN MY QR INSIDE THE APP</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22425,13 +22425,23 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     card.style.cssText='margin:12px 0;padding:14px;border-radius:16px;background:#fffaf2;border:2px solid #2f6b3a;text-align:center;color:#3d2615';
     card.innerHTML='<div style="font-weight:900;font-size:16px;color:#2f6b3a">👤 MY PERSONAL RCADS</div><div style="font-size:12px;margin:4px 0 8px">Employees: type your EMPCODE, then your own PIN. You do this only once on this app.</div>'
       +'<input id="r298Code" placeholder="EMPCODE (e.g. SRF-EMP44)" autocapitalize="characters" autocomplete="off" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8bfa1;border-radius:11px;font-size:16px;text-align:center;text-transform:uppercase">'
-      +'<button type="button" id="r298Go" style="width:100%;margin-top:8px;padding:13px;border:0;border-radius:12px;background:#2f6b3a;color:#fff;font-weight:900;font-size:14px">NEXT → MY PIN</button><div id="r298Msg" style="min-height:14px;color:#a1281f;font-weight:800;font-size:12px;margin-top:6px"></div>';
+      +'<button type="button" id="r298Go" style="width:100%;margin-top:8px;padding:13px;border:0;border-radius:12px;background:#2f6b3a;color:#fff;font-weight:900;font-size:14px">NEXT → MY PIN</button>'
+      +'<div style="font-size:11px;margin:10px 0 4px;color:#7a6250;font-weight:800">— OR (best on iPhone) —</div><button type="button" id="r299Scan" style="width:100%;padding:13px;border:2px solid #2f6b3a;border-radius:12px;background:#fff;color:#2f6b3a;font-weight:900;font-size:14px">📷 SCAN MY QR FROM HR HERE</button><div id="r298Msg" style="min-height:14px;color:#a1281f;font-weight:800;font-size:12px;margin-top:6px"></div>';
     {const hc=[...document.querySelectorAll('button')].find(x=>/HIDE\s*&\s*CLOSE/i.test(x.textContent||'')&&x.offsetParent);let anchor=hc;while(anchor&&anchor.parentElement&&anchor.parentElement!==document.body&&anchor.parentElement.children.length<2)anchor=anchor.parentElement;if(anchor&&anchor.parentElement)anchor.parentElement.insertBefore(card,anchor);else sel.insertBefore(card,sel.firstChild)}
     const go=()=>{const c=String(card.querySelector('#r298Code').value||'').trim().toUpperCase().replace(/\s+/g,'');const m=card.querySelector('#r298Msg');
       if(!/^[A-Z]+-[A-Z]*EMP\d+$/.test(c)){m.textContent='Type your EMPCODE, e.g. SRF-EMP44.';return}
       const f=findEmp(c);if(!f){m.textContent='EMPCODE not found. Check it or ask HR.';return}
       m.textContent='';verifiedFor='';openGate({c:c,b:f.branch,n:f.emp.name||''});};
-    card.querySelector('#r298Go').onclick=go;card.querySelector('#r298Code').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+    card.querySelector('#r298Go').onclick=go;
+    card.querySelector('#r299Scan').onclick=()=>{const m=card.querySelector('#r298Msg');
+      if(typeof window.rcadsR181Scan!=='function'){m.textContent='Camera scanner not available.';return}
+      window.rcadsR181Scan('Scan your QR from HR',txt=>{
+        const mm=String(txt||'').match(/#(rcads(?:Emp|Guard|Owner|Dev)=[^\s]+)/);
+        if(!mm){m.textContent='This is not a personal RCADS QR from HR. Ask HR to show your QR.';return}
+        try{history.replaceState(null,'',location.pathname+location.search+'#'+mm[1])}catch(e){location.hash=mm[1]}
+        setTimeout(()=>location.reload(),50); /* reload so the device key in the QR is used first, then the PIN screen opens inside THIS app */
+      });
+    };card.querySelector('#r298Code').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
   }catch(err){}},1000);
   ['logout','logoutManager','logoutAssistantSousChef'].forEach(name=>{
     const previous=window[name];if(typeof previous!=='function')return;
@@ -25395,6 +25405,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     tick();
   }
   function closeScanner(){if(scanStop){scanStop();scanStop=null}const o=document.getElementById('r181Scan');if(o)o.remove()}
+  window.rcadsR181Scan=openScanner; /* R299 */
 
   /* ---------------- PASS (employee side) ---------------- */
   let PASS=null;          // {code, payload, until}
