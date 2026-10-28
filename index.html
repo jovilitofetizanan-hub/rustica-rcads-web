@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R288 HR REMOVE PHONE LINK</title>
+<title>Rustica RCADS App — R289 GUARD PIN AFTER UPDATE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22804,7 +22804,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     const go=async()=>{const v=document.getElementById('r206Pin').value;const res=await verifyGuardPin(k,v);if(!res.ok){msg(res.msg);document.getElementById('r206Pin').value='';return}gRemember(p);startGuard(p,v)};
     document.getElementById('r206Login').onclick=go;document.getElementById('r206Pin').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
   }
-  function bootGuardGate(){const p=gPayload();if(p){openGuardGate(p);return}if(payloadFromHash()||oPayload()||deviceOwner())return;const d=gDevice();if(d&&d.b&&d.g&&!sessionStorage.getItem('rcads_active_guard_session'))openGuardGate(d)}
+  function bootGuardGate(){const p=gPayload();if(p){openGuardGate(p);return}if(payloadFromHash()||oPayload()||deviceOwner())return;const d=gDevice();if(d&&d.b&&d.g){/* R289: after an update or reload the old Guard session is not restored — the Guard opens with HIS OWN Guard PIN again */const gh=document.getElementById('guardHomeScreen');if(sessionStorage.getItem('rcads_active_guard_session')&&!(gh&&!gh.classList.contains('hidden')&&document.body.classList.contains('guard-session-active'))){try{sessionStorage.removeItem('rcads_active_guard_session');sessionStorage.removeItem('rcads_attendance_operator')}catch(e){}window.currentGuardAccount=null;window.rcadsAttendanceOperator=''}if(!sessionStorage.getItem('rcads_active_guard_session'))openGuardGate(d)}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(bootGuardGate,450));else setTimeout(bootGuardGate,450);
   window.addEventListener('hashchange',()=>{const p=gPayload();if(p)openGuardGate(p)});
 
@@ -29053,6 +29053,7 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
     const b=document.getElementById('r243Bar');if(b)b.textContent='Updating RCADS…';
     try{if(window.caches){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}}catch(e){}
     try{if(navigator.serviceWorker){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()))}}catch(e){}
+    try{sessionStorage.removeItem('rcads_active_guard_session');sessionStorage.removeItem('rcads_attendance_operator')}catch(e){} /* R289: open again on the person's own PIN screen */
     const u=location.pathname+'?v='+Date.now()+(location.hash||'');location.replace(u)}
   window.rcadsUpdateNow=hardUpdate;
   async function check(){
