@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R340 PIN AUTO SYNC • iPHONE INSTALL</title>
+<title>Rustica RCADS App — R341 URGENT DUTY OTHER BRANCH</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21621,7 +21621,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
   function getPos(){return new Promise((res,rej)=>{if(!navigator.geolocation)return rej({code:-1});navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:15000,maximumAge:0})})}
   function deviceId(){try{return rcadsCloudDeviceId()}catch(e){let id='';try{id=localStorage.getItem('rcads_r159_device')||''}catch(_){}if(!id){id='DEV'+Math.random().toString(36).slice(2,10).toUpperCase();try{localStorage.setItem('rcads_r159_device',id)}catch(_){}}return id}}
   async function verifyLocation(who){
-    const b=currentBranch(),cfg=geoCfg()[b];
+    const b=(who&&who.branch)||currentBranch(),cfg=geoCfg()[b]; /* R341: who.branch = the branch of the scanned Guard QR */
     const res={at:new Date().toISOString(),branch:b,who:who.name||'',code:who.code||'',role:who.role||'',ok:null,distance:null,accuracy:null,state:''};
     if(!cfg||!isFinite(cfg.lat)||!isFinite(cfg.lng)){res.state='LOCATION NOT SET — HR must set the branch location first';return logLoc(res)}
     try{
@@ -25593,7 +25593,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   async function onGuardScanned(raw,who){
     const g=parseGuardQr(raw);if(!g.ok){alert(g.msg);return}
     const code=who.code;let geo='NA',gr=null;
-    try{if(typeof window.rcadsR159VerifyLocation==='function')gr=await window.rcadsR159VerifyLocation({id:'EMP_'+code,code,name:who.name,role:'EMPLOYEE'})}catch(e){}
+    try{if(typeof window.rcadsR159VerifyLocation==='function')gr=await window.rcadsR159VerifyLocation({id:'EMP_'+code,code,name:who.name,role:'EMPLOYEE',branch:g.branch||''})}catch(e){}
     if(gr&&gr.ok===true)geo='OK';
     else{alert('⛔ TIME IN / OUT NOT ALLOWED\n\n'+((gr&&gr.state)||'Location is OFF or not available.')+'\n\nYou must be AT THE BRANCH, in front of the guard.\nTurn ON Location (allow it for this app), go near the guard, then scan again.');return}
     try{const txt=await makePayload(code,who.branch||g.branch,'PASS',g,geo,who.ph);PASS={code,txt,until:Date.now()+PASS_MS,geo,guard:g.label};renderPassAll()}
@@ -25678,7 +25678,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(!guardGeo||guardGeo.ok!==true){resultBox('r181GuardRes','<b>✗ NOT RECORDED</b><span>Guard: '+esc(guardGeo&&guardGeo.state||'Location is OFF or unavailable. Allow location and scan again.')+'</span>','bad');return}
     if(guardLabel()!==gl||!guardTokens().includes(p.g)||Date.now()-Number(p.ts)>MAX_AGE){resultBox('r181GuardRes','<b>✗ SCAN AGAIN</b><span>The Guard session or QR expired during the location check.</span>','bad');return}
     const st=shiftState(p.c);const name=v.emp.name||p.c;
-    const flags=[p.geo==='OUT'?'⚠ GPS: OUTSIDE THE BRANCH':(p.geo==='OK'?'✓ GPS: at the branch':'GPS: not checked'),String(p.ph||'').indexOf('BORROWED')===0?'👥 BORROWED PHONE ('+esc(p.ph.split(':')[1]||'')+')':'',v.branch&&curBranch()&&v.branch!==curBranch()?'⚠ OTHER BRANCH ('+bName(v.branch)+')':'',v.loan?'👥 TEMPORARY TRANSFER from '+bName(v.loan.from)+' until '+(window.rcadsR185?rcadsR185.fmt(v.loan.until):v.loan.until):'',v.loanEnded&&v.loanEnded.to===curBranch()?'⚠ TEMPORARY TRANSFER ENDED ('+(window.rcadsR185?rcadsR185.fmt(rcadsR185.loanEnd(v.loanEnded)):v.loanEnded.until)+') — should be at '+bName(v.loanEnded.from)+' now':''].filter(Boolean);
+    const flags=[p.geo==='OUT'?'⚠ GPS: OUTSIDE THE BRANCH':(p.geo==='OK'?'✓ GPS: at the branch':'GPS: not checked'),String(p.ph||'').indexOf('BORROWED')===0?'👥 BORROWED PHONE ('+esc(p.ph.split(':')[1]||'')+')':'',v.branch&&curBranch()&&v.branch!==curBranch()?'🚨 URGENT DUTY from '+bName(v.branch)+' — goes to their own DTR':'',v.loan?'👥 TEMPORARY TRANSFER from '+bName(v.loan.from)+' until '+(window.rcadsR185?rcadsR185.fmt(v.loan.until):v.loan.until):'',v.loanEnded&&v.loanEnded.to===curBranch()?'⚠ TEMPORARY TRANSFER ENDED ('+(window.rcadsR185?rcadsR185.fmt(rcadsR185.loanEnd(v.loanEnded)):v.loanEnded.until)+') — should be at '+bName(v.loanEnded.from)+' now':''].filter(Boolean);
     const noBreak=st.state==='WORKING'?'<div class="r181-warn">NO BREAK OUT RECORDED in the latest synced attendance. Ask the employee and the Head/Manager before they leave. Confirm the facts before reporting an unauthorized departure.</div>':'';
     const head=noBreak+'<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span><em>'+flags.map(esc).join(' • ').replace(/&amp;/g,'&')+'</em></div>';
     const base={handshake:'MUTUAL QR',guardToken:p.g,geo:p.geo,guardGeo:'OK',guardGeoCheckedAt:guardGeo.at||new Date().toISOString(),phone:p.ph||'OWN',authorizedBy:gl,authorizedDepartment:'Security / Guard',dutyBranch:curBranch()};
@@ -25767,7 +25767,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=breakAuthority();if(!a){alert('Only authorized Department Heads, their assistants, and Managers can do BREAK OUT / BREAK IN.');return}
     const v=await verifyPayload(raw);if(!v.ok){resultBox('r181BreakRes','<b>✗ NOT RECORDED</b><span>'+esc(v.msg)+'</span>','bad');return}
     const p=v.p;const name=v.emp.name||p.c;
-    if(a.scope!=='ALL'&&v.branch&&v.branch!==a.scope){resultBox('r181BreakRes','<b>✗ OTHER BRANCH</b><span>'+esc(name)+' is from'+esc(bName(v.branch))+'. Only an authorized Head or assistant of their own branch can do this.</span>','bad');return}
+    const r341duty=(function(c){let s=null;try{s=JSON.parse(localStorage.getItem('rustica_srf_local_attendance_'+U(c))||'null')}catch(_){}const t=new Date().toDateString();let br='';((s&&s.records)||[]).filter(x=>new Date(x.date).toDateString()===t).forEach(x=>{if(x.type==='IN'&&x.kind==='Start'&&x.dutyBranch)br=U(x.dutyBranch);else if(x.type==='OUT'&&!/break/i.test(x.kind||'')&&!/break/i.test(x.reason||''))br=''});return br})(p.c);
+    if(a.scope!=='ALL'&&v.branch&&v.branch!==a.scope&&r341duty!==U(a.scope)){resultBox('r181BreakRes','<b>✗ OTHER BRANCH</b><span>'+esc(name)+' is from'+esc(bName(v.branch))+'. Only an authorized Head or assistant of their own branch can do this.</span>','bad');return}
     if(a.code&&a.code===p.c){resultBox('r181BreakRes','<b>✗ NOT ALLOWED ON YOURSELF</b><span>Another Head/Manager must do your BREAK.</span>','bad');return}
     const st=shiftState(p.c);const head='<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span>'+(String(p.ph||'').indexOf('BORROWED')===0?'<em>👥 BORROWED PHONE</em>':'')+'</div>';
     const base={authorizedBy:a.label,authorizedDepartment:a.department,authorizedCode:a.code,handshake:'BREAK QR',phone:p.ph||'OWN'};const s=nowStampLocal();
