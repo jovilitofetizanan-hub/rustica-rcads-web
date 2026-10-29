@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R336 HR PHONE MENU</title>
+<title>Rustica RCADS App — R338 HR SCAN GUARDS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31330,6 +31330,136 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     if(typeof window.rcadsR181Scan!=='function'||!window.rcadsR181){alert('Scanner not available.');return}
     FORCE=Date.now()+600000;window.rcadsR181Scan('SCAN THE EMPLOYEE PASS QR',raw=>{FORCE=Date.now()+600000;window.rcadsR181.guardHandle(raw)})});
   window.rcadsR335={token};
+})();
+
+</script>
+<style id="rcadsR337Css">#r337Btn{display:block;width:100%;max-width:420px;margin:10px auto;padding:14px;border:0;border-radius:14px;background:#2f6b3a;color:#fff;font-weight:900;font-size:15px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.18)}#r337Btn small{display:block;font-size:11px;font-weight:700;opacity:.9;margin-top:2px}</style>
+<script id="rcadsR337Script">
+(function(){
+  'use strict';
+  /* R337 — HR phone: 🛂 SCAN TIME IN / OUT button also on the OUTSIDE home of HR RCADS (before the HR PIN). */
+  function hrDev(){try{return localStorage.getItem('rustica_r167_hrdevice_pin_flag')==='1'||localStorage.getItem('r182_device_role')==='HR'}catch(e){return false}}
+  function adminOpen(){const m=document.getElementById('simpleHrAdminModal');return !!m&&!m.classList.contains('hidden')&&getComputedStyle(m).display!=='none'}
+  let goAt=0;
+  function go(){if(adminOpen()&&typeof rcadsHrGo==='function'){rcadsHrGo('r335Sec');try{const b=document.querySelector('[data-r178-sec="r335Sec"]');if(b&&!document.getElementById('r335Sec').offsetParent)b.click()}catch(e){}return true}return false}
+  setInterval(()=>{try{
+    if(goAt&&Date.now()-goAt<120000&&go())goAt=0;
+    const sel=document.getElementById('selectScreen');let b=document.getElementById('r337Btn');
+    if(!sel||!hrDev()){if(b)b.remove();return}
+    if(!b){b=document.createElement('button');b.id='r337Btn';b.type='button';b.innerHTML='🛂 SCAN TIME IN / OUT<small>HR records the attendance of any employee</small>';
+      const hr=document.getElementById('hrOperationOfficerButton');if(hr&&hr.parentElement)hr.insertAdjacentElement('afterend',b);else sel.insertBefore(b,sel.firstChild)}
+  }catch(e){}},1000);
+  document.addEventListener('click',e=>{if(!e.target.closest||!e.target.closest('#r337Btn'))return;if(go())return;goAt=Date.now();const hr=document.getElementById('hrOperationOfficerButton');if(hr)hr.click()});
+})();
+
+</script>
+<style id="rcadsR338Css">
+#r338G{position:fixed;inset:0;z-index:2147483100;background:rgba(30,12,4,.95);overflow-y:auto;padding:16px 12px;font-family:Arial,Helvetica,sans-serif}
+.r338-box{max-width:420px;margin:0 auto;background:#fffaf2;border-radius:18px;padding:16px;border-top:6px solid #5b3519;text-align:center;color:#3d2615}
+.r338-h{font-size:18px;font-weight:900}.r338-s{font-size:13px;margin:4px 0 10px}.r338-step{font-size:13px;font-weight:800;margin:8px 0}
+.r338-qr{background:#fff;border:2px solid #5b3519;border-radius:14px;padding:8px;width:min(78vw,300px);margin:6px auto}.r338-qr svg{display:block;width:100%;height:auto}
+.r338-left{font-size:12px}.r338-warn{color:#a1281f;font-weight:800;margin:10px 0}
+.r338-big{display:block;width:100%;padding:15px;border:0;border-radius:14px;background:#5b3519;color:#fff;font-weight:900;font-size:15px}
+.r338-mini{display:block;width:100%;margin-top:12px;border:0;border-radius:10px;padding:10px;background:#efe2cf;color:#5b3519;font-weight:900}
+.r338-alt{display:block;width:100%;margin:10px 0;padding:13px;border:2px solid #5b3519;border-radius:12px;background:#fff8ee;color:#5b3519;font-weight:900;font-size:13px;cursor:pointer}
+</style>
+<script id="rcadsR338Script">
+(function(){
+  'use strict';
+  /* R338 — HR can TIME IN / TIME OUT a GUARD with the same mutual scan:
+     Guard phone: 🛂 SCAN THE HR QR (Location ON) → shows a GUARD PASS (2 minutes, signed with his PIN record)
+     HR phone (🛂 HR Time In / Out): 📷 SCAN THE EMPLOYEE PASS → scans the GUARD PASS (HR location checked too)
+       • guard NOT on duty → TIME IN (any other guard still on duty is timed OUT = handover by HR)
+       • guard ON duty → TIME OUT (his Guard app logs out by itself) */
+  const HRL='HR OPERATION OFFICER',QR_MS=120000,MAX_AGE=150000,RAW='rustica_srf_guard_duty_logs';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function U(c){return String(c||'').trim().toUpperCase()}
+  function b64u(s){return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+  function unb64u(s){s=String(s).replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)))}
+  function hex(buf){return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+  async function hmac(key,msg){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(String(key)),{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg))).slice(0,32)}
+  function canon(p){return ['RCADS-R338',p.t,p.b,p.gd,p.act,p.ts,p.g,p.geo].join('|')}
+  function branch(){try{return U(rusticaGetCurrentBranchCode())||'SAN_RAFAEL'}catch(e){return 'SAN_RAFAEL'}}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:c}
+  function isG(l){return /^Guard \d+$/.test(String(l||''))}
+  function slotOf(l){return 'guard'+String(parseInt(String(l).replace(/\D/g,''),10)||1).padStart(2,'0')}
+  function gName(b,l){try{const v=JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+U(b))||'{}')||{};return String(v[slotOf(l)]||'').trim()}catch(e){return ''}}
+  function gRec(b,l){try{return window.rcadsR206.gRec(window.rcadsR206.gKey(b,slotOf(l)))}catch(e){return null}}
+  function logged(){try{return getLoggedGuardLabel()||''}catch(e){return ''}}
+  function raw(){try{const v=JSON.parse(localStorage.getItem(RAW)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}}
+  function openIn(b,g){const L=raw().filter(l=>U(l.branch||'SAN_RAFAEL')===U(b));for(let i=L.length-1;i>=0;i--){const r=L[i];if(r.guard===g&&r.type==='IN'){return L.slice(i+1).some(x=>x.guard===g&&x.type==='OUT')?null:r}}return null}
+  function addLog(b,g,type,reason){const a=raw();const d=new Date();a.push({guard:g,type,timestamp:d.toISOString(),localTime:d.toLocaleString(),automatic:true,reason,branch:U(b),by:HRL});localStorage.setItem(RAW,JSON.stringify(a));try{rcadsCloudFlushQueue()}catch(e){}}
+  function tokenFor(label,b,slot){const r='RCADS|GUARD|'+b+'|'+label+'|'+slot;const h=(typeof rcadsEmployeeHashText==='function')?rcadsEmployeeHashText(r):String(slot);return 'GUARD-'+label.replace(/\s+/g,'').toUpperCase()+'-'+slot+'-'+h}
+  function qrSvg(data){const QR=window.RCADSQRCode,E=window.RCADSQRErrorCorrectLevel;if(!QR||!E)return '<div>QR encoder unavailable</div>';const q=new QR(-1,E.M);q.addData(data);q.make();const n=q.getModuleCount(),z=4,s=n+z*2;let d='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+='M'+(c+z)+' '+(r+z)+'h1v1h-1z';return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+s+' '+s+'"><rect width="100%" height="100%" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>'}
+  async function geo(id,name,role){try{const r=await window.rcadsR159VerifyLocation({id,name,role});return r||{ok:null}}catch(e){return {ok:null,state:'Location check failed.'}}}
+
+  /* =================== GUARD PHONE =================== */
+  let G=null; // {me,b,act,txt,until}
+  function meNow(){const p=window.rcadsR331&&window.rcadsR331._pend&&window.rcadsR331._pend();return (p&&p.me)||logged()}
+  function paintG(){let o=document.getElementById('r338G');if(!G){if(o)o.remove();return}
+    if(!o){o=document.createElement('div');o.id='r338G';document.documentElement.appendChild(o)}
+    const left=Math.max(0,Math.ceil((G.until-Date.now())/1000));
+    const h='<div class="r338-box"><div class="r338-h">🛂 '+(G.act==='IN'?'TIME IN':'TIME OUT')+' BY HR</div><div class="r338-s">'+esc(G.me)+(gName(G.b,G.me)?' • '+esc(gName(G.b,G.me)):'')+'</div>'
+      +(left>0?'<div class="r338-step">✓ You scanned the HR QR. Let <b>HR</b> scan this GUARD PASS:</div><div class="r338-qr">'+qrSvg(G.txt)+'</div><div class="r338-left">Valid for <b data-r338-left>'+left+'</b>s • waiting for HR…</div>':'<div class="r338-warn">The GUARD PASS expired. Scan the HR QR again.</div><button type="button" class="r338-big" data-r338-scan>🛂 SCAN THE HR QR</button>')
+      +'<button type="button" class="r338-mini" data-r338-cancel>CANCEL</button></div>';
+    const key=h.replace(/data-r338-left>\d+/,'');if(o.dataset.h!==key){o.dataset.h=key;o.innerHTML=h}else{const l=o.querySelector('[data-r338-left]');if(l)l.textContent=left}}
+  async function scanHr(){
+    const me=meNow();if(!isG(me)){alert('Log in to your Guard app first.');return}
+    if(typeof window.rcadsR181Scan!=='function'){alert('Scanner not available.');return}
+    window.rcadsR181Scan('SCAN THE HR QR',async rawTxt=>{
+      const m=String(rawTxt).match(/GUARD-HROPERATIONOFFICER-(\d+)-[A-Za-z0-9]+/);if(!m){alert('This is not the HR QR. Open 🛂 HR Time In / Out on the HR phone.');return}
+      const tok=m[0],slot=+m[1];if(Math.abs(Math.floor(Date.now()/QR_MS)-slot)>1){alert('That HR QR is old (it changes every 2 minutes). Scan the new one.');return}
+      const hb=branches().map(b=>b.code).find(b=>tokenFor(HRL,b,slot)===tok);if(!hb){alert('Not a genuine HR QR (RED FLAG).');return}
+      const b=branch();const gg=await geo('GUARD_'+me,me,'GUARD');if(gg.ok!==true){alert('⛔ NOT ALLOWED\n\n'+(gg.state||'Location is OFF or not available.')+'\n\nTurn ON Location at the branch, in front of HR, then scan again.');return}
+      const r=gRec(b,me);if(!r||!r.pinHash){alert('No personal Guard PIN record on this phone. See HR.');return}
+      const act=openIn(b,me)?'OUT':'IN';
+      const p={v:1,t:'GHR',b,gd:me,act,ts:Date.now(),g:tok,geo:'OK'};p.s=await hmac(r.pinHash,canon(p));
+      G={me,b,act,txt:'RCADSGPASS:'+b64u(JSON.stringify(p)),until:Date.now()+QR_MS};paintG();watch()})}
+  let wT=null;
+  function watch(){clearTimeout(wT);if(!G)return;wT=setTimeout(async()=>{if(!G)return;try{if(navigator.onLine&&typeof window.rcadsCloudPullMerge==='function')await window.rcadsCloudPullMerge()}catch(e){}
+    const on=!!openIn(G.b,G.me);
+    if(G.act==='IN'&&on){const me=G.me;G=null;paintG();try{window.rcadsAutoGuardHandoverOnLogin(me)}catch(e){}try{refreshGuardHome()}catch(e){}alert('✓ TIME IN by HR — '+me+' is now ON DUTY.');return}
+    if(G.act==='OUT'&&!on){const me=G.me;G=null;paintG();alert('✓ TIME OUT by HR — '+me+'. Your Guard app will now log out.');window.__r331Silent=true;try{guardLogout()}catch(e){}finally{window.__r331Silent=false}return}
+    paintG();watch()},4000)}
+  setInterval(()=>{try{if(G)paintG();
+    /* button inside the R331 handover screen (TIME IN by HR) */
+    const box=document.querySelector('#r331Hand .r331-box');if(box&&!box.querySelector('[data-r338-scan]')){const lo=box.querySelector('[data-r331-logout]');const b=document.createElement('button');b.type='button';b.className='r338-alt';b.setAttribute('data-r338-scan','1');b.textContent='🛂 OR: HR IS HERE — SCAN THE HR QR';if(lo)lo.insertAdjacentElement('beforebegin',b);else box.appendChild(b)}
+    /* button on the Guard home (TIME OUT by HR) */
+    const gh=document.getElementById('guardHomeScreen');const me=logged();let x=document.getElementById('r338GBtn');
+    if(gh&&isG(me)&&getComputedStyle(gh).display!=='none'&&!gh.classList.contains('hidden')){if(!x){x=document.createElement('button');x.id='r338GBtn';x.type='button';x.className='r338-alt';x.setAttribute('data-r338-scan','1');gh.insertBefore(x,gh.firstChild)}x.textContent=openIn(branch(),me)?'🛂 TIME OUT BY HR — scan the HR QR':'🛂 TIME IN BY HR — scan the HR QR'}else if(x)x.remove();
+  }catch(e){}},1000);
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;if(t.closest('[data-r338-scan]')){scanHr();return}if(t.closest('[data-r338-cancel]')){G=null;clearTimeout(wT);paintG()}});
+
+  /* =================== HR PHONE: scan the GUARD PASS =================== */
+  async function hrScan(p){
+    const res=(h,c)=>{const b=document.getElementById('r335Res');if(b){b.className='r181-result '+(c||'');b.innerHTML=h}else alert(h.replace(/<[^>]+>/g,' '))};
+    if(!window.__r335HrMode){res('<b>✗</b><span>Open 🛂 HR Time In / Out first.</span>','bad');return}
+    const tk=(window.rcadsR335Tokens&&window.rcadsR335Tokens())||[];if(!tk.includes(p.g)){res('<b>✗ HE DID NOT SCAN YOUR CURRENT HR QR</b><span>Let him scan the HR QR again (it changes every 2 minutes).</span>','bad');return}
+    const age=Date.now()-Number(p.ts);if(!(age<=MAX_AGE&&age>-60000)){res('<b>✗ EXPIRED</b><span>The GUARD PASS is valid for 2 minutes only.</span>','bad');return}
+    if(p.geo!=='OK'){res('<b>✗ NOT AT THE BRANCH</b>','bad');return}
+    const r=gRec(p.b,p.gd);if(!r||!r.pinHash){res('<b>✗ NOT RECORDED</b><span>No PIN record of '+esc(p.gd)+' ('+esc(bName(p.b))+') on this phone. Sync first.</span>','bad');return}
+    if(r.status&&r.status!=='ACTIVE'){res('<b>✗ NOT RECORDED</b><span>'+esc(p.gd)+' app is '+esc(r.status)+'.</span>','bad');return}
+    let good=false;try{good=(await hmac(r.pinHash,canon(p)))===p.s}catch(e){}if(!good){res('<b>✗ FAKE OR ALTERED QR (RED FLAG)</b>','bad');return}
+    const hg=await geo('HR_RUS-HR01',HRL,'HR');if(hg.ok!==true){res('<b>✗ NOT RECORDED</b><span>HR location: '+esc(hg.state||'OFF / not available')+'. Use the HR phone at the branch, Location ON.</span>','bad');return}
+    const nm=p.gd+(gName(p.b,p.gd)?' ('+gName(p.b,p.gd)+')':'');const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    if(p.act==='IN'){
+      if(openIn(p.b,p.gd)){res('<b>ALREADY ON DUTY</b><span>'+esc(nm)+' is already timed in.</span>','warn');return}
+      const others=[...new Set(raw().filter(l=>U(l.branch||'SAN_RAFAEL')===U(p.b)&&isG(l.guard)).map(l=>l.guard))].filter(g=>g!==p.gd&&openIn(p.b,g));
+      if(!confirm('TIME IN — '+nm+' • '+bName(p.b)+(others.length?'\n\n'+others.join(', ')+' will be timed OUT (handover by HR).':'')+'\n\nContinue?'))return;
+      others.forEach(g=>addLog(p.b,g,'OUT','TIME OUT by HR (handover to '+p.gd+') • mutual QR • GPS ✓'));
+      addLog(p.b,p.gd,'IN','TIME IN by HR • mutual QR • GPS ✓ both');
+      res('<div class="r181-who"><b>'+esc(nm)+'</b><span>'+esc(bName(p.b))+'</span></div><b class="big ok">✓ GUARD TIME IN • '+esc(t)+'</b>'+(others.length?'<span>'+esc(others.join(', '))+' timed OUT.</span>':''),'ok');
+    }else{
+      if(!openIn(p.b,p.gd)){res('<b>NOT ON DUTY</b><span>'+esc(nm)+' has no open duty.</span>','warn');return}
+      if(!confirm('TIME OUT — '+nm+' • '+bName(p.b)+'\n\nContinue?'))return;
+      addLog(p.b,p.gd,'OUT','TIME OUT by HR • mutual QR • GPS ✓ both');
+      res('<div class="r181-who"><b>'+esc(nm)+'</b><span>'+esc(bName(p.b))+'</span></div><b class="big ok">✓ GUARD TIME OUT • '+esc(t)+'</b><span>His Guard app logs out by itself.</span>','ok');
+    }
+  }
+  function hook(){const R=window.rcadsR331;if(!R||R.__r338)return;const prev=R.onDutyScan;R.onDutyScan=async function(rawTxt){let p=null;try{p=JSON.parse(unb64u(String(rawTxt).slice(11)))}catch(e){}if(p&&p.t==='GHR')return hrScan(p);return prev.apply(this,arguments)};R.__r338=true}
+  hook();setTimeout(hook,1500);
+  window.rcadsR338={scanHr,hrScan,_g:()=>G};
 })();
 
 </script>
