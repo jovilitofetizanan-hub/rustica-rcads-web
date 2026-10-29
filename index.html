@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R333 MANAGEMENT OT BY HR</title>
+<title>Rustica RCADS App — R334 HR DTR VIEW</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31225,6 +31225,66 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
       MSG='✓ '+hours+' hour(s) OT approved for '+e2.name+' • '+fmt(date)+'.';const c=document.getElementById('r333Card');if(c){document.activeElement&&document.activeElement.blur();c.dataset.h=''}mount();return}
     const v=t.closest('[data-r333-void]');if(v){if(!confirm('Remove this approved management overtime?'))return;const L=all();const r=L.find(x=>x.id===v.getAttribute('data-r333-void'));if(r){r.voided=true;r.voidedAt=new Date().toISOString();lsSet(KEY,L)}MSG='Removed.';const c=document.getElementById('r333Card');if(c)c.dataset.h='';mount()}});
   window.rcadsR333={otMin,approvedMin,mgmtList,all};
+})();
+
+</script>
+<style id="rcadsR334Css">
+.r334-btns{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.r334-btns button{flex:1;min-width:220px;padding:12px;border:0;border-radius:12px;background:#2f6b3a;color:#fff;font-weight:900;font-size:13px;cursor:pointer}
+#r334M{position:fixed;inset:0;z-index:2147483200;background:rgba(30,12,4,.8);display:none;padding:12px}#r334M.show{display:flex;justify-content:center}
+.r334-box{width:100%;max-width:1200px;background:#fffaf2;border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+.r334-head{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#3d2412;color:#fff}.r334-head button{border:0;border-radius:9px;padding:8px 12px;font-weight:900;background:#fff;color:#3d2412;cursor:pointer}
+.r334-body{flex:1;overflow:auto;padding:12px}.r334-note{font-size:12px;color:#5b3519;margin-bottom:8px}
+.r334-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.r334-tabs button{border:1px solid #b07a3c;background:#fff;border-radius:999px;padding:6px 12px;font-weight:800;font-size:12px;cursor:pointer}.r334-tabs button.on{background:#5b3519;color:#fff}
+.r334-sheet{overflow:auto}.r334-t{border-collapse:collapse;font-size:11.5px;background:#fff}.r334-t td{border:1px solid #e0cdb2;padding:4px 6px;white-space:nowrap}
+.r334-q{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d8bfa1;border-radius:10px;margin-bottom:8px;font-size:14px}
+.r334-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px}.r334-list button{text-align:left;padding:9px;border:1px solid #e6d3b8;border-radius:10px;background:#fff;cursor:pointer}.r334-list b{display:block;font-size:13px}.r334-list small{font-size:11px;color:#7a5a3d}
+.r334-back{border:0;background:none;font-weight:900;color:#5b3519;cursor:pointer;padding:0 0 8px}.r334-emp{font-size:15px;margin-bottom:8px}
+.r334-day{border:1px solid #e6d3b8;border-radius:12px;background:#fff;margin:8px 0;overflow:hidden}.r334-dh{background:#f3ead9;padding:6px 10px;font-weight:900;font-size:12.5px}
+.r334-p{display:grid;grid-template-columns:80px 120px 1fr;gap:2px 10px;padding:6px 10px;border-top:1px dashed #eadbc6;font-size:12.5px}.r334-p .t{font-weight:900}.r334-p small{grid-column:1/-1;color:#7a5a3d;font-size:11px}
+.r334-empty{padding:14px;color:#7a5a3d;font-size:13px}
+</style>
+<script id="rcadsR334Script">
+(function(){
+  'use strict';
+  /* R334 — HR: see the DTR on screen (no need to download Excel)
+     • 👁 VIEW DTR SUMMARY ON SCREEN — the same DTR Summary Log as the Excel export (branch + cutoff chosen above)
+     • 🔎 EMPLOYEE DAILY PUNCHES — every TIME IN / BREAK / TIME OUT of one employee in the cutoff, with who recorded it */
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function U(c){return String(c||'').trim().toUpperCase()}
+  function ctx(){try{return window.rcadsR158DtrExportContext()}catch(e){return null}}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&e.code&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
+  function recs(code){try{const s=JSON.parse(localStorage.getItem('rustica_srf_local_attendance_'+U(code))||'null');return s&&Array.isArray(s.records)?s.records:[]}catch(e){return []}}
+  function pad(n){return String(n).padStart(2,'0')}
+  function dk(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function modal(title,body){let m=document.getElementById('r334M');if(!m){m=document.createElement('div');m.id='r334M';document.body.appendChild(m)}
+    m.innerHTML='<div class="r334-box"><div class="r334-head"><b>'+esc(title)+'</b><button type="button" data-r334-x>✕ CLOSE</button></div><div class="r334-body">'+body+'</div></div>';m.classList.add('show')}
+  function viewSummary(){const x=ctx();if(typeof XLSX==='undefined'||typeof window.buildEditableDTRWorkbook!=='function'){alert('The Excel library did not load. Connect to the internet and open RCADS again.');return}
+    let wb=null;try{wb=window.buildEditableDTRWorkbook()}catch(e){alert('Cannot build the DTR: '+e.message);return}if(!wb||!wb.SheetNames||!wb.SheetNames.length){alert('No DTR data for this branch / cutoff.');return}
+    const tabs=wb.SheetNames.map((n,i)=>'<button type="button" class="'+(i?'':'on')+'" data-r334-tab="'+i+'">'+esc(n)+'</button>').join('');
+    const pages=wb.SheetNames.map((n,i)=>'<div class="r334-sheet" data-r334-pg="'+i+'"'+(i?' hidden':'')+'>'+XLSX.utils.sheet_to_html(wb.Sheets[n],{header:'',footer:''}).replace(/<table/,'<table class="r334-t"')+'</div>').join('');
+    modal('DTR SUMMARY — '+(x?x.branchName+' • '+x.cutoff.from+' to '+x.cutoff.to:''),'<div class="r334-note">Same as the Excel export. Read only — to change the branch or cutoff, close this and choose them above.</div><div class="r334-tabs">'+tabs+'</div>'+pages)}
+  let Q='';
+  function punchList(){const x=ctx();const b=x&&x.branch;const L=staff(b).filter(e=>!Q||U(e.name+' '+e.code).includes(U(Q))).sort((a,c)=>String(a.code).localeCompare(String(c.code),undefined,{numeric:true}));
+    return '<input class="r334-q" data-r334-q value="'+esc(Q)+'" placeholder="🔎 Search name or EMPCODE"><div class="r334-list">'+L.map(e=>'<button type="button" data-r334-emp="'+esc(U(e.code))+'"><b>'+esc(e.name)+'</b><small>'+esc(U(e.code))+' • '+esc(e.position||'')+' • '+esc(e.dept||e.department||'')+'</small></button>').join('')+'</div>'}
+  function openPunches(){const x=ctx();Q='';modal('EMPLOYEE DAILY PUNCHES — '+(x?x.branchName+' • '+x.cutoff.from+' to '+x.cutoff.to:''),punchList())}
+  function empPunches(code){const x=ctx();const from=x&&x.cutoff.from,to=x&&x.cutoff.to;const e=staff(x&&x.branch).find(y=>U(y.code)===code)||{name:code};
+    const R=recs(code).filter(r=>{const d=new Date(r.date);if(isNaN(d))return false;const k=dk(d);return (!from||k>=from)&&(!to||k<=to)}).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));
+    const days={};R.forEach(r=>{const k=dk(new Date(r.date));(days[k]=days[k]||[]).push(r)});
+    const label=r=>r.type==='IN'?(r.kind==='Return'?'☕ BREAK IN':'🟢 TIME IN'):(r.kind==='Break'?'☕ BREAK OUT':'🔴 TIME OUT');
+    const flags=r=>[r.handshake?'✓ '+r.handshake:'',r.geo==='OK'?'GPS ✓':(r.geo?'⚠ GPS '+r.geo:''),r.offline?'📴 saved offline':'',r.clockCorrected?'⏰ phone clock corrected':'',String(r.phone||'').indexOf('BORROWED')===0?'👥 borrowed phone':'',r.dutyBranch&&x&&r.dutyBranch!==x.branch?'⚠ at '+r.dutyBranch:'',r.reason&&r.reason!=='—'?r.reason:''].filter(Boolean).join(' • ');
+    const body='<button type="button" class="r334-back" data-r334-back>← ALL EMPLOYEES</button><div class="r334-emp"><b>'+esc(e.name)+'</b> • '+esc(code)+'</div>'
+      +(Object.keys(days).length?Object.keys(days).sort().map(k=>{const d=new Date(k+'T00:00:00');return '<div class="r334-day"><div class="r334-dh">'+esc(d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}))+'</div>'+days[k].map(r=>'<div class="r334-p"><span class="t">'+esc(r.time||new Date(r.date).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}))+'</span><span class="k">'+label(r)+'</span><span class="b">by '+esc(r.authorizedBy||r.approvedBy||'—')+'</span><small>'+esc(flags(r))+'</small></div>').join('')+'</div>'}).join(''):'<div class="r334-empty">No TIME IN / OUT in this cutoff on this device. Press ↻ / GET THE DATA (cloud) if it was recorded on another phone.</div>');
+    const m=document.querySelector('#r334M .r334-body');if(m)m.innerHTML=body}
+  setInterval(()=>{try{const p=document.getElementById('hrDtrExportPanel');if(!p||document.getElementById('r334Btns'))return;const d=document.createElement('div');d.id='r334Btns';d.className='r334-btns';
+    d.innerHTML='<button type="button" data-r334-view>👁 VIEW DTR SUMMARY ON SCREEN</button><button type="button" data-r334-punch>🔎 EMPLOYEE DAILY PUNCHES</button>';const c=document.getElementById('r184Ctx');const host=c&&c.parentElement&&p.contains(c.parentElement)?c.parentElement:null;if(host)host.insertAdjacentElement('afterend',d);else p.insertBefore(d,p.children[2]||null)}catch(e){}},1500);
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('[data-r334-view]')){viewSummary();return}if(t.closest('[data-r334-punch]')){openPunches();return}
+    if(t.closest('[data-r334-x]')){const m=document.getElementById('r334M');if(m)m.classList.remove('show');return}
+    if(t.closest('[data-r334-back]')){const m=document.querySelector('#r334M .r334-body');if(m)m.innerHTML=punchList();return}
+    const em=t.closest('[data-r334-emp]');if(em){empPunches(em.getAttribute('data-r334-emp'));return}
+    const tb=t.closest('[data-r334-tab]');if(tb){const i=tb.getAttribute('data-r334-tab');document.querySelectorAll('#r334M [data-r334-tab]').forEach(b=>b.classList.toggle('on',b===tb));document.querySelectorAll('#r334M [data-r334-pg]').forEach(p=>p.hidden=p.getAttribute('data-r334-pg')!==i)}});
+  document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('[data-r334-q]')){Q=e.target.value;const pos=e.target.selectionStart;const m=document.querySelector('#r334M .r334-body');if(m){m.innerHTML=punchList();const i=m.querySelector('[data-r334-q]');if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(_){}}}}});
+  window.rcadsR334={viewSummary,openPunches,empPunches};
 })();
 
 </script>
