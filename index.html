@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R339 EMPCODE PIN KEY</title>
+<title>Rustica RCADS App — R340 PIN AUTO SYNC • iPHONE INSTALL</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22142,7 +22142,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
     const db2=read();const x=db2.people[U(code)];
     Object.assign(x,{status:'ACTIVE',pinSalt:salt,pinHash:h,pinEnc:enc,pinChangedAt:now,pinChangedBy:'SELF (SETUP)',fails:0,lockedUntil:'',setupSalt:'',setupHash:'',setupEnc:'',setupExpires:'',setupDoneAt:now});
     x.history=[{at:now,by:'SELF (SETUP)'}].concat(x.history||[]).slice(0,20);
-    if(!save(db2))return {ok:false,msg:'Cannot save on this device.'};
+    if(!save(db2))return {ok:false,msg:'Cannot save on this device.'};try{window.dispatchEvent(new CustomEvent('rcads:self-pin-set',{detail:{code:U(code),pin:newPin}}))}catch(e){} /* R340 */
     return {ok:true};
   }
   async function checkSetup(code,setupCode){
@@ -31485,12 +31485,160 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     let r;try{r=await fetch(url+'/rest/v1/rpc/rustica_rcads_enroll_by_pin',{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify({p_code:code,p_pin:pin,p_label:label})})}catch(e){throw new Error('No internet. Connect and try again.')}
     const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){}
     if(!r.ok){const m=(d&&(d.message||d.hint))||t||('HTTP '+r.status);if(/could not find the function|PGRST202/i.test(m))throw new Error('Not set up yet. HR: run RCADS_R339_PIN_ENROLL_SUPABASE.sql.');throw new Error(m)}
-    if(!d||d.ok===false)throw new Error(String(d&&d.error||'Failed').replace(/^[A-Z_]+:\s*/,''));return d};
+    if(!d||d.ok===false){const em=String(d&&d.error||'Failed');if(/^NOT_READY/.test(em))throw new Error('Your PIN is not on the RCADS server yet. Ask HR to set your PIN again (HR: 🔐 Employee Personal QR → your name → HR will set the PIN), then try again.');throw new Error(em.replace(/^[A-Z_]+:\s*/,''))}return d};
   window.rcadsR339Check=async function(code,pin){let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}
     let r;try{r=await fetch(url+'/rest/v1/rpc/rustica_201_my_list',{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify({p_code:code,p_pin:pin})})}catch(e){throw new Error('No internet. Connect and try again.')}
-    const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){}if(!r.ok||!d||d.ok===false){const em=String((d&&(d.error||d.message))||'Wrong PIN.');if(/^NOT_READY/.test(em))throw new Error('Your PIN is not activated on the server yet. HR must open 201 Files once, then try again.');throw new Error(em.replace(/^[A-Z_]+:\s*/,''))}return true};
+    const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){}if(!r.ok||!d||d.ok===false){const em=String((d&&(d.error||d.message))||'Wrong PIN.');if(/^NOT_READY/.test(em))throw new Error('Your PIN is not on the RCADS server yet. Ask HR to set your PIN again (HR: 🔐 Employee Personal QR → your name → HR will set the PIN), then try again.');throw new Error(em.replace(/^[A-Z_]+:\s*/,''))}return true};
   window.rcadsR339Label=function(name){const ua=navigator.userAgent;const k=/iphone|ipad/i.test(ua)?'iPhone':(/android/i.test(ua)?'Android':'Device');return (name||'')+' • '+k+' • '+new Date().toLocaleDateString()};
 })();
+</script>
+<style id="rcadsR340Style">
+/* R340 */
+.r340-toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:100005;background:#1f6b3a;color:#fff;padding:11px 16px;border-radius:12px;font-weight:800;font-size:13px;max-width:92vw;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.r340-toast.bad{background:#a1281f}
+.r340-msg{margin:6px 0 10px;font-size:13px;line-height:1.5}.r340-msg:empty{display:none}
+.r340-msg .ok{color:#1f6b3a}.r340-msg .bad{color:#a1281f;margin-top:6px}
+.r340-chip{display:inline-block;background:#fbe9e6;border:1px solid #e3b4ad;border-radius:999px;padding:2px 9px;margin:3px 2px;font-size:12px;font-weight:700;color:#7a1f14}
+#r340Guide{position:fixed;inset:0;z-index:100004;background:rgba(20,10,5,.62);display:flex;align-items:flex-end;justify-content:center;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+#r340Guide .r340-box{background:#fffaf2;border-radius:18px;max-width:440px;width:100%;padding:18px 16px 14px;box-shadow:0 14px 40px rgba(0,0,0,.4);color:#2b1a10;max-height:86vh;overflow:auto}
+.r340-t{font-weight:900;font-size:17px;color:#5b3519;text-align:center;margin-bottom:8px}
+.r340-p{font-size:13px;line-height:1.45;margin:6px 0;color:#4a3526}.r340-p.bad{color:#a1281f;font-weight:700}
+#r340Guide ol{margin:6px 0 8px;padding-left:22px;font-size:14.5px;line-height:1.5}#r340Guide li{margin-bottom:7px}#r340Guide small{color:#6d5747}
+.r340-sh{display:inline-block;border:1.5px solid #2f6fd6;color:#2f6fd6;border-radius:6px;padding:0 5px;font-weight:900;font-size:12px}
+.r340-b{display:block;width:100%;margin-top:8px;padding:13px;border:0;border-radius:12px;background:#5b3519;color:#fff;font-weight:900;font-size:14px}
+.r340-b.light{background:#efe2cf;color:#5b3519}
+#r340Pill{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:8px;z-index:100003;border:0;border-radius:999px;background:#c8902a;color:#2a160d;font-weight:900;font-size:12px;padding:8px 12px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+#r340Arrow{position:fixed;left:0;right:0;bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:100006;display:flex;flex-direction:column;align-items:flex-end;padding-right:22px;pointer-events:none;color:#fff;font-weight:900;text-shadow:0 2px 6px rgba(0,0,0,.6)}
+#r340Arrow span{background:#c8902a;color:#2a160d;text-shadow:none;border-radius:10px;padding:6px 10px;font-size:13px;margin-bottom:2px}
+#r340Arrow b{font-size:44px;line-height:1;animation:r340b 0.9s ease-in-out infinite}
+@keyframes r340b{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+body.employee-simple-mode #employeeSimplePanel{padding-bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+
+</style>
+<script id="rcadsR340Script">
+(function(){
+  'use strict';
+  /* ============================================================
+     R340 — (1) PINs reach the RCADS server by themselves (no 201 password needed)
+                • HR sets / resets a PIN on the HR device → saved on the server at once (HR device key)
+                • 📤 SEND PINS TO SERVER — all PINs this HR device can read, and a list of the ones it cannot
+                • employee changes own PIN / creates first PIN with a SETUP CODE → server updated
+            (2) 📲 INSTALL ON iPHONE guide (Safari steps, Messenger / Facebook warning, COPY LINK)
+            (3) 🖨 PRINT INSTALL SLIPS (iPhone / Android) per branch
+     Needs RCADS_R340_PIN_AUTO_SYNC_SUPABASE.sql for (1).
+     ============================================================ */
+  if(window.RCADS_PREVIEW)return;
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function U(c){return String(c||'').trim().toUpperCase()}
+  function DB(){try{return RUSTICA_CENTRAL_DB||{}}catch(e){return {}}}
+  async function rpc(name,body){
+    const url=DB().url,anon=DB().anonKey;if(!url||!anon)throw new Error('No Supabase settings.');
+    let r;try{r=await fetch(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('No internet / no connection to Supabase.')}
+    const txt=await r.text();let d=null;try{d=txt?JSON.parse(txt):null}catch(e){}
+    if(!r.ok){const m=(d&&(d.message||d.hint))||txt||('HTTP '+r.status);if(/could not find the function|PGRST202/i.test(m))throw new Error('Not set up yet. HR: run RCADS_R340_PIN_AUTO_SYNC_SUPABASE.sql once in Supabase.');throw new Error(m)}
+    if(d&&d.ok===false){const e=new Error(String(d.error||'failed').replace(/^[A-Z_]+:\s*/,''));e.code=(String(d.error||'').match(/^([A-Z_]+):/)||[])[1]||'';throw e}return d}
+  function R182(){return window.rcadsR182||null}
+  function keyAuth(){const R=R182();return {p_branch_code:(R&&R.branch&&R.branch())||DB().branch||'SAN_RAFAEL',p_key:(R&&R.key&&R.key())||''}}
+  function isHrKey(){const R=R182();try{return !!(R&&R.key&&R.key()&&R.role&&R.role()==='HR')}catch(e){return false}}
+  function toast(t,bad){const d=document.createElement('div');d.className='r340-toast'+(bad?' bad':'');d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),7000)}
+
+  /* =================== (1) PINs → server =================== */
+  const Q={};let qT=null;
+  async function flush(){qT=null;if(!isHrKey()||!Object.keys(Q).length)return;const pins=Object.assign({},Q);
+    try{const d=await rpc('rustica_201_emp_pins_put_hr',Object.assign(keyAuth(),{p_pins:pins}));Object.keys(pins).forEach(k=>{if(Q[k]===pins[k])delete Q[k]});
+      const n=Object.keys(pins);toast(n.length===1?(pins[n[0]]?'✓ PIN of '+n[0]+' is saved on the RCADS server — he/she can log in on any phone (EMPCODE + PIN).':'✓ Server PIN of '+n[0]+' removed.'):'✓ '+(d.saved||0)+' PIN(s) saved on the RCADS server.')}
+    catch(e){toast('PIN not yet on the server: '+e.message+' (it will try again)',true);qT=setTimeout(flush,30000)}}
+  window.addEventListener('rcads:pin-set',ev=>{const d=ev.detail||{};if(!d.code||!isHrKey())return;Q[U(d.code)]=d.pin||null;clearTimeout(qT);qT=setTimeout(flush,400)});
+  async function firstPin(code,pin){const a=keyAuth();if(!a.p_key)return;try{await rpc('rustica_201_emp_pin_first',Object.assign(a,{p_code:code,p_pin:pin}))}catch(e){console.warn('R340 first PIN',e.message)}}
+  window.addEventListener('rcads:self-pin-set',ev=>{const d=ev.detail||{};if(d.code&&d.pin)firstPin(U(d.code),d.pin)});
+  window.addEventListener('rcads:my-pin-changed',async ev=>{const d=ev.detail||{};if(!d.code||!d.pin)return;
+    try{await rpc('rustica_201_my_change_pin',{p_code:U(d.code),p_old:d.old||'',p_new:d.pin})}catch(e){if(e.code==='NOT_READY')firstPin(U(d.code),d.pin);else console.warn('R340 change PIN',e.message)}});
+  async function sendAll(btn){
+    if(!isHrKey()){alert('Use the HR device (the one with the HR KEY) for this.');return}
+    if(typeof window.rcadsR160KnownPins!=='function'){alert('PIN module not loaded.');return}
+    let p=await window.rcadsR160KnownPins();if(!p){if(!(window.rcadsR160UnlockVault&&await window.rcadsR160UnlockVault()))return;p=await window.rcadsR160KnownPins();if(!p)return}
+    const people=(window.rcadsR160&&window.rcadsR160.read&&window.rcadsR160.read().people)||{};
+    const send={},bad=[];Object.keys(p).forEach(c=>{if(p[c]===null)return;if(p[c])send[c]=p[c];else bad.push(c)});
+    const out=document.getElementById('r340SendMsg');const say=h=>{if(out)out.innerHTML=h};
+    if(!Object.keys(send).length&&!bad.length){say('No employee has a personal PIN yet.');return}
+    if(btn)btn.disabled=true;say('Sending…');
+    try{let saved=0;if(Object.keys(send).length){const d=await rpc('rustica_201_emp_pins_put_hr',Object.assign(keyAuth(),{p_pins:send}));saved=d.saved||0}
+      say('<b class="ok">✓ '+saved+' PIN(s) are on the RCADS server.</b> They can log in on any phone / iPhone with EMPCODE + PIN.'
+        +(bad.length?'<div class="bad">⚠ '+bad.length+' PIN(s) cannot be read on this device (made with an older HR KEY), so they were NOT sent. For each one: click the name → <b>HR will set the PIN</b> (or RESET — NEW SETUP CODE):<br>'+bad.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})).map(c=>'<span class="r340-chip">'+esc(c)+' '+esc((people[c]||{}).name||'')+'</span>').join(' ')+'</div>':''))}
+    catch(e){say('<span class="bad">'+esc(e.message)+'</span>')}
+    if(btn)btn.disabled=false}
+
+  /* =================== (3) PRINT INSTALL SLIPS =================== */
+  function appUrl(){let u='';try{u=window.rcadsR143GetAppUrl?.()||''}catch(e){}return /^https?:\/\//i.test(u)?u.split('#')[0].split('?')[0]:'https://jovilitofetizanan-hub.github.io/rustica-rcads-web/'}
+  function qrSvg(data){const QR=window.RCADSQRCode,E=window.RCADSQRErrorCorrectLevel;if(!QR||!E)return '';const q=new QR(-1,E.M);q.addData(data);q.make();const n=q.getModuleCount(),z=4,s=n+z*2;let d='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+='M'+(c+z)+' '+(r+z)+'h1v1h-1z';return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+s+' '+s+'"><rect width="100%" height="100%" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>'}
+  function bName(c){try{const b=Object.values(window.RUSTICA_BRANCHES||RUSTICA_BRANCHES||{}).find(x=>x&&x.code===c);return b?b.name:c}catch(e){return c}}
+  function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&e.code&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}
+    return l.filter(e=>!(window.rcadsIsSeparated&&window.rcadsIsSeparated(U(e.code)))).sort((a,c)=>String(a.code).localeCompare(String(c.code),undefined,{numeric:true}))}
+  function printSlips(){
+    const b=(document.getElementById('r160Branch')||{}).value||'SAN_RAFAEL';const L=staff(b);
+    const w=window.open('','_blank');if(!w){alert('Allow pop-ups to be able to print.');return}
+    const url=appUrl(),q=qrSvg(url);
+    const slip=e=>'<div class="s"><div class="h">RUSTICA • RCADS — INSTALL YOUR PERSONAL APP</div><div class="top"><div class="q">'+q+'</div><div class="who"><div class="n">'+esc(e?e.name:'NAME: ____________________')+'</div><div class="c">EMPCODE: <b>'+esc(e?U(e.code):'__________')+'</b>'+(e?' • '+esc(bName(b)):'')+'</div><div class="u">'+esc(url.replace(/^https:\/\//,''))+'</div><div class="pin">PIN: HR gives it to you <b>in person</b>. Never share it.</div></div></div>'
+      +'<div class="cols"><div><b> iPHONE</b><ol><li>Scan the QR with the <b>Camera</b> → open in <b>Safari</b> (not Messenger / Facebook).</li><li><b>FIRST install:</b> tap <b>•••</b> → <b>Share</b> (older iPhone: the <b>Share ⬆</b> button) → <b>Add to Home Screen</b> → <b>Add</b>.</li><li>Open the <b>RCADS</b> icon → type <b>EMPCODE + PIN</b> → LOG IN.</li></ol></div>'
+      +'<div><b>ANDROID</b><ol><li>Scan the QR → open in <b>Chrome</b>.</li><li>Tap <b>⋮</b> → <b>Add to Home screen</b> / <b>Install app</b>.</li><li>Open the <b>RCADS</b> icon → type <b>EMPCODE + PIN</b> → LOG IN.</li></ol></div></div></div>';
+    const cards=(L.length?L:[null,null,null,null,null,null]).map(slip).join('');
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>RCADS Install Slips — '+esc(bName(b))+'</title><style>body{font-family:Arial,sans-serif;margin:8mm;color:#222}.g{display:grid;grid-template-columns:1fr 1fr;gap:5mm}.s{border:1.5px dashed #5b3519;border-radius:8px;padding:4mm;break-inside:avoid;font-size:9px}.h{font-weight:900;color:#5b3519;font-size:9.5px;text-align:center;margin-bottom:2mm}.top{display:flex;gap:3mm;align-items:center}.q svg{width:26mm;height:26mm;display:block}.n{font-size:12px;font-weight:900}.c{margin-top:1mm}.u{font-size:8px;color:#555;margin-top:1mm;word-break:break-all}.pin{margin-top:1.5mm;font-size:8.5px;color:#7a1f14}.cols{display:grid;grid-template-columns:1fr 1fr;gap:3mm;margin-top:2mm}ol{margin:1mm 0 0;padding-left:4mm}li{margin-bottom:.8mm}.no{padding:10px 16px;margin-bottom:6mm;font-weight:900}@media print{.no{display:none}}</style></head><body><button class="no" onclick="print()">PRINT</button> <span class="no">'+(L.length?L.length+' slip(s) — '+esc(bName(b)):'Blank slips (no employee list loaded)')+'</span><div class="g">'+cards+'</div></body></html>');
+    w.document.close()}
+
+  /* HR buttons in 🔐 Employee Personal QR + note under 201 SYNC */
+  setInterval(()=>{try{
+    const ex=document.getElementById('r160ExportPins');
+    if(ex&&!document.getElementById('r340Send')){ex.insertAdjacentHTML('afterend','<button type="button" class="r160-mini" id="r340Send" style="background:#1f6b3a">📤 SEND PINS TO SERVER (new phones / iPhone)</button><button type="button" class="r160-mini light" id="r340Print">🖨 PRINT INSTALL SLIPS (iPhone / Android)</button>');
+      const bar=ex.closest('.r160-hr-bar');if(bar&&!document.getElementById('r340SendMsg'))bar.insertAdjacentHTML('afterend','<div id="r340SendMsg" class="r340-msg"></div>')}
+    const sm=document.getElementById('r174SyncMsg');if(sm&&/✓ 0 PIN synced/.test(sm.textContent)&&!sm.dataset.r340){sm.dataset.r340='1';sm.textContent='✓ 0 PIN synced — this device cannot read the PINs. Use 🔐 Employee Personal QR → 📤 SEND PINS TO SERVER to see who needs a new PIN.'}
+    else if(sm&&sm.dataset.r340&&!/0 PIN synced/.test(sm.textContent))delete sm.dataset.r340;
+  }catch(e){}},1500);
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    const s=t.closest('#r340Send');if(s){sendAll(s);return}
+    if(t.closest('#r340Print')){printSlips();return}});
+
+  /* =================== (2) INSTALL ON iPHONE =================== */
+  const UA=navigator.userAgent||'';
+  const IOS=/iPhone|iPad|iPod/i.test(UA)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const AND=/Android/i.test(UA);
+  const INAPP=/FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|Line\/|MicroMessenger|TikTok|musical_ly|Snapchat|GSA\//i.test(UA);
+  const OTHER=/CriOS|FxiOS|EdgiOS|OPiOS|YaBrowser/i.test(UA);
+  function standalone(){try{return navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches}catch(e){return false}}
+  function later(){try{return +(sessionStorage.getItem('r340_later')||0)>Date.now()}catch(e){return false}}
+  function hrOpen(){const m=document.getElementById('simpleHrAdminModal');return !!m&&!m.classList.contains('hidden')&&getComputedStyle(m).display!=='none'}
+  async function copyLink(btn){const u=appUrl();try{await navigator.clipboard.writeText(u);btn.textContent='✓ LINK COPIED — now open Safari and paste'}catch(e){prompt('Copy this link, then open it in Safari:',u)}}
+  function guideHtml(){
+    if(INAPP)return '<div class="r340-t">⚠ OPEN RCADS IN '+(IOS?'SAFARI':'CHROME')+'</div><div class="r340-p">This page opened inside <b>Messenger / Facebook</b>. RCADS cannot be installed from here.</div>'
+      +'<ol><li>Tap <b>•••</b> or <b>⋯</b> (top or bottom right) → <b>Open in '+(IOS?'Safari':'Chrome')+'</b> / <b>Open in browser</b>.</li><li>Or press <b>COPY LINK</b> below, open <b>'+(IOS?'Safari':'Chrome')+'</b>, paste it in the address bar.</li></ol>'
+      +'<button type="button" class="r340-b" data-r340-copy>📋 COPY LINK</button><button type="button" class="r340-b light" data-r340-later>LATER</button>';
+    if(AND)return '';
+    return '<div class="r340-t">📲 INSTALL RCADS ON THIS iPHONE — do this FIRST</div>'
+      +(OTHER?'<div class="r340-p bad">You are not in <b>Safari</b>. For the best result press COPY LINK and open it in Safari.</div>':'')
+      +'<ol><li>Tap <b>•••</b> at the bottom right → <b>Share</b>.<br><small>Older iPhone: tap the <b>Share</b> button <span class="r340-sh">⬆</span> at the bottom.</small></li>'
+      +'<li>Scroll down → tap <b>Add to Home Screen</b> <span class="r340-sh">⊕</span>.</li>'
+      +'<li>If you see <b>Open as Web App</b>, keep it <b>ON</b> → tap <b>Add</b>.</li>'
+      +'<li>Close Safari. Open the <b>RCADS</b> icon on your Home Screen → type <b>EMPCODE + PIN</b>.</li></ol>'
+      +'<div class="r340-p">Logging in here in Safari does <b>not</b> move to the app — install first, then log in inside the app.</div>'
+      +(OTHER?'<button type="button" class="r340-b" data-r340-copy>📋 COPY LINK</button>':'<button type="button" class="r340-b" data-r340-ok>OK — SHOW ME WHERE</button>')+'<button type="button" class="r340-b light" data-r340-later>LATER</button>'}
+  let SHOWN=false;
+  function tick(){
+    if(standalone()||(!IOS&&!INAPP)||hrOpen()){hide();return}
+    const g=document.getElementById('r340Guide');
+    if(later()){if(g)g.remove();pill(true);return}
+    pill(false);
+    if(!g){const h=guideHtml();if(!h)return;const d=document.createElement('div');d.id='r340Guide';d.innerHTML='<div class="r340-box">'+h+'</div>';document.body.appendChild(d);SHOWN=true}}
+  function hide(){const g=document.getElementById('r340Guide');if(g)g.remove();pill(false);const a=document.getElementById('r340Arrow');if(a)a.remove()}
+  function pill(on){let p=document.getElementById('r340Pill');if(on&&!p){p=document.createElement('button');p.id='r340Pill';p.type='button';p.textContent=INAPP?'⚠ OPEN IN '+(IOS?'SAFARI':'CHROME'):'📲 INSTALL';document.body.appendChild(p)}else if(!on&&p)p.remove()}
+  function arrow(){let a=document.getElementById('r340Arrow');if(a)a.remove();a=document.createElement('div');a.id='r340Arrow';a.innerHTML='<span>Tap <b>•••</b> or <b>⬆ Share</b> here</span><b>⬇</b>';document.body.appendChild(a);setTimeout(()=>{try{a.remove()}catch(e){}},25000)}
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    const c=t.closest('[data-r340-copy]');if(c){copyLink(c);return}
+    if(t.closest('[data-r340-later]')){try{sessionStorage.setItem('r340_later',String(Date.now()+10*60000))}catch(_){}const g=document.getElementById('r340Guide');if(g)g.remove();pill(true);return}
+    if(t.closest('[data-r340-ok]')){try{sessionStorage.setItem('r340_later',String(Date.now()+3*60000))}catch(_){}const g=document.getElementById('r340Guide');if(g)g.remove();pill(true);arrow();return}
+    if(t.closest('#r340Pill')){try{sessionStorage.removeItem('r340_later')}catch(_){}pill(false);tick();return}});
+  setInterval(()=>{try{tick()}catch(e){console.warn('R340',e)}},1200);
+  window.rcadsR340={sendAll,printSlips,flush,_q:Q,env:{IOS,AND,INAPP,OTHER}};
+})();
+
 </script>
 </body>
 </html>
