@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R334 HR DTR VIEW</title>
+<title>Rustica RCADS App — R335 HR SCAN TIME IN OUT</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25554,7 +25554,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(Math.abs(nowSlot-slot)>1)return {ok:false,msg:'The Guard’s QR is old. Wait for the new QR and scan again.'};
     /* R185: tanggapin ang Guard QR ng kahit anong branch (hiram / lipat) — ang guard pa rin ang magve-verify na sa kanya na-scan */
     const cands=[(p&&p.branch)||'',curBranch()].concat(branches().map(b=>b.code)).filter((x,i,a)=>x&&a.indexOf(x)===i);let label='';
-    for(const br of cands){label=(window.rcadsGuardLabels?window.rcadsGuardLabels(br):['Guard 1','Guard 2']).find(l=>l.replace(/\s+/g,'').toUpperCase()===m[1]&&guardTokenFor(l,br,slot)===tok)||'';if(label){branch=br;break}}
+    for(const br of cands){label=(window.rcadsGuardLabels?window.rcadsGuardLabels(br):['Guard 1','Guard 2']).concat(['HR OPERATION OFFICER']).find(l=>l.replace(/\s+/g,'').toUpperCase()===m[1]&&guardTokenFor(l,br,slot)===tok)||'';if(label){branch=br;break}}
     if(!label)return {ok:false,msg:'Not a genuine Guard QR (RED FLAG).'};
     return {ok:true,token:tok,label,branch};
   }
@@ -25611,7 +25611,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(st.state==='BREAK')h+=breakNotice(st.last);
     if(PASS&&PASS.code===who.code&&Date.now()<PASS.until){
       const left=Math.ceil((PASS.until-Date.now())/1000);
-      h+='<div class="r181-pass"><div class="r181-ok">✓ YOU SCANNED THE QR OF '+esc(PASS.guard.toUpperCase())+'</div><div class="r181-qr">'+qrSvg(PASS.txt)+'</div><b>SHOW THIS TO THE GUARD TO SCAN</b><small>Still valid for <span data-r181-left>'+left+'</span>s • GPS: '+({OK:'✓ at the branch',OUT:'⚠ OUTSIDE the branch',NA:'not checked',NS:'branch location not set (HR)'}[PASS.geo])+'</small></div>';
+      h+='<div class="r181-pass"><div class="r181-ok">✓ YOU SCANNED THE QR OF '+esc(PASS.guard.toUpperCase())+'</div><div class="r181-qr">'+qrSvg(PASS.txt)+'</div><b>SHOW THIS TO '+(PASS.guard==='HR OPERATION OFFICER'?'HR':'THE GUARD')+' TO SCAN</b><small>Still valid for <span data-r181-left>'+left+'</span>s • GPS: '+({OK:'✓ at the branch',OUT:'⚠ OUTSIDE the branch',NA:'not checked',NS:'branch location not set (HR)'}[PASS.geo])+'</small></div>';
     }else{
       h+='<button type="button" class="r181-big" data-r181-scanguard>📷 SCAN THE GUARD’S QR<small>for TIME IN / TIME OUT</small></button>';
       h+='<details class="r181-brk"'+(st.state==='WORKING'||st.state==='BREAK'?' open':'')+'><summary>☕ BREAK QR — show to an authorized Head, assistant or Manager</summary><div class="r181-qr small" data-r181-bq="'+esc(who.code)+'">'+(breakCache[who.code]&&Date.now()-breakCache[who.code].at<60000?qrSvg(breakCache[who.code].txt):'<i>…</i>')+'</div><small>Changes every minute. BREAK OUT / BREAK IN: Guard, authorized Heads, assistants and Managers. Prioritize Head 1 and Managers under HR rules.</small></details>';
@@ -25646,9 +25646,9 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   setInterval(()=>{if(PASS&&Date.now()>PASS.until)PASS=null;renderPassAll();renderBorrow()},1000);
 
   /* ---------------- GUARD: scan the employee PASS ---------------- */
-  function guardLabel(){try{return getLoggedGuardLabel()||''}catch(e){return ''}}
-  function guardTokens(){const t=[];try{t.push(rcadsGuardCurrentToken(new Date()));t.push(rcadsGuardCurrentToken(new Date(Date.now()-PASS_MS)))}catch(e){}return t.filter(Boolean)}
-  function resultBox(id,html,cls){if(Math.abs(window.__r301skew||0)>120000&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r301-clock">⚠ This phone\'s clock is wrong by '+Math.abs(Math.round((window.__r301skew||0)/60000))+' min. RCADS used the correct internet time. HR can see this.</span>'+html;if(r287Off&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r287off">📴 OFFLINE MODE — records are saved on this phone and will sync automatically when internet returns. Do not clear browser data.</span>'+html;const b=document.getElementById(id);if(b){b.className='r181-result '+(cls||'');b.innerHTML=html;b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
+  function guardLabel(){if(window.__r335HrMode)return window.rcadsR335Label;try{return getLoggedGuardLabel()||''}catch(e){return ''}}
+  function guardTokens(){if(window.__r335HrMode&&window.rcadsR335Tokens)return window.rcadsR335Tokens();const t=[];try{t.push(rcadsGuardCurrentToken(new Date()));t.push(rcadsGuardCurrentToken(new Date(Date.now()-PASS_MS)))}catch(e){}return t.filter(Boolean)}
+  function resultBox(id,html,cls){if(window.__r335HrMode&&id==='r181GuardRes'&&document.getElementById('r335Res'))id='r335Res';if(Math.abs(window.__r301skew||0)>120000&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r301-clock">⚠ This phone\'s clock is wrong by '+Math.abs(Math.round((window.__r301skew||0)/60000))+' min. RCADS used the correct internet time. HR can see this.</span>'+html;if(r287Off&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r287off">📴 OFFLINE MODE — records are saved on this phone and will sync automatically when internet returns. Do not clear browser data.</span>'+html;const b=document.getElementById(id);if(b){b.className='r181-result '+(cls||'');b.innerHTML=html;b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
   async function guardHandle(raw){
     if(/^RCADSGPASS:/.test(String(raw||''))&&window.rcadsR331){return window.rcadsR331.onDutyScan(String(raw))}
     pendingOut=null;
@@ -31285,6 +31285,51 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     const tb=t.closest('[data-r334-tab]');if(tb){const i=tb.getAttribute('data-r334-tab');document.querySelectorAll('#r334M [data-r334-tab]').forEach(b=>b.classList.toggle('on',b===tb));document.querySelectorAll('#r334M [data-r334-pg]').forEach(p=>p.hidden=p.getAttribute('data-r334-pg')!==i)}});
   document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('[data-r334-q]')){Q=e.target.value;const pos=e.target.selectionStart;const m=document.querySelector('#r334M .r334-body');if(m){m.innerHTML=punchList();const i=m.querySelector('[data-r334-q]');if(i){i.focus();try{i.setSelectionRange(pos,pos)}catch(_){}}}}});
   window.rcadsR334={viewSummary,openPunches,empPunches};
+})();
+
+</script>
+<style id="rcadsR335Css">
+.r335-wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;margin-top:10px}
+.r335-qrbox{background:#fff;border:3px solid #2f6b3a;border-radius:16px;padding:10px;width:min(80vw,300px);text-align:center}.r335-qr svg{display:block;width:100%;height:auto}.r335-left{font-size:12px;color:#5b3519;margin-top:4px}
+.r335-act{flex:1;min-width:260px}.r335-big{display:block;width:100%;padding:16px;border:0;border-radius:14px;background:#5b3519;color:#fff;font-size:15px;font-weight:900;cursor:pointer}
+#r335Res{margin-top:10px}
+</style>
+<script id="rcadsR335Script">
+(function(){
+  'use strict';
+  /* R335 — HR can record TIME IN / TIME OUT (and breaks) of ANY employee, Managers down to the lowest rank,
+     with the SAME mutual QR scan as the Guard: 1) the employee scans the HR QR (changes every 2 minutes, Location ON),
+     2) HR scans the employee's PASS QR (HR location checked too). Records show "HR OPERATION OFFICER". */
+  const LABEL='HR OPERATION OFFICER',QR_MS=120000;
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branch(){try{return String(rusticaGetCurrentBranchCode()||'SAN_RAFAEL').toUpperCase()}catch(e){return 'SAN_RAFAEL'}}
+  function bName(c){try{const b=Object.values(window.RUSTICA_BRANCHES||RUSTICA_BRANCHES||{}).find(x=>x&&x.code===c);return b?b.name:c}catch(e){return c}}
+  function token(d){const slot=Math.floor((d||new Date()).getTime()/QR_MS);const raw='RCADS|GUARD|'+branch()+'|'+LABEL+'|'+slot;const h=(typeof rcadsEmployeeHashText==='function')?rcadsEmployeeHashText(raw):String(slot);return 'GUARD-'+LABEL.replace(/\s+/g,'').toUpperCase()+'-'+slot+'-'+h}
+  function qrSvg(data){const QR=window.RCADSQRCode,E=window.RCADSQRErrorCorrectLevel;if(!QR||!E)return '<div>QR encoder unavailable</div>';const q=new QR(-1,E.M);q.addData(data);q.make();const n=q.getModuleCount(),z=4,s=n+z*2;let d='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+='M'+(c+z)+' '+(r+z)+'h1v1h-1z';return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+s+' '+s+'"><rect width="100%" height="100%" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>'}
+  function hrOpen(){const m=document.getElementById('simpleHrAdminModal');return !!m&&!m.classList.contains('hidden')&&getComputedStyle(m).display!=='none'}
+  function secVisible(){const s=document.getElementById('r335Sec');return !!s&&hrOpen()&&s.offsetParent!==null}
+  let FORCE=0;
+  /* HR mode = the HR attendance section is open (or HR just pressed SCAN) and no guard is logged in on this device */
+  Object.defineProperty(window,'__r335HrMode',{configurable:true,get(){let g='';try{g=getLoggedGuardLabel()||''}catch(e){}if(g)return false;return secVisible()||Date.now()<FORCE}});
+  window.rcadsR335Tokens=function(){return [token(new Date()),token(new Date(Date.now()-QR_MS))]};
+  window.rcadsR335Label=LABEL;
+  function html(){const t=token();const left=Math.max(0,Math.ceil(((Math.floor(Date.now()/QR_MS)+1)*QR_MS-Date.now())/1000));
+    return '<div class="r160-hr-title">🛂 HR TIME IN / TIME OUT — any employee (Managers to the lowest rank)</div>'
+      +'<div class="r160-hr-note">Same as the Guard: <b>1)</b> the employee opens his/her RCADS → <b>📷 SCAN THE GUARD’S QR</b> → scans this HR QR (Location ON, at the branch). <b>2)</b> Press <b>📷 SCAN THE EMPLOYEE PASS</b> and scan the green PASS QR on the phone. HR’s location is checked too — use the HR phone at the branch. The record shows “'+esc(LABEL)+'”.</div>'
+      +'<div class="r335-wrap"><div class="r335-qrbox"><div class="r335-qr" data-r335-tok="'+esc(t)+'">'+qrSvg(t)+'</div><div class="r335-left">'+esc(bName(branch()))+' • changes in <b data-r335-left>'+left+'</b>s</div></div>'
+      +'<div class="r335-act"><button type="button" class="r335-big" data-r335-scan>📷 SCAN THE EMPLOYEE PASS</button><div id="r335Res" class="r181-result"></div></div></div>'}
+  function tick(){
+    const admin=document.getElementById('simpleHrAdminModal');if(!admin)return;const main=admin.querySelector('.rcads-hr-main'),nav=admin.querySelector('.rcads-hr-nav');
+    if(nav&&!document.getElementById('r335NavBtn')){const bt=document.createElement('button');bt.id='r335NavBtn';bt.type='button';bt.setAttribute('onclick',"rcadsHrGo('r335Sec')");bt.textContent='🛂 HR Time In / Out (scan)';nav.appendChild(bt)}
+    if(!main)return;let s=document.getElementById('r335Sec');if(!s){s=document.createElement('div');s.id='r335Sec';s.className='rcads-dashboard-section r160-hr';main.appendChild(s);s.innerHTML=html()}
+    const q=s.querySelector('[data-r335-tok]');const t=token();if(q&&q.getAttribute('data-r335-tok')!==t){q.setAttribute('data-r335-tok',t);q.innerHTML=qrSvg(t)}
+    const l=s.querySelector('[data-r335-left]');if(l)l.textContent=Math.max(0,Math.ceil(((Math.floor(Date.now()/QR_MS)+1)*QR_MS-Date.now())/1000));
+  }
+  setInterval(()=>{try{tick()}catch(e){console.warn('R335',e)}},1000);
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest||!t.closest('[data-r335-scan]'))return;
+    if(typeof window.rcadsR181Scan!=='function'||!window.rcadsR181){alert('Scanner not available.');return}
+    FORCE=Date.now()+600000;window.rcadsR181Scan('SCAN THE EMPLOYEE PASS QR',raw=>{FORCE=Date.now()+600000;window.rcadsR181.guardHandle(raw)})});
+  window.rcadsR335={token};
 })();
 
 </script>
