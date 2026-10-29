@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R338 HR SCAN GUARDS</title>
+<title>Rustica RCADS App — R339 EMPCODE PIN KEY</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -22211,6 +22211,7 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
       const emp=(typeof currentEmployee!=='undefined')?currentEmployee:null;
       if(!emp)return origSubmit.apply(this,arguments);
       const appr=approverKey(emp);const r=rec(emp.code);
+      if(window.__r339Ok===U(emp.code)&&!(r&&r.status==='ACTIVE'&&r.pinHash)&&!(r&&r.status==='DISABLED')){window.__r339Ok='';verifiedFor='';return appr?runOriginalAsApprover():runOriginalAs1234()} /* R339: PIN already checked on the server */
       if(r&&r.status==='SETUP'){pin='';try{renderPin()}catch(e){}openGate({c:U(emp.code),b:curBranchCode(),n:emp.name,shared:true});return}
       if(r&&r.status==='ACTIVE'&&r.pinHash){
         if(verifiedFor!==U(emp.code)){
@@ -22343,8 +22344,21 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
       return;
     }
     if(!r||r.status!=='ACTIVE'||!r.pinHash){
-      gateShell(p,'<div class="r160-info bad">'+(r&&r.status==='DISABLED'?(r.blocked?'⛔ Your RCADS app is BLOCKED ('+esc(r.blockReason||'')+'). Please see HR.':'Your access was DISABLED by HR.'):''+(p.s?'The QR is not in RCADS yet. Make sure the HR device is online (open RCADS there), wait 30 seconds, then press TRY AGAIN.':'You do not have a personal PIN yet. See HR to get a SETUP CODE, then you create your own PIN.')+'')+'</div><button type="button" class="r160-btn" id="r160Retry">TRY AGAIN</button>');
-      document.getElementById('r160Retry').onclick=()=>openGate(p);return;
+      const r339=!(r&&r.status==='DISABLED')&&!p.s&&typeof window.rcadsR339Enroll==='function';
+      gateShell(p,'<div class="r160-info bad">'+(r&&r.status==='DISABLED'?(r.blocked?'⛔ Your RCADS app is BLOCKED ('+esc(r.blockReason||'')+'). Please see HR.':'Your access was DISABLED by HR.'):''+(p.s?'The QR is not in RCADS yet. Make sure the HR device is online (open RCADS there), wait 30 seconds, then press TRY AGAIN.':'Type your PIN below (the one you created, or the one HR set for you). It is checked on the RCADS server.')+'')+'</div>'
+        +(r339?'<input id="r339GPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="MY 4-DIGIT PIN" style="width:100%;box-sizing:border-box;margin:8px 0;padding:13px;border:1px solid #d8bfa1;border-radius:12px;font-size:20px;text-align:center;letter-spacing:6px"><button type="button" class="r160-btn" id="r339GGo">LOG IN</button><div id="r339GMsg" style="min-height:16px;font-weight:800;font-size:12px;margin:6px 0;color:#a1281f"></div>':'')
+        +'<button type="button" class="r160-btn'+(r339?' light':'')+'" id="r160Retry">TRY AGAIN</button>');
+      document.getElementById('r160Retry').onclick=()=>openGate(p);
+      if(r339){const gm=t=>{const x=document.getElementById('r339GMsg');if(x)x.textContent=t};const pi=document.getElementById('r339GPin');setTimeout(()=>{try{pi.focus()}catch(_){}},80);
+        const doIt=async()=>{const pin=String(pi.value||'').trim();if(!/^\d{4,6}$/.test(pin)){gm('Type your 4-digit PIN.');return}gm('Checking…');
+          try{const R182=window.rcadsR182;
+            if(R182&&!R182.key()){const d=await window.rcadsR339Enroll(p.c,pin,window.rcadsR339Label(emp.name));R182.setKey(d.key,'DEVICE',window.rcadsR339Label(emp.name));try{window.rcadsSetSyncBranch&&window.rcadsSetSyncBranch(d.branch_code)}catch(_){}}
+            else{await window.rcadsR339Check(p.c,pin)}
+            try{await cloudPull()}catch(_){}
+            rememberDevice(p);verifiedFor=U(p.c);window.__r339Ok=U(p.c);closeGate();loginDirect(emp,branch);
+          }catch(err){gm(err.message)}};
+        document.getElementById('r339GGo').onclick=doIt;pi.addEventListener('keydown',e=>{if(e.key==='Enter')doIt()});}
+      return;
     }
     gateShell(p,'<label>MY 4-DIGIT PIN</label><input id="r160Pin" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" autofocus><button type="button" class="r160-btn" id="r160Login">LOG IN</button><div class="r160-hint">Forgot your PIN? See HR. You can change your PIN after logging in (CHANGE MY PIN).</div>');
     const go=async()=>{
@@ -22510,11 +22524,11 @@ html.r160-gate-open,html.r160-gate-open body{overflow:hidden}
       +'<div class="r160-st big '+s.c+'">'+esc(s.t)+'</div>'
       +(r&&r.status==='ACTIVE'?'<div class="r160-code"><small>PERSONAL PIN'+(/SELF|EMPLOYEE/.test(r.pinChangedBy||'')?' (set by themselves)':'')+'</small><b id="r160PinShow">'+(known?esc(known):'● ● ● ●')+'</b>'+(known?'':'<button type="button" class="r160-mini light" data-r160-show="1">SHOW PIN (HR PIN required)</button>')+'</div>':'')
       +(r&&r.status==='SETUP'?'<div class="r160-code setup"><small>SETUP CODE • valid until '+esc(new Date(r.setupExpires).toLocaleDateString())+(setupExpired(r)?' • EXPIRED':'')+'</small><b>'+(knownSetup(e.code)?esc(knownSetup(e.code)):'● ● ● ● ● ●')+'</b>'+(knownSetup(e.code)?'':'<button type="button" class="r160-mini light" data-r160-show="1">SHOW (HR PIN required)</button>')+'</div>':'')
-      +'<div class="r160-qr">'+qrSvg(link)+'</div>'
+      +'<div class="r160-hint" style="font-weight:800;color:#5b3519">📲 Press the button below to show the QR with the ACCESS KEY for the phone. (iPhone: they can also just type EMPCODE + PIN in the app.)</div>'
       +'<div class="r160-d-sub">PERSONAL QR — the employee scans it with their own phone camera.</div>'
       +'<input class="r160-linkbox" readonly value="'+esc(link)+'">'
       +'<div class="r160-actions">'
-      +'<button type="button" class="r160-btn r179-big" data-r179-qr="'+esc(e.code)+'|'+esc(f.branch)+'">📲 '+(r&&r.status==='ACTIVE'?'NEW QR (they will create a new PIN)':'SHOW THE QR — they scan it and create their PIN')+'</button>'
+      +'<button type="button" class="r160-btn r179-big" data-r179-qr="'+esc(e.code)+'|'+esc(f.branch)+'">📲 '+(r&&r.status==='ACTIVE'?'SHOW QR TO OPEN THE APP (same PIN or reset)':'SHOW THE QR — they scan it and create their PIN')+'</button>'
       +'<button type="button" class="r160-mini" data-r176-setup="'+esc(e.code)+'">🔑 '+(r&&r.status==='ACTIVE'?'RESET — NEW SETUP CODE (they will create a new PIN)':(r&&r.status==='SETUP'?'NEW SETUP CODE':'ISSUE SETUP CODE (they will create the PIN)'))+'</button>'
       +(r&&r.status==='SETUP'?'<button type="button" class="r160-mini" data-r176-slip="'+esc(e.code)+'">PRINT SETUP SLIP</button>':'')
       +'<button type="button" class="r160-mini light" data-r160-manual="'+esc(e.code)+'">HR will set the PIN</button>'
@@ -31462,6 +31476,21 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   window.rcadsR338={scanHr,hrScan,_g:()=>G};
 })();
 
+</script>
+<script id="rcadsR339Script">
+(function(){
+  /* R339 — EMPCODE + PIN gives this phone its own DEVICE KEY from the server (no QR needed). */
+  window.rcadsR339Enroll=async function(code,pin,label){
+    let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}if(!url||!anon)throw new Error('No Supabase settings.');
+    let r;try{r=await fetch(url+'/rest/v1/rpc/rustica_rcads_enroll_by_pin',{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify({p_code:code,p_pin:pin,p_label:label})})}catch(e){throw new Error('No internet. Connect and try again.')}
+    const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){}
+    if(!r.ok){const m=(d&&(d.message||d.hint))||t||('HTTP '+r.status);if(/could not find the function|PGRST202/i.test(m))throw new Error('Not set up yet. HR: run RCADS_R339_PIN_ENROLL_SUPABASE.sql.');throw new Error(m)}
+    if(!d||d.ok===false)throw new Error(String(d&&d.error||'Failed').replace(/^[A-Z_]+:\s*/,''));return d};
+  window.rcadsR339Check=async function(code,pin){let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}
+    let r;try{r=await fetch(url+'/rest/v1/rpc/rustica_201_my_list',{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify({p_code:code,p_pin:pin})})}catch(e){throw new Error('No internet. Connect and try again.')}
+    const t=await r.text();let d=null;try{d=t?JSON.parse(t):null}catch(e){}if(!r.ok||!d||d.ok===false){const em=String((d&&(d.error||d.message))||'Wrong PIN.');if(/^NOT_READY/.test(em))throw new Error('Your PIN is not activated on the server yet. HR must open 201 Files once, then try again.');throw new Error(em.replace(/^[A-Z_]+:\s*/,''))}return true};
+  window.rcadsR339Label=function(name){const ua=navigator.userAgent;const k=/iphone|ipad/i.test(ua)?'iPhone':(/android/i.test(ua)?'Android':'Device');return (name||'')+' • '+k+' • '+new Date().toLocaleDateString()};
+})();
 </script>
 </body>
 </html>
