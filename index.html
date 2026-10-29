@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R341 URGENT DUTY OTHER BRANCH</title>
+<title>Rustica RCADS App — R342 GUARD CLOSE / OPEN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31638,6 +31638,76 @@ body.employee-simple-mode #employeeSimplePanel{padding-bottom:calc(24px + env(sa
     if(t.closest('#r340Pill')){try{sessionStorage.removeItem('r340_later')}catch(_){}pill(false);tick();return}});
   setInterval(()=>{try{tick()}catch(e){console.warn('R340',e)}},1200);
   window.rcadsR340={sendAll,printSlips,flush,_q:Q,env:{IOS,AND,INAPP,OTHER}};
+})();
+
+</script>
+<style id="rcadsR342Style">
+/* R342 */
+#r342Pill{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:8px;z-index:100002;border:0;border-radius:999px;background:#2a160d;color:#f3d9a4;font-weight:900;font-size:12px;padding:8px 12px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#r342Lock{position:fixed;inset:0;z-index:100007;background:linear-gradient(180deg,#2a160d,#140a05);display:flex;align-items:center;justify-content:center;padding:18px}
+#r342Lock .r342-box{width:100%;max-width:360px;text-align:center;color:#f3e3c8}
+.r342-lock{font-size:54px}.r342-t{font-size:20px;font-weight:900;color:#e8c98a;letter-spacing:.5px;margin-top:4px}
+.r342-who{font-size:13px;font-weight:800;margin-top:8px}.r342-time{font-size:34px;font-weight:900;margin:10px 0 4px;color:#fff}
+.r342-n{font-size:12px;color:#cdb48a;margin-bottom:14px}
+#r342Pin{width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid #c8902a;background:#fffaf2;color:#2a160d;font-size:22px;text-align:center;letter-spacing:8px}
+#r342Open{display:block;width:100%;margin-top:10px;padding:14px;border:0;border-radius:12px;background:#c8902a;color:#2a160d;font-weight:900;font-size:16px}
+#r342Msg{min-height:18px;margin-top:8px;font-weight:800;color:#ffb4a8;font-size:13px}
+
+</style>
+<script id="rcadsR342Script">
+(function(){
+  'use strict';
+  /* R342 — GUARD APP: 🔒 CLOSE / 🔓 OPEN
+     • The guard can CLOSE his RCADS when not in use (the Guard QR and all buttons are hidden).
+     • It also closes by itself after 10 minutes with no touch.
+     • OPEN = the guard types HIS OWN PIN (checked on this phone). 5 wrong PINs → wait 5 minutes.
+     • Closing does NOT end the duty (no TIME OUT) — it only hides the app. */
+  if(window.RCADS_PREVIEW)return;
+  const IDLE_MS=10*60000,ITER=120000,KEY='rcads_r342_guard_closed';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function U(c){return String(c||'').trim().toUpperCase()}
+  function branch(){try{return U(rusticaGetCurrentBranchCode()||'SAN_RAFAEL')}catch(e){return 'SAN_RAFAEL'}}
+  function label(){let l='';try{l=window.currentGuardAccount||sessionStorage.getItem('rcads_active_guard_session')||''}catch(e){}return /^Guard \d+$/.test(String(l))?l:''}
+  function slot(l){return 'guard'+String(parseInt(String(l).replace(/\D/g,''),10)||0).padStart(2,'0')}
+  function rec(l){try{return ((window.rcadsR160&&window.rcadsR160.read().guards)||{})['G|'+branch()+'|'+slot(l)]||null}catch(e){return null}}
+  function gname(l){try{const n=JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+branch())||'{}')||{};return String(n[slot(l)]||'').trim()}catch(e){return ''}}
+  function hrOpen(){const m=document.getElementById('simpleHrAdminModal');return !!m&&!m.classList.contains('hidden')&&getComputedStyle(m).display!=='none'}
+  function hex(b){return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+  async function pbkdf2(secret,salt){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(String(secret)),'PBKDF2',false,['deriveBits']);return hex(await crypto.subtle.deriveBits({name:'PBKDF2',salt:new TextEncoder().encode('RCADS-R160|'+salt),iterations:ITER,hash:'SHA-256'},k,256))}
+  function closedFor(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}}
+  function setClosed(v){try{if(v)localStorage.setItem(KEY,v);else localStorage.removeItem(KEY)}catch(e){}}
+  let last=Date.now(),fails=0,waitUntil=0;
+  ['pointerdown','keydown','touchstart','wheel'].forEach(ev=>document.addEventListener(ev,()=>{last=Date.now()},{passive:true,capture:true}));
+  function close(){const l=label();if(!l)return;setClosed(l);try{if(typeof rcadsGuardStopCameraScanner==='function')rcadsGuardStopCameraScanner()}catch(e){}try{const o=document.getElementById('r181Scan');if(o)o.remove()}catch(e){}paint()}
+  function paint(){
+    const l=label();const c=closedFor();let ov=document.getElementById('r342Lock');
+    if(!l||c!==l){if(ov)ov.remove();pill(!!l&&!hrOpen());return}
+    pill(false);
+    if(!ov){ov=document.createElement('div');ov.id='r342Lock';document.body.appendChild(ov);
+      ov.innerHTML='<div class="r342-box"><div class="r342-lock">🔒</div><div class="r342-t">RCADS GUARD — CLOSED</div><div class="r342-who"></div><div class="r342-time"></div>'
+        +'<div class="r342-n">The duty continues. Employees cannot scan while it is closed.</div>'
+        +'<input id="r342Pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="GUARD PIN">'
+        +'<button type="button" id="r342Open">🔓 OPEN</button><div id="r342Msg"></div></div>';
+      const pi=ov.querySelector('#r342Pin');pi.addEventListener('keydown',e=>{if(e.key==='Enter')open()});ov.querySelector('#r342Open').onclick=open;setTimeout(()=>{try{pi.focus()}catch(_){}},80)}
+    const nm=gname(l);ov.querySelector('.r342-who').textContent=l.toUpperCase()+(nm?' • '+nm:'')+' • '+branch().replace(/_/g,' ');
+    ov.querySelector('.r342-time').textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  }
+  async function open(){
+    const l=label();const ov=document.getElementById('r342Lock');if(!ov)return;const msg=t=>{const m=ov.querySelector('#r342Msg');if(m)m.textContent=t};
+    if(Date.now()<waitUntil){msg('Too many wrong PINs. Wait '+Math.ceil((waitUntil-Date.now())/60000)+' minute(s).');return}
+    const pin=String(ov.querySelector('#r342Pin').value||'').trim();if(!/^\d{4,6}$/.test(pin)){msg('Type your 4-digit Guard PIN.');return}
+    const r=rec(l);
+    if(r&&r.pinHash&&r.pinSalt){let ok=false;try{ok=(await pbkdf2(pin,r.pinSalt))===r.pinHash}catch(e){msg('Secure check not available on this browser.');return}
+      if(!ok){fails++;ov.querySelector('#r342Pin').value='';if(fails>=5){waitUntil=Date.now()+5*60000;fails=0;msg('5 wrong PINs. Wait 5 minutes.')}else msg('Wrong PIN ('+fails+'/5).');return}}
+    else if(!confirm('This guard has no personal PIN on this phone yet. OPEN anyway? (HR: give the guard his own QR + PIN.)'))return;
+    fails=0;setClosed('');last=Date.now();paint()}
+  function pill(on){let p=document.getElementById('r342Pill');
+    if(on&&!p){p=document.createElement('button');p.id='r342Pill';p.type='button';p.textContent='🔒 CLOSE';p.title='Close the Guard app when not in use (the duty continues)';p.onclick=()=>{if(confirm('CLOSE the Guard app? (The duty continues. Open it again with your Guard PIN.)'))close()};document.body.appendChild(p)}
+    else if(!on&&p)p.remove()}
+  setInterval(()=>{try{const l=label();if(l&&!closedFor()&&!hrOpen()&&Date.now()-last>IDLE_MS)close();paint()}catch(e){console.warn('R342',e)}},1000);
+  /* LOG OUT of the guard (not CLOSE) clears the closed state */
+  setTimeout(()=>{const o=window.guardLogout;if(typeof o==='function'&&!o.__r342){const w=function(){setClosed('');return o.apply(this,arguments)};w.__r342=1;window.guardLogout=w}},0);
+  window.rcadsR342={close,open,state:()=>({label:label(),closed:closedFor()})};
 })();
 
 </script>
