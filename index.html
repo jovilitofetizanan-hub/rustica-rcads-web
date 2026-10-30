@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R344 CLEAN GUARD SCREEN</title>
+<title>Rustica RCADS App — R346 LIVE TAP TO VIEW DTR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31190,8 +31190,8 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     try{if(!openDuty(p.in))rcadsAppendAutoGuardDutyEvent(p.in,'IN','HANDOVER SCAN ← '+A+' (mutual QR • GPS ✓ both'+note+')')}catch(e){}
     flush();try{if(typeof window.rcadsR287Sync==='function')await window.rcadsR287Sync()}catch(e){}flush();
     const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    alert('✓ HANDOVER DONE • '+t+'\n\n'+A+' — TIME OUT\n'+p.in+' — TIME IN\n\nYour Guard app will now log out. Thank you!');
-    window.__r331Silent=true;try{guardLogout()}catch(e){}finally{window.__r331Silent=false}
+    alert('✓ HANDOVER DONE • '+t+'\n\n'+A+' — TIME OUT\n'+p.in+' — TIME IN\n\nYour duty has ended. Your Guard app stays open (OFF DUTY): DTR for 1 hour, then HOME and NOTICES only.');
+    try{window.rcadsR345?window.rcadsR345.offDuty():guardLogout()}catch(e){}
   }
   /* R343: HANDOVER button on the Guard home of a guard who is NOT on duty (always possible, even if this phone is not synced yet) */
   function start(){const me=logged();if(!isG(me)||openDuty(me))return;let others=onDutyOthers(me);if(!others.length)others=labels().filter(l=>l!==me);PEND={me,others,pass:null};paint()}
@@ -31449,7 +31449,7 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   function watch(){clearTimeout(wT);if(!G)return;wT=setTimeout(async()=>{if(!G)return;try{if(navigator.onLine&&typeof window.rcadsCloudPullMerge==='function')await window.rcadsCloudPullMerge()}catch(e){}
     const on=!!openIn(G.b,G.me);
     if(G.act==='IN'&&on){const me=G.me;G=null;paintG();try{window.rcadsAutoGuardHandoverOnLogin(me)}catch(e){}try{refreshGuardHome()}catch(e){}alert('✓ TIME IN by HR — '+me+' is now ON DUTY.');return}
-    if(G.act==='OUT'&&!on){const me=G.me;G=null;paintG();alert('✓ TIME OUT by HR — '+me+'. Your Guard app will now log out.');window.__r331Silent=true;try{guardLogout()}catch(e){}finally{window.__r331Silent=false}return}
+    if(G.act==='OUT'&&!on){const me=G.me;G=null;paintG();alert('✓ TIME OUT by HR — '+me+'. Your duty has ended — OFF DUTY (DTR open for 1 hour).');try{window.rcadsR345?window.rcadsR345.offDuty():guardLogout()}catch(e){}return}
     paintG();watch()},4000)}
   setInterval(()=>{try{if(G)paintG();
     /* button inside the R331 handover screen (TIME IN by HR) */
@@ -31766,17 +31766,99 @@ body.guard-session-active .phone>.screen:not(#guardHomeScreen):not(.hidden){disp
     const rel=document.getElementById('r207RelBtn'),hr=document.getElementById('r338GBtn');
     const out=[...card.querySelectorAll(':scope > button')].find(b=>/LOG OUT GUARD/i.test(b.textContent));
     let top=document.getElementById('r344Top');if(!top){top=document.createElement('div');top.id='r344Top';card.insertBefore(top,card.firstChild)}
-    let more=document.getElementById('r344More');if(!more){more=document.createElement('details');more.id='r344More';more.innerHTML='<summary>⋯ MORE — reliever QR, time out by HR, my DTR</summary><div class="r344-in"></div>'}
+    let more=document.getElementById('r344More');if(!more){more=document.createElement('details');more.id='r344More';more.innerHTML='<summary>⋯ MORE — reliever QR, time in / out by HR</summary><div class="r344-in"></div>'}
     const inn=more.querySelector('.r344-in');
     [id,st].forEach(e=>{if(e&&e.parentElement!==top)top.appendChild(e)});
     let prev=top;[qr,scan,board].forEach(e=>{if(e){if(prev.nextElementSibling!==e)prev.insertAdjacentElement('afterend',e);prev=e}});
     if(more.previousElementSibling!==prev)prev.insertAdjacentElement('afterend',more);
-    [rel,hr,dtr].forEach(e=>{if(e&&e.parentElement!==inn)inn.appendChild(e)});
-    if(out&&more.nextElementSibling!==out)more.insertAdjacentElement('afterend',out);
+    [rel,hr].forEach(e=>{if(e&&e.parentElement!==inn)inn.appendChild(e)});if(dtr&&more.nextElementSibling!==dtr)more.insertAdjacentElement('afterend',dtr);
+    {const after=dtr||more;if(out&&after.nextElementSibling!==out)after.insertAdjacentElement('afterend',out);}
     const sec=[...card.querySelectorAll(':scope > .section')].find(e=>/GUARD NORMAL SCREEN/i.test(e.textContent));if(sec)sec.style.display='none';
     const row=card.querySelector(':scope > .row');if(row&&row.querySelector('#guardHomeInBtn'))row.style.display='none';
   }
   setInterval(()=>{try{tidy()}catch(e){console.warn('R344',e)}},800);
+})();
+</script>
+<style id="rcadsR345Style">
+/* R345 guard bottom tabs */
+#r345Nav{position:fixed;left:0;right:0;bottom:0;z-index:9990;display:flex;background:#2a160d;border-top:2px solid #c8902a;padding-bottom:env(safe-area-inset-bottom,0px)}
+#r345Nav button{flex:1;border:0;background:transparent;color:#e8d5b5;font-weight:900;font-size:11px;letter-spacing:.5px;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px}
+#r345Nav button span{font-size:20px;line-height:1}
+#r345Nav button.on{color:#f3c770;background:rgba(255,255,255,.06)}
+body.r345-guard #guardHomeScreen{padding-bottom:84px}
+#r345Off{margin:0 0 12px;padding:14px;border-radius:14px;background:#efe7f6;border:1px solid #c9b6dd;display:flex;flex-direction:column;gap:5px;color:#3b2a52}
+#r345Off b{font-size:17px}#r345Off span{font-size:13px}#r345Off small{font-size:12px;color:#5b4a72}
+</style>
+<script id="rcadsR345Script">
+(function(){
+  'use strict';
+  /* R345 — GUARD APP: bottom tabs 🏠 HOME • 📋 DTR • 📢 NOTICES (like the employee app)
+     • ON DUTY: all three tabs. HOME = my Guard QR + 📷 scan the employee PASS.
+     • Duty ended (handover / HR time out): the app does NOT log out any more — it shows OFF DUTY:
+       no Guard QR and no scanning. DTR stays open for 1 HOUR after the TIME OUT, then only HOME and NOTICES.
+     • Next duty: HOME → 🛡 HANDOVER (scan the guard on duty) or TIME IN by HR. */
+  if(window.RCADS_PREVIEW)return;
+  const HOUR=3600000;let TAB='home';
+  function me(){try{return getLoggedGuardLabel()||''}catch(e){return ''}}
+  function isG(l){return /^Guard \d+$/.test(String(l||''))}
+  function on(l){try{return !!getCurrentGuardOpenDuty(l)}catch(e){return false}}
+  function lastOut(l){try{const L=getGuardDutyLogs().filter(r=>r&&r.guard===l);for(let i=L.length-1;i>=0;i--){if(L[i].type==='OUT')return Date.parse(L[i].timestamp)||0;if(L[i].type==='IN')return 0}}catch(e){}return 0}
+  function ghOpen(){const gh=document.getElementById('guardHomeScreen');return gh&&getComputedStyle(gh).display!=='none'&&!gh.classList.contains('hidden')?gh:null}
+  function show(el,v){if(el)el.style.display=v?'':'none'}
+  window.rcadsR345={offDuty:function(){TAB='home';try{refreshGuardHome()}catch(e){}try{updateGuardSessionBanner()}catch(e){}paint()}};
+  function paint(){
+    const gh=ghOpen();const l=me();let nav=document.getElementById('r345Nav');
+    if(!gh||!isG(l)){if(nav)nav.remove();document.body.classList.remove('r345-guard');return}
+    document.body.classList.add('r345-guard');
+    const duty=on(l),lo=duty?0:lastOut(l),dtrOk=duty||(lo&&Date.now()-lo<HOUR);
+    if(!dtrOk&&TAB==='dtr')TAB='home';
+    if(!nav){nav=document.createElement('nav');nav.id='r345Nav';nav.innerHTML='<button type="button" data-r345="home"><span>🏠</span>HOME</button><button type="button" data-r345="dtr"><span>📋</span>DTR</button><button type="button" data-r345="notices"><span>📢</span>NOTICES</button>';document.body.appendChild(nav);
+      nav.addEventListener('click',e=>{const b=e.target.closest('[data-r345]');if(!b)return;TAB=b.getAttribute('data-r345');paint();window.scrollTo(0,0)})}
+    nav.querySelector('[data-r345="dtr"]').style.display=dtrOk?'':'none';
+    nav.querySelectorAll('[data-r345]').forEach(b=>b.classList.toggle('on',b.getAttribute('data-r345')===TAB));
+    const card=gh.querySelector('.guard-home-card');if(!card)return;
+    const qr=card.querySelector('.rcads-guard-simple-grid'),scan=document.getElementById('r181Guard'),top=document.getElementById('r344Top'),more=document.getElementById('r344More');
+    const dtr=gh.querySelector('.rcads-employee-dtr-box'),board=document.getElementById('r159GuardBoard'),hand=document.getElementById('r343Hand');
+    const out=[...card.querySelectorAll(':scope > button')].find(b=>/LOG OUT GUARD/i.test(b.textContent));
+    const H=TAB==='home';
+    show(top,H);show(more,H);show(out,H);show(hand,H&&!duty);
+    show(qr,H&&duty);show(scan,H&&duty);
+    show(dtr,TAB==='dtr');show(board,TAB==='notices');
+    let off=document.getElementById('r345Off');
+    if(H&&!duty){if(!off){off=document.createElement('div');off.id='r345Off'}if(top){if(top.previousElementSibling!==off)card.insertBefore(off,top)}else if(off.parentElement!==card)card.insertBefore(off,card.firstChild);
+      const left=lo?Math.max(0,Math.ceil((lo+HOUR-Date.now())/60000)):0;
+      const h='<b>🌙 OFF DUTY</b><span>'+(lo?'You timed out at '+new Date(lo).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'. ':'')+'Your Guard QR and scanner are closed.</span>'+(left?'<small>📋 DTR is open for '+left+' more minute(s).</small>':'<small>Only HOME and NOTICES are open.</small>')+'<small>Next duty: press 🛡 HANDOVER above (or TIME IN by HR in ⋯ MORE).</small>';
+      if(off.dataset.h!==h){off.dataset.h=h;off.innerHTML=h}}
+    else if(off)off.remove();
+  }
+  setInterval(()=>{try{paint()}catch(e){console.warn('R345',e)}},800);
+})();
+</script>
+<style id="rcadsR346Style">
+.r346-dtr{display:inline-block;margin-top:7px;border:0;border-radius:10px;background:#5b3519;color:#fff;font-weight:900;font-size:12px;padding:8px 12px;cursor:pointer}
+</style>
+<script id="rcadsR346Script">
+(function(){
+  'use strict';
+  /* R346 — HR LIVE: tap 📋 VIEW DTR on any employee in "ALL-BRANCH ATTENDANCE MONITORING"
+     → his TIME IN / BREAK / TIME OUT of the cutoff opens at once (same view as 🔎 EMPLOYEE DAILY PUNCHES). */
+  if(window.RCADS_PREVIEW)return;
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  const orig=window.rcadsSharedMonitoringRenderRow;
+  if(typeof orig==='function'){
+    window.rcadsSharedMonitoringRenderRow=function(branchCode,emp,context){
+      let h=orig.apply(this,arguments);
+      if(String(context||'').toUpperCase()==='HR'&&emp&&emp.code){
+        const btn='<button type="button" class="r346-dtr" data-r346-code="'+esc(String(emp.code).toUpperCase())+'" data-r346-name="'+esc(emp.name||'')+'">📋 VIEW DTR</button>';
+        const i=h.lastIndexOf('</div>');if(i>0)h=h.slice(0,i)+btn+h.slice(i);
+      }
+      return h};
+    try{rcadsSharedMonitoringRenderRow=window.rcadsSharedMonitoringRenderRow}catch(e){}
+  }
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-r346-code]');if(!b)return;
+    const R=window.rcadsR334;if(!R||typeof R.openPunches!=='function'){alert('DTR viewer not loaded. Open ▤ DTR / Export once.');return}
+    const code=b.getAttribute('data-r346-code'),name=b.getAttribute('data-r346-name');
+    try{R.openPunches();R.empPunches(code);const x=document.querySelector('#r334M .r334-emp b');if(x&&name)x.textContent=name}catch(err){alert('Cannot open the DTR: '+err.message)}});
 })();
 </script>
 </body>
