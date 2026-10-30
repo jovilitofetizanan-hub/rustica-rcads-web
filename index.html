@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R353 HR HIDE MENU</title>
+<title>Rustica RCADS App — R354 READER ZOOM LANDSCAPE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -32199,6 +32199,78 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(b){b.style.display=open?'':'none';b.textContent=hidden()?'☰ MENU':'✕ HIDE MENU'}}
   document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('#simpleHrAdminModal .rcads-hr-nav button');if(t&&small()){setTimeout(()=>{put('off');apply()},150)}},true);
   setInterval(apply,600);window.addEventListener('resize',apply);
+})();
+</script>
+<style id="rcadsR354Style">
+/* R354 reader zoom + full screen on phones */
+#r159ReaderBody .r159-page,#r328PmBody .r159-page{width:calc(100% * var(--r354z,1))!important;max-width:none!important}
+#r159ReaderBody.r354-zoomed,#r328PmBody.r354-zoomed{overflow:auto!important}
+#r159ReaderBody.r354-zoomed .r159-doc-text,#r159ReaderBody.r354-zoomed .r159-doc-meta{font-size:calc(13px * var(--r354z,1))}
+#r159ReaderBody,#r328PmBody{touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+.r354-tools{display:flex;align-items:center;gap:4px;margin-left:auto;margin-right:6px;flex:0 0 auto}
+.r354-tools button{border:0;border-radius:8px;min-width:34px;padding:6px 8px;background:rgba(255,255,255,.92);color:#5b3519;font-weight:900;font-size:14px;line-height:1}
+.r354-pct{min-width:40px;text-align:center;font-weight:900;font-size:11px;color:#fff}
+.r328-head .r354-pct{color:inherit}
+@media (max-width:900px),(max-height:520px){
+ #r159Reader{padding:0!important}
+ #r159Reader .r159-reader-box{max-width:100%!important;height:100%!important;max-height:100%!important;border-radius:0!important}
+ #r159Reader .r159-reader-body{padding:6px!important}
+ #r159ReaderTitle{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 auto}
+}
+@media (orientation:landscape) and (max-height:520px){
+ #r159Reader .r159-reader-head{padding:4px 8px!important}
+ #r159Reader .r159-reader-foot{display:none}
+}
+</style>
+<script id="rcadsR354Script">
+(function(){
+  'use strict';
+  /* R354 — NOTICES / MEMO CIRCULARS / CODE OF DISCIPLINE / MY MEMOS reader on phones:
+     • ZOOM: two fingers (pinch), double-tap, or the －  ＋  buttons (100% → 400%). Scroll left/right when zoomed.
+     • ⟳ LANDSCAPE: full screen + turn sideways (Android). iPhone: just turn the phone (Rotation Lock OFF).
+     • The reader uses the whole screen on phones. Watermark / view-only protection stay the same. */
+  if(window.RCADS_PREVIEW)return;
+  const BODIES=[['#r159Reader','#r159ReaderBody','.r159-reader-head'],['#r328Pm','#r328PmBody','.r328-head']];
+  const MIN=1,MAX=4;
+  function zOf(b){return parseFloat(b.dataset.r354z||'1')||1}
+  function setZ(b,z,cx,cy){z=Math.max(MIN,Math.min(MAX,Math.round(z*100)/100));const old=zOf(b);if(Math.abs(z-old)<.001)return;
+    const r=b.getBoundingClientRect();const px=(cx==null?r.width/2:cx-r.left),py=(cy==null?r.height/2:cy-r.top);
+    const fx=(b.scrollLeft+px)/old,fy=(b.scrollTop+py)/old;
+    b.dataset.r354z=String(z);b.style.setProperty('--r354z',z);b.classList.toggle('r354-zoomed',z>1.001);
+    b.scrollLeft=fx*z-px;b.scrollTop=fy*z-py;label(b)}
+  function label(b){const host=b.closest('#r159Reader,#r328Pm');const l=host&&host.querySelector('.r354-pct');if(l)l.textContent=Math.round(zOf(b)*100)+'%'}
+  function tools(host,body,headSel){
+    const head=host.querySelector(headSel);if(!head||head.querySelector('.r354-tools'))return;
+    const t=document.createElement('div');t.className='r354-tools';
+    t.innerHTML='<button type="button" data-r354="out" aria-label="Zoom out">－</button><span class="r354-pct">100%</span><button type="button" data-r354="in" aria-label="Zoom in">＋</button><button type="button" data-r354="fit">FIT</button><button type="button" data-r354="rot" title="Landscape">⟳</button>';
+    const close=[...head.querySelectorAll('button')].pop();head.insertBefore(t,close||null);
+    t.addEventListener('click',e=>{const k=e.target.closest('[data-r354]');if(!k)return;e.preventDefault();e.stopPropagation();const a=k.getAttribute('data-r354');
+      if(a==='in')setZ(body,zOf(body)*1.25);else if(a==='out')setZ(body,zOf(body)/1.25);else if(a==='fit')setZ(body,1);else if(a==='rot')rotate()});
+    /* pinch + double tap */
+    let p0=null,z0=1,lastTap=0;
+    body.addEventListener('touchstart',e=>{if(e.touches.length===2){const[a,b]=e.touches;p0=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);z0=zOf(body);e.preventDefault()}
+      else if(e.touches.length===1){const n=Date.now();if(n-lastTap<300){const x=e.touches[0];setZ(body,zOf(body)>1.01?1:2,x.clientX,x.clientY);e.preventDefault();lastTap=0}else lastTap=n}},{passive:false});
+    body.addEventListener('touchmove',e=>{if(e.touches.length===2&&p0){const[a,b]=e.touches;const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);setZ(body,z0*d/p0,(a.clientX+b.clientX)/2,(a.clientY+b.clientY)/2);e.preventDefault()}},{passive:false});
+    body.addEventListener('touchend',e=>{if(e.touches.length<2)p0=null});
+    /* ctrl + mouse wheel on the laptop */
+    body.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setZ(body,zOf(body)*(e.deltaY<0?1.12:1/1.12),e.clientX,e.clientY)},{passive:false});
+  }
+  async function rotate(){
+    const so=screen.orientation;
+    try{
+      if(document.fullscreenElement&&so&&/landscape/.test(so.type)){try{so.unlock()}catch(e){}await document.exitFullscreen();return}
+      if(document.documentElement.requestFullscreen&&!document.fullscreenElement)await document.documentElement.requestFullscreen({navigationUI:'hide'});
+      if(so&&so.lock){await so.lock('landscape');return}
+      throw new Error('no lock')
+    }catch(e){alert('Turn your phone sideways.\n\niPhone: swipe down from the top-right → turn OFF the 🔒 Rotation Lock, then turn the phone.\nAndroid: turn ON Auto-rotate in the quick settings.')}
+  }
+  /* closing the reader → leave full screen / unlock */
+  document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#r159ReaderClose,[data-r328-close]')){try{screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}catch(_){}if(document.fullscreenElement){try{document.exitFullscreen()}catch(_){}}
+    BODIES.forEach(([h,b])=>{const x=document.querySelector(b);if(x){x.dataset.r354z='1';x.style.setProperty('--r354z',1);x.classList.remove('r354-zoomed');label(x)}})}},true);
+  /* new document opened → back to 100% */
+  const seen=new WeakMap();
+  setInterval(()=>{BODIES.forEach(([h,b,hd])=>{const host=document.querySelector(h),body=document.querySelector(b);if(!host||!body)return;tools(host,body,hd);
+    const doc=body.querySelector('#r159ReaderDoc')||body;const sig=(doc.firstElementChild&&doc.firstElementChild.outerHTML.slice(0,120))||'';if(seen.get(body)!==sig){seen.set(body,sig);body.dataset.r354z='1';body.style.setProperty('--r354z',1);body.classList.remove('r354-zoomed');label(body)}})},700);
 })();
 </script>
 </body>
