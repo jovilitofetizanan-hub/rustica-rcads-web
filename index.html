@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R346 LIVE TAP TO VIEW DTR</title>
+<title>Rustica RCADS App — R348 SHORT DAY HOURS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -11985,6 +11985,7 @@ function rcadsSharedMonitoringShow(context="TOP",mode="APPROVERS"){
           const xm=(x?.approverKey==="restaurantManager" || x?.approverKey==="cateringManager")?0:1;
           const ym=(y?.approverKey==="restaurantManager" || y?.approverKey==="cateringManager")?0:1;
           if(xm!==ym) return xm-ym;
+          if(mode==="EMPLOYEES") return String(x.code||"").localeCompare(String(y.code||""),undefined,{numeric:true}); /* R346: ALL EMPLOYEES in EMPCODE order */
           const ax=rcadsAttendanceSummaryForToday(b.code,x).timeIn||"";
           const ay=rcadsAttendanceSummaryForToday(b.code,y).timeIn||"";
           return ax.localeCompare(ay) || String(x.code||"").localeCompare(String(y.code||""));
@@ -31301,8 +31302,8 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     const days={};R.forEach(r=>{const k=dk(new Date(r.date));(days[k]=days[k]||[]).push(r)});
     const label=r=>r.type==='IN'?(r.kind==='Return'?'☕ BREAK IN':'🟢 TIME IN'):(r.kind==='Break'?'☕ BREAK OUT':'🔴 TIME OUT');
     const flags=r=>[r.handshake?'✓ '+r.handshake:'',r.geo==='OK'?'GPS ✓':(r.geo?'⚠ GPS '+r.geo:''),r.offline?'📴 saved offline':'',r.clockCorrected?'⏰ phone clock corrected':'',String(r.phone||'').indexOf('BORROWED')===0?'👥 borrowed phone':'',r.dutyBranch&&x&&r.dutyBranch!==x.branch?'⚠ at '+r.dutyBranch:'',r.reason&&r.reason!=='—'?r.reason:''].filter(Boolean).join(' • ');
-    const body='<button type="button" class="r334-back" data-r334-back>← ALL EMPLOYEES</button><div class="r334-emp"><b>'+esc(e.name)+'</b> • '+esc(code)+'</div>'
-      +(Object.keys(days).length?Object.keys(days).sort().map(k=>{const d=new Date(k+'T00:00:00');return '<div class="r334-day"><div class="r334-dh">'+esc(d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}))+'</div>'+days[k].map(r=>'<div class="r334-p"><span class="t">'+esc(r.time||new Date(r.date).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}))+'</span><span class="k">'+label(r)+'</span><span class="b">by '+esc(r.authorizedBy||r.approvedBy||'—')+'</span><small>'+esc(flags(r))+'</small></div>').join('')+'</div>'}).join(''):'<div class="r334-empty">No TIME IN / OUT in this cutoff on this device. Press ↻ / GET THE DATA (cloud) if it was recorded on another phone.</div>');
+    const body='<button type="button" class="r334-back" data-r334-back>← ALL EMPLOYEES</button><div class="r334-emp" data-r334-code="'+esc(code)+'"><b>'+esc(e.name)+'</b> • '+esc(code)+'</div>'
+      +(Object.keys(days).length?Object.keys(days).sort().map(k=>{const d=new Date(k+'T00:00:00');return '<div class="r334-day" data-r334-dk="'+esc(k)+'"><div class="r334-dh">'+esc(d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}))+'</div>'+days[k].map(r=>'<div class="r334-p"><span class="t">'+esc(r.time||new Date(r.date).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}))+'</span><span class="k">'+label(r)+'</span><span class="b">by '+esc(r.authorizedBy||r.approvedBy||'—')+'</span><small>'+esc(flags(r))+'</small></div>').join('')+'</div>'}).join(''):'<div class="r334-empty">No TIME IN / OUT in this cutoff on this device. Press ↻ / GET THE DATA (cloud) if it was recorded on another phone.</div>');
     const m=document.querySelector('#r334M .r334-body');if(m)m.innerHTML=body}
   setInterval(()=>{try{const p=document.getElementById('hrDtrExportPanel');if(!p||document.getElementById('r334Btns'))return;const d=document.createElement('div');d.id='r334Btns';d.className='r334-btns';
     d.innerHTML='<button type="button" data-r334-view>👁 VIEW DTR SUMMARY ON SCREEN</button><button type="button" data-r334-punch>🔎 EMPLOYEE DAILY PUNCHES</button>';const c=document.getElementById('r184Ctx');const host=c&&c.parentElement&&p.contains(c.parentElement)?c.parentElement:null;if(host)host.insertAdjacentElement('afterend',d);else p.insertBefore(d,p.children[2]||null)}catch(e){}},1500);
@@ -31859,6 +31860,238 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
     const R=window.rcadsR334;if(!R||typeof R.openPunches!=='function'){alert('DTR viewer not loaded. Open ▤ DTR / Export once.');return}
     const code=b.getAttribute('data-r346-code'),name=b.getAttribute('data-r346-name');
     try{R.openPunches();R.empPunches(code);const x=document.querySelector('#r334M .r334-emp b');if(x&&name)x.textContent=name}catch(err){alert('Cannot open the DTR: '+err.message)}});
+})();
+</script>
+<style id="rcadsR347Style">
+.r347-b{margin-left:8px;border:1px solid #a8741a;border-radius:999px;background:#fff8e9;color:#5b3519;font-weight:900;font-size:11.5px;padding:4px 10px;cursor:pointer}
+.r347-b.on{background:#2f6b3a;border-color:#2f6b3a;color:#fff}
+</style>
+<script id="rcadsR347Script">
+(function(){
+  'use strict';
+  /* R347 — HALF DAY (4 hours)
+     • A HALF DAY counts 0.5 in WORKED DAYS (e.g. 12.5). The late / undertime of that day is NOT counted.
+     • How a day becomes HALF DAY:
+       1) Guard scan → Head approves "⏳ UNDERTIME TIME OUT" with the reason "Approved HALF DAY (4 hours)".
+       2) HR → ▤ DTR / Export → 🔎 EMPLOYEE DAILY PUNCHES (or LIVE → 📋 VIEW DTR) → "½ MARK HALF DAY" on the day
+          (also for an afternoon half day). HR can UNDO it.
+     • Management: ABSENT +0.5 and PAID DAYS −0.5 for each half day.
+     • DTR Summary Log: REMARKS gets "HALF DAY: Oct 30, …". RCPS reads the decimal days as they are. */
+  const U=c=>String(c||'').trim().toUpperCase();
+  const RX=/HALF\s*-?\s*DAY \(4/i;
+  const KEY=c=>'rcads_r347_hd_'+U(c).replace(/[^A-Z0-9_-]/g,'_');
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function marks(code){try{return JSON.parse(localStorage.getItem(KEY(code))||'{}')||{}}catch(e){return {}}}
+  function setMark(code,dk,on,by){const m=marks(code);m[dk]={on:!!on,by:by||'HR OPERATION OFFICER',at:new Date().toISOString()};
+    try{localStorage.setItem(KEY(code),JSON.stringify(m))}catch(e){alert('Cannot save: '+e.message);return}try{rcadsCloudFlushQueue()}catch(e){}}
+  function dkOf(r){try{return dtrDateKey(r.date)}catch(e){return ''}}
+  function recsOf(emp){try{return getEmployeeAttendanceRecordsForDtr(emp)||[]}catch(e){return []}}
+  /* half-day dates of one employee from..to (only days with a TIME IN) */
+  function halfDates(emp,from,to){
+    const code=U(emp&&emp.code);if(!code)return [];const M=marks(code);const by={};
+    recsOf(emp).forEach(r=>{const k=dkOf(r);if(k&&(!from||k>=from)&&(!to||k<=to))(by[k]=by[k]||[]).push(r)});
+    return Object.keys(by).sort().filter(k=>{const P=by[k];if(!P.some(r=>r.type==='IN'))return false;
+      if(M[k])return !!M[k].on;
+      return P.some(r=>r.type==='OUT'&&RX.test(String(r.reason||'')))});
+  }
+  /* late + undertime minutes of ONE day — same rule as the DTR summary */
+  function dayLateUt(emp,dk,P){
+    let s=null;try{s=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!s||s.type!=='TIME')return {late:0,ut:0};
+    const ins=P.filter(r=>r.type==='IN'),outs=P.filter(r=>r.type==='OUT');let late=0,ut=0;
+    const firstIn=ins.map(dtrPunchMinutes).filter(x=>x!==null).sort((a,b)=>a-b)[0];
+    const finalOut=outs.map(dtrPunchMinutes).filter(x=>x!==null).sort((a,b)=>a-b).slice(-1)[0];
+    const sIn=dtrMinutesFromHHMM(s.in);let sOut=dtrMinutesFromHHMM(s.out);
+    if(firstIn!=null&&sIn!==null){try{late=Math.max(0,firstIn-getEmployeeLateThresholdMinutes(emp,s.in))}catch(e){}}
+    if(finalOut!=null&&sOut!==null){let o=finalOut;if(sOut<sIn)sOut+=1440;if(o<sIn&&sOut>1440)o+=1440;ut=Math.max(0,sOut-o)}
+    return {late,ut};
+  }
+  function dLabel(k){const d=new Date(k+'T00:00:00');return isNaN(d)?k:d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+  window.rcadsR347={halfDates,marks,setMark,label:dLabel};
+
+  /* ---- DTR summary (outermost wrapper) ---- */
+  const prev=window.calculateEmployeeDtrSummary;
+  if(typeof prev==='function')window.calculateEmployeeDtrSummary=function(emp,cutoff){
+    const s=prev.apply(this,arguments);
+    try{if(!s||!s.cutoff||!emp)return s;const H=halfDates(emp,s.cutoff.from,s.cutoff.to);s.halfDays=H;if(!H.length)return s;
+      const by={};recsOf(emp).forEach(r=>{const k=dkOf(r);if(k)(by[k]=by[k]||[]).push(r)});
+      let late=0,ut=0;H.forEach(k=>{const x=dayLateUt(emp,k,by[k]||[]);late+=x.late;ut+=x.ut});
+      s.workedDays=Math.max(0,(Number(s.workedDays)||0)-0.5*H.length);
+      s.lateMinutes=Math.max(0,(Number(s.lateMinutes)||0)-late);s.undertimeMinutes=Math.max(0,(Number(s.undertimeMinutes)||0)-ut);
+      try{s.lateHHMM=dtrHHMM(s.lateMinutes);s.undertimeHHMM=dtrHHMM(s.undertimeMinutes)}catch(e){}
+      if(s.isMgmtPay){s.absent=(Number(s.absent)||0)+0.5*H.length;if(s.paidDays!=null)s.paidDays=Math.max(0,Number(s.paidDays)-0.5*H.length)}
+      s.halfDayNote='HALF DAY: '+H.map(dLabel).join(', ');
+    }catch(e){console.warn('R347',e)}
+    return s};
+
+  /* ---- DTR Summary Log: REMARKS ---- */
+  const prevBuild=window.buildEditableDTRWorkbook;
+  if(typeof prevBuild==='function')window.buildEditableDTRWorkbook=function(){
+    const wb=prevBuild.apply(this,arguments);
+    try{if(!wb||typeof XLSX==='undefined')return wb;let c=null;try{c=rcadsR158DtrExportContext().cutoff}catch(e){}if(!c)return wb;
+      wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n];const a=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        const hi=a.findIndex(r=>r&&U(r[0])==='EMPCODE');if(hi<0)return;const cR=a[hi].map(U).indexOf('REMARKS');if(cR<0)return;
+        for(let i=hi+1;i<a.length;i++){const code=U(a[i][0]);if(!code)continue;const H=halfDates({code},c.from,c.to);if(!H.length)continue;
+          const note='HALF DAY: '+H.map(dLabel).join(', ');const old=String(a[i][cR]||'');if(old.indexOf('HALF DAY:')>=0)continue;
+          XLSX.utils.sheet_add_aoa(ws,[[old?old+' • '+note:note]],{origin:{r:i,c:cR}})}});
+    }catch(e){console.warn('R347 export',e)}
+    return wb};
+
+  /* ---- Guard / Head: undertime reason ---- */
+  setInterval(()=>{try{const sel=document.getElementById('r217Reason');if(!sel||sel.dataset.r347)return;sel.dataset.r347='1';
+    [...sel.options].forEach(o=>{if(/half-day \/ leave/i.test(o.textContent)){o.textContent='Approved HALF DAY (4 hours)';o.value='Approved HALF DAY (4 hours)';
+      const l=document.createElement('option');l.textContent=l.value='Approved leave';o.after(l)}})}catch(e){}},700);
+
+  /* ---- HR: ½ MARK HALF DAY in EMPLOYEE DAILY PUNCHES ---- */
+  function paint(){const box=document.querySelector('#r334M .r334-body');if(!box)return;const em=box.querySelector('[data-r334-code]');if(!em)return;const code=U(em.getAttribute('data-r334-code'));
+    const H=new Set(halfDates({code}));
+    box.querySelectorAll('.r334-day[data-r334-dk]').forEach(d=>{const k=d.getAttribute('data-r334-dk');const on=H.has(k);const sig=code+k+on;if(d.dataset.r347===sig)return;d.dataset.r347=sig;
+      let b=d.querySelector('.r347-b');if(!b){b=document.createElement('button');b.type='button';b.className='r347-b';const h=d.querySelector('.r334-dh');(h||d).appendChild(b)}
+      b.setAttribute('data-r347-code',code);b.setAttribute('data-r347-dk',k);b.classList.toggle('on',on);
+      b.textContent=on?'½ HALF DAY ✓ — UNDO':'½ MARK HALF DAY';
+      const hasIn=!!d.querySelector('.r334-p');b.hidden=!hasIn})}
+  new MutationObserver(()=>{try{paint()}catch(e){}}).observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-r347-dk]');if(!b)return;e.preventDefault();e.stopPropagation();
+    const code=b.getAttribute('data-r347-code'),k=b.getAttribute('data-r347-dk'),on=b.classList.contains('on');
+    if(!confirm(on?'UNDO the HALF DAY of '+code+' on '+dLabel(k)+'? (It counts as a full day again.)':'Mark '+code+' as HALF DAY (4 hours) on '+dLabel(k)+'?\n\nWORKED DAYS counts 0.5 for this day and the late / undertime of this day is not counted.'))return;
+    setMark(code,k,!on,'HR OPERATION OFFICER');const d=b.closest('.r334-day');if(d)d.dataset.r347='';paint()},true);
+})();
+</script>
+<style id="rcadsR348Style">
+.r348-b{margin-left:8px;border:1px solid #315f8a;border-radius:999px;background:#eef6ff;color:#173a5e;font-weight:900;font-size:11.5px;padding:4px 10px;cursor:pointer}
+.r348-b.on{background:#315f8a;color:#fff}
+.r348-t{margin-left:8px;font-size:11px;font-weight:800;color:#2f6b3a}.r348-t.bad{color:#b3261e}
+</style>
+<script id="rcadsR348Script">
+(function(){
+  'use strict';
+  /* R348 — SHORT DAY / PAID UNDERTIME / APPROVED LATE
+     • A day with LESS THAN 5 HOURS of work (breaks not counted) is NOT a worked day:
+       its hours go to the new column SHORT-DAY HOURS ([h]:mm); the late / undertime of that day is not counted again.
+       (RCPS pays SHORT-DAY HOURS = daily rate ÷ 8 × hours.)
+     • 5 hours or more = 1 worked day; the missing time stays LATE / UNDERTIME.
+     • APPROVED undertime with a COMPANY reason (Sent home by the Manager / Head, No guest / slow business,
+       Power / water interruption, Transferred to another branch) = full day, no undertime deducted.
+       Other approved reasons = no memo, but the undertime is still deducted.
+     • HR "✓ APPROVE LATE (company errand)" on a day in EMPLOYEE DAILY PUNCHES = no late and no memo for that day.
+     • ½ HALF DAY days (R347) are not touched here. A day still on duty / with no TIME OUT is counted as before.
+     • Management: a short day = ABSENT +1, PAID DAYS −1 (the hours are paid in SHORT-DAY HOURS). */
+  const U=c=>String(c||'').trim().toUpperCase();
+  const MIN_DAY=300; // 5 hours
+  const PAID=[/sent home by the manager/i,/no guest|slow business/i,/power|water interruption/i,/transferred to another branch/i];
+  const OBK=c=>'rcads_r348_ob_'+U(c).replace(/[^A-Z0-9_-]/g,'_');
+  function obMarks(code){try{return JSON.parse(localStorage.getItem(OBK(code))||'{}')||{}}catch(e){return {}}}
+  function setOb(code,dk,on,by){const m=obMarks(code);m[dk]={on:!!on,by:by||'HR OPERATION OFFICER',at:new Date().toISOString()};
+    try{localStorage.setItem(OBK(code),JSON.stringify(m))}catch(e){alert('Cannot save: '+e.message);return}
+    if(on){try{const k='rustica_central_approver_flags_v2';const a=JSON.parse(localStorage.getItem(k)||'[]');
+      if(!a.some(f=>U(f.employeeCode)===U(code)&&U(f.issueType)==='LATE'&&String(f.createdAt||'').slice(0,10)===dk&&/APPROV/i.test(f.decision||'')))
+        {a.push({employeeCode:U(code),issueType:'LATE',decision:'APPROVED',createdAt:dk+'T12:00:00.000Z',reason:'Company errand / official business (from outside)',approvedBy:by||'HR OPERATION OFFICER',source:'R348'});localStorage.setItem(k,JSON.stringify(a))}}catch(e){}}
+    else{try{const k='rustica_central_approver_flags_v2';const a=JSON.parse(localStorage.getItem(k)||'[]');
+      const b=a.filter(f=>!(f.source==='R348'&&U(f.employeeCode)===U(code)&&String(f.createdAt||'').slice(0,10)===dk));if(b.length!==a.length)localStorage.setItem(k,JSON.stringify(b))}catch(e){}}
+    try{rcadsCloudFlushQueue()}catch(e){}}
+  function dkOf(r){try{return dtrDateKey(r.date)}catch(e){return ''}}
+  function recsOf(emp){try{return getEmployeeAttendanceRecordsForDtr(emp)||[]}catch(e){return []}}
+  function byDay(emp){const by={};recsOf(emp).forEach(r=>{const k=dkOf(r);if(k)(by[k]=by[k]||[]).push(r)});return by}
+  /* minutes actually worked in a day (IN → OUT, breaks not counted); null = still on duty / no TIME OUT */
+  function workedMin(P){const ps=P.slice().sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0));let at=null,w=0;
+    ps.forEach(r=>{const t=Date.parse(r.date);if(isNaN(t))return;if(r.type==='IN'){if(at==null)at=t}else if(r.type==='OUT'&&at!=null){w+=t-at;at=null}});
+    if(at!=null||!ps.some(r=>r.type==='OUT'))return null;return Math.round(w/60000)}
+  function dayLateUt(emp,dk,P){
+    let s=null;try{s=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!s||s.type!=='TIME')return {late:0,ut:0,sched:s};
+    const ins=P.filter(r=>r.type==='IN'),outs=P.filter(r=>r.type==='OUT');let late=0,ut=0;
+    const firstIn=ins.map(dtrPunchMinutes).filter(x=>x!==null).sort((a,b)=>a-b)[0];
+    const finalOut=outs.map(dtrPunchMinutes).filter(x=>x!==null).sort((a,b)=>a-b).slice(-1)[0];
+    const sIn=dtrMinutesFromHHMM(s.in);let sOut=dtrMinutesFromHHMM(s.out);
+    if(firstIn!=null&&sIn!==null){try{late=Math.max(0,firstIn-getEmployeeLateThresholdMinutes(emp,s.in))}catch(e){}}
+    if(finalOut!=null&&sOut!==null){let o=finalOut;if(sOut<sIn)sOut+=1440;if(o<sIn&&sOut>1440)o+=1440;ut=Math.max(0,sOut-o)}
+    return {late,ut,sched:s};
+  }
+  function paidReason(P){const o=P.filter(r=>r.type==='OUT'&&String(r.reasonApproved||'').toUpperCase()==='YES').map(r=>String(r.reason||''));return o.find(x=>PAID.some(rx=>rx.test(x)))||''}
+  /* per-day decisions for one employee in from..to */
+  function analyse(emp,from,to){
+    const code=U(emp&&emp.code);const by=byDay(emp);const OB=obMarks(code);
+    let half=new Set();try{half=new Set(window.rcadsR347?window.rcadsR347.halfDates(emp,from,to):[])}catch(e){}
+    const out={short:[],shortMin:0,paidUt:[],ob:[]};
+    Object.keys(by).sort().forEach(k=>{if((from&&k<from)||(to&&k>to))return;const P=by[k];if(!P.some(r=>r.type==='IN'))return;if(half.has(k))return;
+      const pr=paidReason(P);const w=workedMin(P);const lu=dayLateUt(emp,k,P);
+      if(pr){out.paidUt.push({k,ut:lu.ut,reason:pr});if(OB[k]&&OB[k].on&&lu.late)out.ob.push({k,late:lu.late});return}
+      if(w!=null&&w<MIN_DAY){out.short.push({k,w,late:lu.late,ut:lu.ut,sched:lu.sched});out.shortMin+=w;return}
+      if(OB[k]&&OB[k].on&&lu.late)out.ob.push({k,late:lu.late});});
+    return out;
+  }
+  function dLabel(k){const d=new Date(k+'T00:00:00');return isNaN(d)?k:d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+  function hm(m){m=Math.max(0,Math.round(m));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')}
+  window.rcadsR348={analyse,obMarks,setOb,workedMin};
+
+  /* ---- DTR summary (outermost wrapper) ---- */
+  const prev=window.calculateEmployeeDtrSummary;
+  if(typeof prev==='function')window.calculateEmployeeDtrSummary=function(emp,cutoff){
+    const s=prev.apply(this,arguments);
+    try{if(!s||!s.cutoff||!emp)return s;const A=analyse(emp,s.cutoff.from,s.cutoff.to);s.shortDayMinutes=A.shortMin;s.shortDays=A.short.map(x=>x.k);
+      if(!A.short.length&&!A.paidUt.length&&!A.ob.length)return s;
+      let late=0,ut=0,hol=0,reg=0,dow=0;
+      A.short.forEach(x=>{late+=x.late;ut+=x.ut;let h='';try{h=getRusticaHolidayType(x.k)}catch(e){}if(h==='SPECIAL')hol++;if(h==='REGULAR')reg++;
+        try{if(x.sched&&x.sched.type==='STATUS'&&dtrIsDayOffStatus(x.sched.status))dow++}catch(e){}});
+      A.paidUt.forEach(x=>{ut+=x.ut});A.ob.forEach(x=>{late+=x.late});
+      const n=A.short.length;
+      s.workedDays=Math.max(0,(Number(s.workedDays)||0)-n);
+      s.lateMinutes=Math.max(0,(Number(s.lateMinutes)||0)-late);s.undertimeMinutes=Math.max(0,(Number(s.undertimeMinutes)||0)-ut);
+      s.specialHoliday=Math.max(0,(Number(s.specialHoliday)||0)-(s.isMgmtPay?0:hol));s.regularHoliday=Math.max(0,(Number(s.regularHoliday)||0)-(s.isMgmtPay?0:reg));
+      s.workedOnDayOff=Math.max(0,(Number(s.workedOnDayOff)||0)-dow);
+      try{s.lateHHMM=dtrHHMM(s.lateMinutes);s.undertimeHHMM=dtrHHMM(s.undertimeMinutes)}catch(e){}
+      if(s.isMgmtPay&&n){s.absent=(Number(s.absent)||0)+n;if(s.paidDays!=null)s.paidDays=Math.max(0,Number(s.paidDays)-n)}
+      const notes=[];if(n)notes.push('SHORT DAY (under 5 hrs): '+A.short.map(x=>dLabel(x.k)+' '+hm(x.w)).join(', '));
+      if(A.paidUt.length)notes.push('PAID UNDERTIME: '+A.paidUt.map(x=>dLabel(x.k)).join(', '));
+      if(A.ob.length)notes.push('APPROVED LATE: '+A.ob.map(x=>dLabel(x.k)).join(', '));
+      s.r348Note=notes.join(' • ');
+    }catch(e){console.warn('R348',e)}
+    return s};
+
+  /* ---- DTR Summary Log: new column SHORT-DAY HOURS (before REMARKS) + notes in REMARKS ---- */
+  const COL='SHORT-DAY HOURS ([h]:mm)';
+  const prevBuild=window.buildEditableDTRWorkbook;
+  if(typeof prevBuild==='function')window.buildEditableDTRWorkbook=function(){
+    const wb=prevBuild.apply(this,arguments);
+    try{if(!wb||typeof XLSX==='undefined')return wb;let c=null;try{c=rcadsR158DtrExportContext().cutoff}catch(e){}if(!c)return wb;
+      wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n];const a=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+        const hi=a.findIndex(r=>r&&U(r[0])==='EMPCODE');if(hi<0)return;const H=a[hi].map(U);if(H.indexOf(U(COL))>=0)return;let cR=H.indexOf('REMARKS');if(cR<0)cR=H.length;
+        const out=a.map((r,i)=>{r=r.slice();if(i===hi){r.splice(cR,0,COL);return r}
+          const code=U(r[0]);if(i>hi&&code&&/^[A-Z0-9]+-/.test(code)){while(r.length<cR)r.push('');const A=analyse({code},c.from,c.to);
+            r.splice(cR,0,A.shortMin?A.shortMin/1440:'');
+            const notes=[];if(A.short.length)notes.push('SHORT DAY (under 5 hrs): '+A.short.map(x=>dLabel(x.k)+' '+hm(x.w)).join(', '));
+            if(A.paidUt.length)notes.push('PAID UNDERTIME: '+A.paidUt.map(x=>dLabel(x.k)+' ('+x.reason+')').join(', '));
+            if(A.ob.length)notes.push('APPROVED LATE (company errand): '+A.ob.map(x=>dLabel(x.k)).join(', '));
+            if(notes.length){const o=String(r[cR+1]||'');r[cR+1]=o?o+' • '+notes.join(' • '):notes.join(' • ')}
+            return r}
+          if(r.length>cR)r.splice(cR,0,'');return r});
+        const nw=XLSX.utils.aoa_to_sheet(out);
+        if(ws['!merges'])nw['!merges']=ws['!merges'].map(m=>({s:{r:m.s.r,c:m.s.c},e:{r:m.e.r,c:m.e.c>=cR-1?m.e.c+1:m.e.c}}));
+        if(ws['!cols']){const cl=ws['!cols'].slice();cl.splice(cR,0,{wch:16});nw['!cols']=cl}
+        ['!pageSetup','!rows'].forEach(k=>{if(ws[k])nw[k]=ws[k]});
+        /* time format on every [h]:mm column; plain numbers elsewhere */
+        const HH=out[hi];for(let r=hi+1;r<out.length;r++){if(!/^[A-Z0-9]+-/.test(U(out[r][0])))continue;
+          HH.forEach((t,j)=>{const ref=XLSX.utils.encode_cell({r,c:j});const cell=nw[ref];if(!cell||typeof cell.v!=='number')return;
+            if(/\[h\]:mm/i.test(String(t))){cell.t='n';cell.z='[h]:mm'}else if(cell.z==='[h]:mm')delete cell.z})}
+        wb.Sheets[n]=nw});
+    }catch(e){console.warn('R348 export',e)}
+    return wb};
+
+  /* ---- HR: ✓ APPROVE LATE (company errand) in EMPLOYEE DAILY PUNCHES; SHORT DAY tag ---- */
+  function paint(){const box=document.querySelector('#r334M .r334-body');if(!box)return;const em=box.querySelector('[data-r334-code]');if(!em)return;const code=U(em.getAttribute('data-r334-code'));
+    const by=byDay({code});const OB=obMarks(code);
+    box.querySelectorAll('.r334-day[data-r334-dk]').forEach(d=>{const k=d.getAttribute('data-r334-dk');const P=by[k]||[];
+      const lu=dayLateUt({code},k,P);const on=!!(OB[k]&&OB[k].on);const w=workedMin(P);const sig=code+k+on+lu.late+w+JSON.stringify((window.rcadsR347&&window.rcadsR347.marks(code)[k])||'');if(d.dataset.r348===sig)return;d.dataset.r348=sig;
+      const h=d.querySelector('.r334-dh')||d;let b=d.querySelector('.r348-b');
+      if(lu.late>0||on){if(!b){b=document.createElement('button');b.type='button';b.className='r348-b';h.appendChild(b)}
+        b.setAttribute('data-r348-code',code);b.setAttribute('data-r348-dk',k);b.classList.toggle('on',on);
+        b.textContent=on?'✓ LATE APPROVED — UNDO':'✓ APPROVE LATE ('+lu.late+' min, company errand)'}else if(b)b.remove();
+      let isHalf=false;try{isHalf=window.rcadsR347&&window.rcadsR347.halfDates({code},k,k).length>0}catch(_){}const pr=paidReason(P);
+      let t=d.querySelector('.r348-t');const txt=w==null?'':isHalf?'Worked '+hm(w)+' (½ day)':pr?'Worked '+hm(w)+' • PAID — company reason':(w<MIN_DAY?'⚠ SHORT DAY '+hm(w)+' — not a worked day':'Worked '+hm(w));
+      if(txt){if(!t){t=document.createElement('span');t.className='r348-t';h.appendChild(t)}t.textContent=txt;t.classList.toggle('bad',w<MIN_DAY)}else if(t)t.remove()})}
+  new MutationObserver(()=>{try{paint()}catch(e){}}).observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-r348-dk]');if(!b)return;e.preventDefault();e.stopPropagation();
+    const code=b.getAttribute('data-r348-code'),k=b.getAttribute('data-r348-dk'),on=b.classList.contains('on');
+    if(!confirm(on?'UNDO the approved late of '+code+' on '+dLabel(k)+'? (The late counts again.)':'APPROVE the late of '+code+' on '+dLabel(k)+'?\n\nHe came from a COMPANY ERRAND / official business outside. The late is NOT counted and there is NO memo for this day.'))return;
+    setOb(code,k,!on,'HR OPERATION OFFICER');const d=b.closest('.r334-day');if(d)d.dataset.r348='';paint()},true);
 })();
 </script>
 </body>
