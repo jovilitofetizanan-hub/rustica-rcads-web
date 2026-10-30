@@ -25519,12 +25519,46 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(last.kind==='Break')return {state:'BREAK',recs,last};
     return {state:'ENDED',recs,last};
   }
-  function appendRecord(c,name,rec){
+  // Guard attendance must be authorized at save time, not just by screen visibility.
+  let guardSaveBusy=false;
+  function dutyMatches(rows,branch,label){
+    const logs=rows.filter(r=>r&&String(r.branch||'SAN_RAFAEL').toUpperCase()===branch&&r.guard===label);
+    if(!logs.length||logs.some(r=>!Number.isFinite(Date.parse(r.timestamp))))return false;
+    logs.sort((a,b)=>Date.parse(a.timestamp)-Date.parse(b.timestamp));
+    const last=logs[logs.length-1];
+    return last.type==='IN'&&!logs.some(r=>r.type==='OUT'&&Date.parse(r.timestamp)===Date.parse(last.timestamp));
+  }
+  async function guardSaveAllowed(rec){
+    const label=String(rec.authorizedBy||'');
+    if(!/^Guard \d+$/.test(label))return true; // Existing HR/head authorization stays separate.
+    const branch=String(curBranch()||'').toUpperCase();
+    const deny=()=>{alert('NOT RECORDED — Guard duty could not be confirmed. Only the ON DUTY guard may record attendance. Connect to the internet and complete handover, then scan again.');return false};
+    if(guardLabel()!==label||String(rec.dutyBranch||'').toUpperCase()!==branch||!navigator.onLine)return deny();
+    let timer;
+    try{
+      if(!rcadsCloudReady()||String(RUSTICA_CENTRAL_DB.branch||'').toUpperCase()!==branch)return deny();
+      const rows=await Promise.race([
+        rcadsCloudRpc('rustica_rcads_list_kv',{p_branch_code:RUSTICA_CENTRAL_DB.branch,p_sync_secret:RUSTICA_CENTRAL_DB.syncSecret}),
+        new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),8000)})
+      ]);
+      const row=Array.isArray(rows)&&rows.find(r=>r.data_key==='rustica_srf_guard_duty_logs');
+      const remote=row&&JSON.parse(row.data_value);
+      const local=JSON.parse(localStorage.getItem('rustica_srf_guard_duty_logs')||'[]');
+      if(guardLabel()!==label||String(curBranch()||'').toUpperCase()!==branch||!Array.isArray(remote)||!Array.isArray(local)||!dutyMatches(remote,branch,label)||!dutyMatches(local,branch,label))return deny();
+      return true;
+    }catch(e){return deny()}finally{clearTimeout(timer)}
+  }
+  async function appendRecord(c,name,rec){
+    if(guardSaveBusy)return false;
+    guardSaveBusy=true;
+    try{
+    if(!(await guardSaveAllowed(rec)))return false;
     if(r287Off&&rec&&typeof rec==='object'){rec.offline=true;rec.offlineSavedAt=new Date().toISOString()}
     if(rec&&typeof rec==='object'&&Math.abs(window.__r301skew||0)>120000){rec.phoneClockOffMin=Math.round((window.__r301skew||0)/60000);rec.clockCorrected=true} /* R301: HR sees it */
     const k=attKey(c);const s=lsGet(k,null)||{employeeCode:U(c),employeeName:name||'',records:[]};
     s.records=(s.records||[]).concat([rec]).sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0));s.employeeName=s.employeeName||name||'';s.savedAt=new Date().toISOString();
-    const ok=lsSet(k,s);try{window.dispatchEvent(new CustomEvent('rcads:dtr-refresh'))}catch(e){}return ok;
+    const ok=lsSet(k,s);try{window.dispatchEvent(new CustomEvent('rcads:dtr-refresh'))}catch(e){}return ok!==false;
+    }finally{guardSaveBusy=false}
   }
 
   /* ---------------- QR scanner (BarcodeDetector, or jsQR for iPhone / other browsers) ---------------- */
@@ -25684,7 +25718,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const head=noBreak+'<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span><em>'+flags.map(esc).join(' • ').replace(/&amp;/g,'&')+'</em></div>';
     const base={handshake:'MUTUAL QR',guardToken:p.g,geo:p.geo,guardGeo:'OK',guardGeoCheckedAt:guardGeo.at||new Date().toISOString(),phone:p.ph||'OWN',authorizedBy:gl,authorizedDepartment:'Security / Guard',dutyBranch:curBranch()};
     if(st.state==='NONE'){
-      const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'IN',kind:'Start',date:s.date.toISOString(),time:s.time},base));
+      const s=nowStampLocal();if(!(await appendRecord(p.c,name,Object.assign({type:'IN',kind:'Start',date:s.date.toISOString(),time:s.time},base)))){return};
       resultBox('r181GuardRes',head+'<b class="big ok">✓ TIME IN • '+esc(s.time)+'</b><span>Recorded. (Mutual scan ✓)</span>','ok');return;
     }
     if(st.state==='WORKING'){
@@ -25712,38 +25746,38 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       const f=document.createElement('div');f.id='r357Err';f.className='r357-err';f.innerHTML='<label>WHO ORDERED THE ERRAND?</label><select id="r357Who">'+'<option>Kitchen Head 1</option><option>Kitchen Head 2</option><option>Dining Head 1</option><option>Dining Head 2</option><option>Restaurant Manager</option><option>Catering Manager</option><option>Deputy Chef</option><option>Assistant Deputy</option><option>HR Operation Officer</option><option>Owner / Management</option>'+'</select><label>WHAT IS THE ERRAND? (e.g. buy LPG, bank deposit, deliver to San Juan)</label><input id="r357What" maxlength="80" placeholder="Type the errand"><button type="button" class="r181-btn" data-r357-errsave>✓ RECORD ERRAND OUT</button>';box.appendChild(f);setTimeout(()=>{try{document.getElementById('r357What').focus()}catch(e){}},50);return}
     if(t.closest('[data-r357-errsave]')){if(!pendingOut)return;const {p,name,base}=pendingOut;const who=(document.getElementById('r357Who')||{}).value||'Head';const what=String((document.getElementById('r357What')||{}).value||'').trim();
       if(!what){alert('Type what the errand is.');return}if(!(await refreshBeforeBreak('r181GuardRes')))return;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
-      const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',errand:true,errandBy:who,errandWhat:what,date:s.date.toISOString(),time:s.time,reason:'ERRAND — ordered by '+who+': '+what+' (counted as work)',reasonApproved:'YES'},base));
+      const s=nowStampLocal();if(!(await appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',errand:true,errandBy:who,errandWhat:what,date:s.date.toISOString(),time:s.time,reason:'ERRAND — ordered by '+who+': '+what+' (counted as work)',reasonApproved:'YES'},base)))){return};
       resultBox('r181GuardRes','<b class="big ok">🛵 ERRAND OUT • '+esc(name)+' • '+esc(s.time)+'</b><span>Ordered by '+esc(who)+' • '+esc(what)+'. Counted as work time. When back: scan again → ✓ BACK.</span>','ok');pendingOut=null;return}
     if(t.closest('[data-r278-in]')){if(!pendingOut||!(await refreshBeforeBreak('r181GuardRes')))return;const {p,name,base}=pendingOut;const st=shiftState(p.c);if(st.state!=='BREAK'){alert('The status changed. Scan again.');pendingOut=null;return}
-       const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},st.last.errand?{errandReturn:true,errandMinutes:mins}:{},base));resultBox('r181GuardRes','<b class="big ok">'+(st.last.errand?'✓ BACK FROM ERRAND':'✓ BREAK IN')+' • '+esc(name)+' • '+esc(s.time)+'</b><span>'+(st.last.errand?'Errand: '+mins+' minutes outside (counted as work)':'Break: '+mins+' minutes')+' • Recorded by '+esc(base.authorizedBy)+'.</span>','ok');pendingOut=null;return}
+       const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);if(!(await appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},st.last.errand?{errandReturn:true,errandMinutes:mins}:{},base)))){return};resultBox('r181GuardRes','<b class="big ok">'+(st.last.errand?'✓ BACK FROM ERRAND':'✓ BREAK IN')+' • '+esc(name)+' • '+esc(s.time)+'</b><span>'+(st.last.errand?'Errand: '+mins+' minutes outside (counted as work)':'Break: '+mins+' minutes')+' • Recorded by '+esc(base.authorizedBy)+'.</span>','ok');pendingOut=null;return}
     if(t.closest('[data-r278-brk]')){if(!pendingOut||!(await refreshBeforeBreak('r181GuardRes')))return;const {p,name,base}=pendingOut;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
-       const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break (out of the premises)',reasonApproved:'N/A'},base));resultBox('r181GuardRes','<b class="big ok">☕ BREAK OUT • '+esc(name)+' • '+esc(s.time)+'</b><span>Recorded by '+esc(base.authorizedBy)+'. When back: scan again for BREAK IN.</span>','ok');pendingOut=null;return}
+       const s=nowStampLocal();if(!(await appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break (out of the premises)',reasonApproved:'N/A'},base)))){return};resultBox('r181GuardRes','<b class="big ok">☕ BREAK OUT • '+esc(name)+' • '+esc(s.time)+'</b><span>Recorded by '+esc(base.authorizedBy)+'. When back: scan again for BREAK IN.</span>','ok');pendingOut=null;return}
     if(t.closest('[data-r217-abandon]')){if(!pendingOut)return;const {p,name,base,wi}=pendingOut;
       if(!confirm('LEFT WITHOUT PERMISSION — '+name+' is leaving WITHOUT the approval of the Head 1 (worked '+hmR(wi?wi.worked:0)+' only).\n\nThis will be recorded and flagged RED to HR. Continue?'))return;
       const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
-      const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Left without permission',date:s.date.toISOString(),time:s.time,reason:'LEFT WITHOUT PERMISSION — reported by '+base.authorizedBy,reasonApproved:'NO'},base));
+      const s=nowStampLocal();if(!(await appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Left without permission',date:s.date.toISOString(),time:s.time,reason:'LEFT WITHOUT PERMISSION — reported by '+base.authorizedBy,reasonApproved:'NO'},base)))){return};
       const f=findEmp(p.c);utLog({t:'ABANDON',code:p.c,name,branch:f?f.branch:curBranch(),worked:wi?wi.worked:0,by:base.authorizedBy});
       resultBox('r181GuardRes','<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+'</span></div><b class="big bad">🚩 LEFT WITHOUT PERMISSION RECORDED • '+esc(s.time)+'</b><span>HR has been flagged.</span>','bad');pendingOut=null;return}
     if(t.closest('[data-r217-x]')){pendingHead=null;resultBox('r181BreakRes','<span>Cancelled.</span>','');return}
     if(t.closest('[data-r278-hin]')){if(!pendingHead||!(await refreshBeforeBreak('r181BreakRes')))return;const {p,name,base,a,head}=pendingHead;const st=shiftState(p.c);if(st.state!=='BREAK'){alert('The status changed. Scan again.');pendingHead=null;return}
-      const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},base));resultBox('r181BreakRes',head+'<b class="big ok">✓ BREAK IN • '+esc(s.time)+'</b><span>Break: '+mins+' minutes • Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
+      const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);if(!(await appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},base)))){return};resultBox('r181BreakRes',head+'<b class="big ok">✓ BREAK IN • '+esc(s.time)+'</b><span>Break: '+mins+' minutes • Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
     if(t.closest('[data-r217-brk]')){if(!pendingHead||!(await refreshBeforeBreak('r181BreakRes')))return;const {p,name,base,a,head}=pendingHead;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingHead=null;return}
-      const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break / End of Shift',reasonApproved:'N/A'},base));resultBox('r181BreakRes',head+'<b class="big ok">☕ BREAK OUT • '+esc(s.time)+'</b><span>Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
+      const s=nowStampLocal();if(!(await appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break / End of Shift',reasonApproved:'N/A'},base)))){return};resultBox('r181BreakRes',head+'<b class="big ok">☕ BREAK OUT • '+esc(s.time)+'</b><span>Recorded by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
     if(t.closest('[data-r217-ut]')){if(!breakAuthority()?.canUndertime){alert('Undertime requires an authorized Department Head, assistant, or Manager.');return}const b=document.getElementById('r217Ut');if(b)b.hidden=false;return}
     if(t.closest('[data-r217-utsave]')){if(!pendingHead)return;const active=breakAuthority();if(!active||!active.canUndertime||active.code!==pendingHead.a.code||active.scope!==pendingHead.a.scope){alert('Undertime authorization changed. Log in with your authorized account and scan again.');pendingHead=null;return}const {p,name,base,a,head}=pendingHead;const sel=document.getElementById('r217Reason');let reason=sel?sel.value:'';
       if(/^Other/.test(reason)){reason=String((document.getElementById('r217Other')||{}).value||'').trim();if(!reason){alert('Type the reason.');return}}
       const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingHead=null;return}
       const wi=workedInfo(p.c);const s=nowStampLocal();
-      appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Undertime',date:s.date.toISOString(),time:s.time,reason,reasonApproved:'YES',approvedBy:a.label},base));
+      if(!(await appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Undertime',date:s.date.toISOString(),time:s.time,reason,reasonApproved:'YES',approvedBy:a.label},base)))){return};
       flagUtApproved(p.c,reason,a.label);const f=findEmp(p.c);utLog({t:'UNDERTIME',code:p.c,name,branch:f?f.branch:curBranch(),worked:wi.worked,reason,by:a.label});
       resultBox('r181BreakRes',head+'<b class="big ok">⏳ UNDERTIME TIME OUT • '+esc(s.time)+'</b><span>Worked '+hmR(wi.worked)+' • Reason: '+esc(reason)+' • Approved by '+esc(a.label)+'.</span>','ok');pendingHead=null;return}
   });
   document.addEventListener('change',e=>{if(e.target&&e.target.id==='r217Reason'){const o=document.getElementById('r217Other');if(o)o.hidden=!/^Other/.test(e.target.value)}});
-  function doOut(kind){
+  async function doOut(kind){
     if(!pendingOut)return;const {p,name,base}=pendingOut;let reason='Regular Break / End of Shift',appr='N/A';
     if(kind==='Early Leave'){reason=prompt('EARLY LEAVE — reason (e.g. Sick, Emergency, Approved by Manager):','');if(reason===null)return;reason=String(reason).trim()||'Not stated';appr=confirm('Was the early leave APPROVED by the Head/Manager?\nOK = YES • Cancel = NO')?'YES':'NO';if(appr!=='YES'){alert('Obtain Head/Manager approval first. No TIME OUT recorded.');return}}
     const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
-    const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind,date:s.date.toISOString(),time:s.time,reason,reasonApproved:appr},base));
+    const s=nowStampLocal();if(!(await appendRecord(p.c,name,Object.assign({type:'OUT',kind,date:s.date.toISOString(),time:s.time,reason,reasonApproved:appr},base)))){return};
     try{if(kind==='Early Leave'&&typeof rcadsStartApprovalTimer==='function')rcadsStartApprovalTimer('EARLY LEAVE • '+name+' • '+reason)}catch(e){}
     resultBox('r181GuardRes','<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+'</span></div><b class="big ok">✓ '+(kind==='Early Leave'?'EARLY LEAVE OUT':'TIME OUT')+' • '+esc(s.time)+'</b><span>Recorded. (Mutual scan ✓)</span>','ok');pendingOut=null;
   }
