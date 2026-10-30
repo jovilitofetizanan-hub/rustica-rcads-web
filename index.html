@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R348 SHORT DAY HOURS</title>
+<title>Rustica RCADS App — R349 DTR LOG PRINT FIX</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -29907,7 +29907,7 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
     const h=a.findIndex(r=>r&&String(r[0]||'').trim().toUpperCase()==='EMPCODE');
     const n=Math.max(1,...a.map(r=>(r||[]).length),h>=0?a[h].length:1),last=col(n-1);
     const H=h>=0?a[h].map(x=>String(x||'').toUpperCase()):[];
-    const timeCol=j=>/^LATE|^UNDERTIME/.test(H[j]||'');
+    const timeCol=j=>/^LATE|^UNDERTIME|^SHORT-DAY/.test(H[j]||''); /* R349: SHORT-DAY HOURS shown as [h]:mm */
     let x='',merges=[],dataEnd=h;
     if(isDtr&&h>=0){for(let i=h+1;i<a.length;i++){const r=a[i]||[];if(r.some(v=>v!=null&&v!==''))dataEnd=i;else break}}
     a.forEach((r,i)=>{r=r||[];let c='',ht=19.5;const R=i+1;
@@ -31964,7 +31964,12 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
 <script id="rcadsR348Script">
 (function(){
   'use strict';
-  /* R348 — SHORT DAY / PAID UNDERTIME / APPROVED LATE
+  /* R348 — SHORT DAY HOURS / APPROVED LATE (no memo) / MANAGEMENT 11:00 AM LATE RULE
+     ★ ALL late, undertime and half day are DEDUCTED from the pay (Management and rank-and-file).
+       An APPROVAL (late or undertime, any reason) only removes the MEMO — not the deduction.
+     ★ MANAGEMENT: TIME IN after the schedule = LATE. And no Management TIME IN is allowed after 11:00 AM:
+       after 11:00 AM = LATE even if the schedule says 11:30 AM or later.
+     (older notes below)
      • A day with LESS THAN 5 HOURS of work (breaks not counted) is NOT a worked day:
        its hours go to the new column SHORT-DAY HOURS ([h]:mm); the late / undertime of that day is not counted again.
        (RCPS pays SHORT-DAY HOURS = daily rate ÷ 8 × hours.)
@@ -32012,8 +32017,7 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
     let half=new Set();try{half=new Set(window.rcadsR347?window.rcadsR347.halfDates(emp,from,to):[])}catch(e){}
     const out={short:[],shortMin:0,paidUt:[],ob:[]};
     Object.keys(by).sort().forEach(k=>{if((from&&k<from)||(to&&k>to))return;const P=by[k];if(!P.some(r=>r.type==='IN'))return;if(half.has(k))return;
-      const pr=paidReason(P);const w=workedMin(P);const lu=dayLateUt(emp,k,P);
-      if(pr){out.paidUt.push({k,ut:lu.ut,reason:pr});if(OB[k]&&OB[k].on&&lu.late)out.ob.push({k,late:lu.late});return}
+      const w=workedMin(P);const lu=dayLateUt(emp,k,P);
       if(w!=null&&w<MIN_DAY){out.short.push({k,w,late:lu.late,ut:lu.ut,sched:lu.sched});out.shortMin+=w;return}
       if(OB[k]&&OB[k].on&&lu.late)out.ob.push({k,late:lu.late});});
     return out;
@@ -32021,17 +32025,22 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
   function dLabel(k){const d=new Date(k+'T00:00:00');return isNaN(d)?k:d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
   function hm(m){m=Math.max(0,Math.round(m));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')}
   window.rcadsR348={analyse,obMarks,setOb,workedMin};
+  /* ---- MANAGEMENT: late threshold = the schedule time, never later than 11:00 AM ---- */
+  const origTh=window.getEmployeeLateThresholdMinutes;
+  if(typeof origTh==='function'&&!origTh.__r348){const w=function(emp,schedIn){
+      try{if(emp&&isManagementEmployee(emp)){const m=dtrMinutesFromHHMM(schedIn);if(m!==null&&m!==undefined&&!isNaN(m))return Math.min(m,11*60)}}catch(e){}
+      return origTh.apply(this,arguments)};w.__r348=1;window.getEmployeeLateThresholdMinutes=w}
 
   /* ---- DTR summary (outermost wrapper) ---- */
   const prev=window.calculateEmployeeDtrSummary;
   if(typeof prev==='function')window.calculateEmployeeDtrSummary=function(emp,cutoff){
     const s=prev.apply(this,arguments);
     try{if(!s||!s.cutoff||!emp)return s;const A=analyse(emp,s.cutoff.from,s.cutoff.to);s.shortDayMinutes=A.shortMin;s.shortDays=A.short.map(x=>x.k);
-      if(!A.short.length&&!A.paidUt.length&&!A.ob.length)return s;
+      if(!A.short.length&&!A.ob.length)return s;
       let late=0,ut=0,hol=0,reg=0,dow=0;
       A.short.forEach(x=>{late+=x.late;ut+=x.ut;let h='';try{h=getRusticaHolidayType(x.k)}catch(e){}if(h==='SPECIAL')hol++;if(h==='REGULAR')reg++;
         try{if(x.sched&&x.sched.type==='STATUS'&&dtrIsDayOffStatus(x.sched.status))dow++}catch(e){}});
-      A.paidUt.forEach(x=>{ut+=x.ut});A.ob.forEach(x=>{late+=x.late});
+      /* R348b: approved late / approved undertime = NO MEMO only — still deducted */
       const n=A.short.length;
       s.workedDays=Math.max(0,(Number(s.workedDays)||0)-n);
       s.lateMinutes=Math.max(0,(Number(s.lateMinutes)||0)-late);s.undertimeMinutes=Math.max(0,(Number(s.undertimeMinutes)||0)-ut);
@@ -32040,8 +32049,7 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
       try{s.lateHHMM=dtrHHMM(s.lateMinutes);s.undertimeHHMM=dtrHHMM(s.undertimeMinutes)}catch(e){}
       if(s.isMgmtPay&&n){s.absent=(Number(s.absent)||0)+n;if(s.paidDays!=null)s.paidDays=Math.max(0,Number(s.paidDays)-n)}
       const notes=[];if(n)notes.push('SHORT DAY (under 5 hrs): '+A.short.map(x=>dLabel(x.k)+' '+hm(x.w)).join(', '));
-      if(A.paidUt.length)notes.push('PAID UNDERTIME: '+A.paidUt.map(x=>dLabel(x.k)).join(', '));
-      if(A.ob.length)notes.push('APPROVED LATE: '+A.ob.map(x=>dLabel(x.k)).join(', '));
+      if(A.ob.length)notes.push('APPROVED LATE (no memo, still deducted): '+A.ob.map(x=>dLabel(x.k)).join(', '));
       s.r348Note=notes.join(' • ');
     }catch(e){console.warn('R348',e)}
     return s};
@@ -32058,8 +32066,7 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
           const code=U(r[0]);if(i>hi&&code&&/^[A-Z0-9]+-/.test(code)){while(r.length<cR)r.push('');const A=analyse({code},c.from,c.to);
             r.splice(cR,0,A.shortMin?A.shortMin/1440:'');
             const notes=[];if(A.short.length)notes.push('SHORT DAY (under 5 hrs): '+A.short.map(x=>dLabel(x.k)+' '+hm(x.w)).join(', '));
-            if(A.paidUt.length)notes.push('PAID UNDERTIME: '+A.paidUt.map(x=>dLabel(x.k)+' ('+x.reason+')').join(', '));
-            if(A.ob.length)notes.push('APPROVED LATE (company errand): '+A.ob.map(x=>dLabel(x.k)).join(', '));
+            if(A.ob.length)notes.push('APPROVED LATE (company errand, no memo): '+A.ob.map(x=>dLabel(x.k)).join(', '));
             if(notes.length){const o=String(r[cR+1]||'');r[cR+1]=o?o+' • '+notes.join(' • '):notes.join(' • ')}
             return r}
           if(r.length>cR)r.splice(cR,0,'');return r});
@@ -32083,14 +32090,14 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
       const h=d.querySelector('.r334-dh')||d;let b=d.querySelector('.r348-b');
       if(lu.late>0||on){if(!b){b=document.createElement('button');b.type='button';b.className='r348-b';h.appendChild(b)}
         b.setAttribute('data-r348-code',code);b.setAttribute('data-r348-dk',k);b.classList.toggle('on',on);
-        b.textContent=on?'✓ LATE APPROVED — UNDO':'✓ APPROVE LATE ('+lu.late+' min, company errand)'}else if(b)b.remove();
-      let isHalf=false;try{isHalf=window.rcadsR347&&window.rcadsR347.halfDates({code},k,k).length>0}catch(_){}const pr=paidReason(P);
-      let t=d.querySelector('.r348-t');const txt=w==null?'':isHalf?'Worked '+hm(w)+' (½ day)':pr?'Worked '+hm(w)+' • PAID — company reason':(w<MIN_DAY?'⚠ SHORT DAY '+hm(w)+' — not a worked day':'Worked '+hm(w));
+        b.textContent=on?'✓ LATE APPROVED — UNDO':'✓ APPROVE LATE — NO MEMO ('+lu.late+' min)'}else if(b)b.remove();
+      let isHalf=false;try{isHalf=window.rcadsR347&&window.rcadsR347.halfDates({code},k,k).length>0}catch(_){}
+      let t=d.querySelector('.r348-t');const txt=w==null?'':isHalf?'Worked '+hm(w)+' (½ day)':(w<MIN_DAY?'⚠ SHORT DAY '+hm(w)+' — not a worked day':'Worked '+hm(w));
       if(txt){if(!t){t=document.createElement('span');t.className='r348-t';h.appendChild(t)}t.textContent=txt;t.classList.toggle('bad',w<MIN_DAY)}else if(t)t.remove()})}
   new MutationObserver(()=>{try{paint()}catch(e){}}).observe(document.documentElement,{childList:true,subtree:true});
   document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-r348-dk]');if(!b)return;e.preventDefault();e.stopPropagation();
     const code=b.getAttribute('data-r348-code'),k=b.getAttribute('data-r348-dk'),on=b.classList.contains('on');
-    if(!confirm(on?'UNDO the approved late of '+code+' on '+dLabel(k)+'? (The late counts again.)':'APPROVE the late of '+code+' on '+dLabel(k)+'?\n\nHe came from a COMPANY ERRAND / official business outside. The late is NOT counted and there is NO memo for this day.'))return;
+    if(!confirm(on?'UNDO the approved late of '+code+' on '+dLabel(k)+'? (The late counts again.)':'APPROVE the late of '+code+' on '+dLabel(k)+'?\n\nHe came from a COMPANY ERRAND / official business outside. There is NO memo for this late. The late minutes are STILL deducted from the pay.'))return;
     setOb(code,k,!on,'HR OPERATION OFFICER');const d=b.closest('.r334-day');if(d)d.dataset.r348='';paint()},true);
 })();
 </script>
