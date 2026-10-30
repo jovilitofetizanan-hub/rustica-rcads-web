@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R356 ONE PHONE PER EMPLOYEE</title>
+<title>Rustica RCADS App — R358 HR FIX GUARD DUTY</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25689,18 +25689,18 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     }
     if(st.state==='WORKING'){
       const wi=workedInfo(p.c);
-      if(wi.worked<NEED){resultBox('r181GuardRes',head+'<b>ON DUTY • worked '+hmR(wi.worked)+' • 8 hours not yet complete (still '+hmR(NEED-wi.worked)+')</b><span>Going out for BREAK → press ☕ BREAK OUT. Approved early departure → the Guard or Head 1 may record undertime TIME OUT with the reason.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-brk>☕ BREAK OUT (going out for break)</button><button type="button" class="r181-btn alt" data-r181-out="EARLY">⏳ APPROVED UNDERTIME TIME OUT</button><button type="button" class="r181-btn alt" data-r217-abandon>🚩 LEFT WITHOUT PERMISSION</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','warn');pendingOut={p,name,base,wi};return}
-      resultBox('r181GuardRes',head+'<b>ON DUTY since '+esc(st.recs[0].time||fmtT(st.recs[0].date))+' • worked '+hmR(wi.worked)+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r181-out="END">🏁 TIME OUT — END OF SHIFT</button><button type="button" class="r181-btn alt" data-r278-brk>☕ BREAK OUT</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','');
+      if(wi.worked<NEED){resultBox('r181GuardRes',head+'<b>ON DUTY • worked '+hmR(wi.worked)+' • 8 hours not yet complete (still '+hmR(NEED-wi.worked)+')</b><span>Going out for BREAK → press ☕ BREAK OUT. Approved early departure → the Guard or Head 1 may record undertime TIME OUT with the reason.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-brk>☕ BREAK OUT (going out for break)</button><button type="button" class="r181-btn alt r357-errbtn" data-r357-errand>🛵 ERRAND — ordered by the Head (counted as work)</button><button type="button" class="r181-btn alt" data-r181-out="EARLY">⏳ APPROVED UNDERTIME TIME OUT</button><button type="button" class="r181-btn alt" data-r217-abandon>🚩 LEFT WITHOUT PERMISSION</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','warn');pendingOut={p,name,base,wi};return}
+      resultBox('r181GuardRes',head+'<b>ON DUTY since '+esc(st.recs[0].time||fmtT(st.recs[0].date))+' • worked '+hmR(wi.worked)+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r181-out="END">🏁 TIME OUT — END OF SHIFT</button><button type="button" class="r181-btn alt" data-r278-brk>☕ BREAK OUT</button><button type="button" class="r181-btn alt r357-errbtn" data-r357-errand>🛵 ERRAND — ordered by the Head (counted as work)</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','');
       pendingOut={p,name,base,wi};return;
     }
-    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingOut={p,name,base};resultBox('r181GuardRes',head+'<b>☕ ON BREAK since '+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b>'+breakNotice(st.last)+'<span>Coming BACK from break → press ✓ BREAK IN. Just going OUT (the break is already recorded) → press CANCEL, nothing to record.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-in>✓ BREAK IN — back from break</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL — just going out</button></div>','');return}
+    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingOut={p,name,base};resultBox('r181GuardRes',head+'<b>'+(st.last.errand?'🛵 ON ERRAND ('+esc(st.last.errandBy||'Head')+': '+esc(st.last.errandWhat||'')+') since ':'☕ ON BREAK since ')+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b>'+breakNotice(st.last)+'<span>Coming BACK from break → press ✓ BREAK IN. Just going OUT (the break is already recorded) → press CANCEL, nothing to record.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-in>✓ BREAK IN — back from break</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL — just going out</button></div>','');return}
     resultBox('r181GuardRes',head+'<b>SHIFT DONE</b><span>Already has a TIME OUT this shift ('+esc(st.last.time||fmtT(st.last.date))+'). Cannot be done twice.</span>','warn');
   }
   let pendingOut=null;
   /* ===== R217: 8-HOUR RULE • UNDERTIME only by Head 1 (with reason) • LEFT WITHOUT PERMISSION flag ===== */
   const NEED=480;
   function workedInfo(c){const st=shiftState(c);const recs=st.recs||[];let w=0,brk=0,inAt=null,brkAt=null;
-    recs.forEach(r=>{const t=Date.parse(r.date);if(r.type==='IN'){if(brkAt!=null){brk+=t-brkAt;brkAt=null}inAt=t}else if(r.type==='OUT'){if(inAt!=null){w+=t-inAt;inAt=null}if(r.kind==='Break')brkAt=t}});
+    recs.filter(r=>!r.errand&&!r.errandReturn).forEach(r=>{const t=Date.parse(r.date);if(r.type==='IN'){if(brkAt!=null){brk+=t-brkAt;brkAt=null}inAt=t}else if(r.type==='OUT'){if(inAt!=null){w+=t-inAt;inAt=null}if(r.kind==='Break')brkAt=t}});
     const now=Date.now();if(inAt!=null)w+=now-inAt;if(brkAt!=null)brk+=now-brkAt;return {st,worked:Math.round(w/60000),brk:Math.round(brk/60000)}}
   function hmR(m){m=Math.max(0,Math.round(m));return Math.floor(m/60)+'h '+(m%60)+'m'}
   const UT_REASONS=['No guest / slow business','Transferred to another branch','Family emergency','Sick / not feeling well','Sent home by the Manager / Head','Approved half-day / leave','Personal errand (approved)','Power / water interruption','Other (type the reason)'];
@@ -25708,8 +25708,14 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function utLog(ev){const k='rcads_r217_ut_log_v1';const a=lsGet(k,[])||[];a.push(Object.assign({at:new Date().toISOString()},ev));lsSet(k,a.slice(-600))}
   let pendingHead=null;
   document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('[data-r357-errand]')){if(!pendingOut)return;const box=document.getElementById('r181GuardRes');if(!box||box.querySelector('#r357Err'))return;
+      const f=document.createElement('div');f.id='r357Err';f.className='r357-err';f.innerHTML='<label>WHO ORDERED THE ERRAND?</label><select id="r357Who">'+'<option>Kitchen Head 1</option><option>Kitchen Head 2</option><option>Dining Head 1</option><option>Dining Head 2</option><option>Restaurant Manager</option><option>Catering Manager</option><option>Deputy Chef</option><option>Assistant Deputy</option><option>HR Operation Officer</option><option>Owner / Management</option>'+'</select><label>WHAT IS THE ERRAND? (e.g. buy LPG, bank deposit, deliver to San Juan)</label><input id="r357What" maxlength="80" placeholder="Type the errand"><button type="button" class="r181-btn" data-r357-errsave>✓ RECORD ERRAND OUT</button>';box.appendChild(f);setTimeout(()=>{try{document.getElementById('r357What').focus()}catch(e){}},50);return}
+    if(t.closest('[data-r357-errsave]')){if(!pendingOut)return;const {p,name,base}=pendingOut;const who=(document.getElementById('r357Who')||{}).value||'Head';const what=String((document.getElementById('r357What')||{}).value||'').trim();
+      if(!what){alert('Type what the errand is.');return}if(!(await refreshBeforeBreak('r181GuardRes')))return;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
+      const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',errand:true,errandBy:who,errandWhat:what,date:s.date.toISOString(),time:s.time,reason:'ERRAND — ordered by '+who+': '+what+' (counted as work)',reasonApproved:'YES'},base));
+      resultBox('r181GuardRes','<b class="big ok">🛵 ERRAND OUT • '+esc(name)+' • '+esc(s.time)+'</b><span>Ordered by '+esc(who)+' • '+esc(what)+'. Counted as work time. When back: scan again → ✓ BACK.</span>','ok');pendingOut=null;return}
     if(t.closest('[data-r278-in]')){if(!pendingOut||!(await refreshBeforeBreak('r181GuardRes')))return;const {p,name,base}=pendingOut;const st=shiftState(p.c);if(st.state!=='BREAK'){alert('The status changed. Scan again.');pendingOut=null;return}
-       const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},base));resultBox('r181GuardRes','<b class="big ok">✓ BREAK IN • '+esc(name)+' • '+esc(s.time)+'</b><span>Break: '+mins+' minutes • Recorded by '+esc(base.authorizedBy)+'.</span>','ok');pendingOut=null;return}
+       const s=nowStampLocal();const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);appendRecord(p.c,name,Object.assign({type:'IN',kind:'Return',date:s.date.toISOString(),time:s.time},st.last.errand?{errandReturn:true,errandMinutes:mins}:{},base));resultBox('r181GuardRes','<b class="big ok">'+(st.last.errand?'✓ BACK FROM ERRAND':'✓ BREAK IN')+' • '+esc(name)+' • '+esc(s.time)+'</b><span>'+(st.last.errand?'Errand: '+mins+' minutes outside (counted as work)':'Break: '+mins+' minutes')+' • Recorded by '+esc(base.authorizedBy)+'.</span>','ok');pendingOut=null;return}
     if(t.closest('[data-r278-brk]')){if(!pendingOut||!(await refreshBeforeBreak('r181GuardRes')))return;const {p,name,base}=pendingOut;const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
        const s=nowStampLocal();appendRecord(p.c,name,Object.assign({type:'OUT',kind:'Break',date:s.date.toISOString(),time:s.time,reason:'Regular Break (out of the premises)',reasonApproved:'N/A'},base));resultBox('r181GuardRes','<b class="big ok">☕ BREAK OUT • '+esc(name)+' • '+esc(s.time)+'</b><span>Recorded by '+esc(base.authorizedBy)+'. When back: scan again for BREAK IN.</span>','ok');pendingOut=null;return}
     if(t.closest('[data-r217-abandon]')){if(!pendingOut)return;const {p,name,base,wi}=pendingOut;
@@ -28519,7 +28525,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     let s=null;try{s=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!s||s.type!=='TIME')return 0;
     let a=dtrMinutesFromHHMM(s.in),b=dtrMinutesFromHHMM(s.out);if(a==null||b==null)return 0;if(b<=a)b+=1440;const allowed=Math.max(0,(b-a)-NEED);
     const ps=punches.slice().sort((x,y)=>(Date.parse(x.date)||0)-(Date.parse(y.date)||0));let brk=0,at=null;
-    ps.forEach(r=>{if(r.type==='OUT'&&r.kind==='Break')at=Date.parse(r.date);else if(r.type==='IN'&&at!=null){brk+=(Date.parse(r.date)-at)/60000;at=null}});
+    ps.filter(r=>!r.errand&&!r.errandReturn).forEach(r=>{if(r.type==='OUT'&&r.kind==='Break')at=Date.parse(r.date);else if(r.type==='IN'&&at!=null){brk+=(Date.parse(r.date)-at)/60000;at=null}});
     return Math.max(0,Math.round(brk-allowed));
   }
   const orig=window.calculateEmployeeDtrSummary;
@@ -31305,7 +31311,7 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   function empPunches(code){const x=ctx();const from=x&&x.cutoff.from,to=x&&x.cutoff.to;const e=staff(x&&x.branch).find(y=>U(y.code)===code)||{name:code};
     const R=recs(code).filter(r=>{const d=new Date(r.date);if(isNaN(d))return false;const k=dk(d);return (!from||k>=from)&&(!to||k<=to)}).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));
     const days={};R.forEach(r=>{const k=dk(new Date(r.date));(days[k]=days[k]||[]).push(r)});
-    const label=r=>r.type==='IN'?(r.kind==='Return'?'☕ BREAK IN':'🟢 TIME IN'):(r.kind==='Break'?'☕ BREAK OUT':'🔴 TIME OUT');
+    const label=r=>r.type==='IN'?(r.kind==='Return'?(r.errandReturn?'🛵 BACK FROM ERRAND':'☕ BREAK IN'):'🟢 TIME IN'):(r.kind==='Break'?(r.errand?'🛵 ERRAND OUT':'☕ BREAK OUT'):'🔴 TIME OUT');
     const flags=r=>[r.handshake?'✓ '+r.handshake:'',r.geo==='OK'?'GPS ✓':(r.geo?'⚠ GPS '+r.geo:''),r.offline?'📴 saved offline':'',r.clockCorrected?'⏰ phone clock corrected':'',String(r.phone||'').indexOf('BORROWED')===0?'👥 borrowed phone':'',r.dutyBranch&&x&&r.dutyBranch!==x.branch?'⚠ at '+r.dutyBranch:'',r.reason&&r.reason!=='—'?r.reason:''].filter(Boolean).join(' • ');
     const body='<button type="button" class="r334-back" data-r334-back>← ALL EMPLOYEES</button><div class="r334-emp" data-r334-code="'+esc(code)+'"><b>'+esc(e.name)+'</b> • '+esc(code)+'</div>'
       +(Object.keys(days).length?Object.keys(days).sort().map(k=>{const d=new Date(k+'T00:00:00');return '<div class="r334-day" data-r334-dk="'+esc(k)+'"><div class="r334-dh">'+esc(d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}))+'</div>'+days[k].map(r=>'<div class="r334-p"><span class="t">'+esc(r.time||new Date(r.date).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}))+'</span><span class="k">'+label(r)+'</span><span class="b">by '+esc(r.authorizedBy||r.approvedBy||'—')+'</span><small>'+esc(flags(r))+'</small></div>').join('')+'</div>'}).join(''):'<div class="r334-empty">No TIME IN / OUT in this cutoff on this device. Press ↻ / GET THE DATA (cloud) if it was recorded on another phone.</div>');
@@ -32002,9 +32008,9 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
   function recsOf(emp){try{return getEmployeeAttendanceRecordsForDtr(emp)||[]}catch(e){return []}}
   function byDay(emp){const by={};recsOf(emp).forEach(r=>{const k=dkOf(r);if(k)(by[k]=by[k]||[]).push(r)});return by}
   /* minutes actually worked in a day (IN → OUT, breaks not counted); null = still on duty / no TIME OUT */
-  function workedMin(P){const ps=P.slice().sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0));let at=null,w=0;
+  function workedMin(P){const ps=P.filter(r=>!r.errand&&!r.errandReturn).sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0));let at=null,w=0;
     ps.forEach(r=>{const t=Date.parse(r.date);if(isNaN(t))return;if(r.type==='IN'){if(at==null)at=t}else if(r.type==='OUT'&&at!=null){w+=t-at;at=null}});
-    if(at!=null||!ps.some(r=>r.type==='OUT'))return null;return Math.round(w/60000)}
+    if(at!=null||!ps.some(r=>r.type==='OUT'))return null;const lastR=ps[ps.length-1];if(lastR&&lastR.type==='OUT'&&lastR.kind==='Break')return null; /* R357: still out on break (no TIME OUT) = not complete */ return Math.round(w/60000)}
   function dayLateUt(emp,dk,P){
     let s=null;try{s=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!s||s.type!=='TIME')return {late:0,ut:0,sched:s};
     const ins=P.filter(r=>r.type==='IN'),outs=P.filter(r=>r.type==='OUT');let late=0,ut=0;
@@ -32374,6 +32380,101 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     su.insertAdjacentElement('afterend',b)})}catch(e){}},1500);
   document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-r356-lost]');if(!b)return;e.preventDefault();e.stopPropagation();lost(b.getAttribute('data-r356-lost'),b)},true);
   window.rcadsR356={check,lost,reg:c=>lsGet(RK(c),null)};
+})();
+</script>
+<style id="rcadsR357Style">
+.r357-err{margin-top:10px;padding:10px;border:2px solid #315f8a;border-radius:12px;background:#eef6ff}.r357-err label{display:block;font-weight:900;font-size:11px;color:#173a5e;margin:6px 0 4px}.r357-err select,.r357-err input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #9cc0e6;border-radius:9px;font-size:14px}.r357-err .r181-btn{margin-top:10px;width:100%}.r357-errbtn{background:#315f8a!important;color:#fff!important}
+</style>
+<style id="rcadsR358Style">
+#r358M{display:none;position:fixed;inset:0;z-index:2147483300;background:rgba(20,10,4,.8);padding:12px;overflow:auto;font-family:Arial,Helvetica,sans-serif}
+#r358M.show{display:block}.r358-box{max-width:620px;margin:0 auto;background:#fffaf2;border-radius:16px;padding:14px;color:#3d2615}
+.r358-x{float:right;border:0;border-radius:9px;padding:7px 12px;background:#5b3519;color:#fff;font-weight:900}
+.r358-h{font-weight:900;font-size:16px;color:#4c2b17;margin:4px 0 6px}.r358-n{font-size:12px;color:#6b4a2f;margin:8px 0;line-height:1.45}
+.r358-g{border:2px solid #d9c3a3;border-radius:12px;padding:10px;margin:10px 0;background:#fff}.r358-g.on{border-color:#2f6b3a}
+.r358-gt{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.r358-gt span{font-size:12px;font-weight:800}
+.r358-log small{display:block;font-size:11px;color:#7a6250;margin-top:2px}
+.r358-row{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.r358-row input,.r358-row select{flex:1;min-width:150px;padding:9px;border:1px solid #cdbb9f;border-radius:9px;font-size:13px}
+.r358-row button,.r358-p button{border:0;border-radius:9px;padding:10px 12px;background:#2f6b3a;color:#fff;font-weight:900;font-size:12.5px}.r358-row button.red{background:#a1281f}
+.r358-open{display:block;width:100%;margin:8px 0;padding:11px;border:2px dashed #a8741a;border-radius:12px;background:#fff8e9;color:#5b3519;font-weight:900;font-size:13px;cursor:pointer}
+.r358-p{border:2px solid #a8741a;border-radius:12px;padding:10px;margin:8px 0;background:#fffaf2}.r358-p>input{width:100%;box-sizing:border-box;margin-top:8px;padding:9px;border:1px solid #cdbb9f;border-radius:9px}.r358-p button{margin-top:8px;width:100%}
+</style>
+<script id="rcadsR358Script">
+(function(){
+  'use strict';
+  /* R358 — HR CORRECTIONS (when a scan was missed)
+     • 🛡 FIX GUARD DUTY (▤ DTR / Export → 🔎 EMPLOYEE DAILY PUNCHES, top): see Guard 1 / Guard 2 of the branch,
+       record the real TIME OUT / TIME IN with the date + time and a reason. Marked "HR CORRECTION".
+       The guard phones follow after they sync (the guard who left goes OFF DUTY).
+     • ➕ ADD MISSING PUNCH (in each employee's daily punches): add a missed TIME OUT / TIME IN / BREAK IN
+       with date + time + reason. Marked "HR CORRECTION" (it shows in the DTR and the punches).
+     Before saving, RCADS gets the latest data from the cloud first, so nothing newer is overwritten. */
+  if(window.RCADS_PREVIEW)return;
+  const RAW='rustica_srf_guard_duty_logs',HRL='HR OPERATION OFFICER';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branch(){try{return rcadsR158DtrExportContext().branch}catch(e){try{return rusticaGetCurrentBranchCode()}catch(_){return 'SAN_RAFAEL'}}}
+  function bName(c){let s={};try{s=window.RUSTICA_BRANCHES||RUSTICA_BRANCHES||{}}catch(e){}const b=Object.values(s).find(x=>x&&x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function raw(){try{const v=JSON.parse(localStorage.getItem(RAW)||'[]');return Array.isArray(v)?v:[]}catch(e){return []}}
+  const BR=l=>U(l&&l.branch)||'SAN_RAFAEL';
+  function labels(b){try{return window.rcadsGuardLabels?window.rcadsGuardLabels(b):['Guard 1','Guard 2']}catch(e){return ['Guard 1','Guard 2']}}
+  function gName(b,l){try{const v=JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+U(b))||'{}')||{};return String(v['guard'+String(parseInt(String(l).replace(/\D/g,''),10)||0).padStart(2,'0')]||'').trim()}catch(e){return ''}}
+  function fmt(t){const d=new Date(t);return isNaN(d)?'—':d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
+  function localInput(d){const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,16)}
+  async function pull(){try{if(navigator.onLine&&typeof window.rcadsCloudPullMerge==='function')await window.rcadsCloudPullMerge()}catch(e){throw new Error('Could not get the latest data from the cloud. Check the internet and try again.')}}
+  function flush(){try{rcadsCloudFlushQueue()}catch(e){}}
+  function state(b,l){const L=raw().filter(x=>BR(x)===b&&x.guard===l&&x.timestamp).sort((x,y)=>Date.parse(x.timestamp)-Date.parse(y.timestamp));const last=L[L.length-1];return {on:!!last&&last.type==='IN',last,list:L.slice(-4)}}
+
+  /* ---------------- 🛡 FIX GUARD DUTY ---------------- */
+  function guardHtml(){const b=branch();
+    return '<div class="r358-h">🛡 FIX GUARD DUTY — '+esc(bName(b))+'</div><div class="r358-n">Use this only when a handover / TIME IN / TIME OUT scan was missed. Type the REAL date and time. Every fix is marked <b>HR CORRECTION</b>.</div>'
+      +labels(b).map(l=>{const s=state(b,l),nm=gName(b,l);return '<div class="r358-g '+(s.on?'on':'off')+'"><div class="r358-gt"><b>'+esc(l)+(nm?' • '+esc(nm):'')+'</b><span>'+(s.on?'🟢 ON DUTY since '+esc(fmt(s.last.timestamp)):'⚪ OFF DUTY'+(s.last?' (last OUT '+esc(fmt(s.last.timestamp))+')':''))+'</span></div>'
+        +'<div class="r358-log">'+s.list.map(x=>'<small>'+(x.type==='IN'?'🟢 IN ':'🔴 OUT ')+esc(fmt(x.timestamp))+(x.reason?' — '+esc(String(x.reason).slice(0,60)):'')+'</small>').join('')+'</div>'
+        +'<div class="r358-row"><input type="datetime-local" data-r358-t="'+esc(l)+'" value="'+localInput(new Date())+'"><button type="button" data-r358-g="'+esc(l)+'|'+(s.on?'OUT':'IN')+'" class="'+(s.on?'red':'')+'">'+(s.on?'🔴 TIME OUT at this time':'🟢 TIME IN at this time')+'</button></div></div>'}).join('')
+      +'<div class="r358-n">Example: Roma (Guard 2) left last night at 10:00 PM and Dennis (Guard 1) took over → Guard 2: TIME OUT at 10:00 PM, then Guard 1: TIME IN at 10:00 PM.</div>'}
+  async function fixGuard(l,type){
+    const b=branch();const inp=document.querySelector('[data-r358-t="'+l+'"]');const t=inp&&inp.value?new Date(inp.value):null;
+    if(!t||isNaN(t)){alert('Choose the date and time.');return}if(t.getTime()>Date.now()+60000){alert('The time is in the future.');return}
+    const why=prompt('REASON for the correction ('+l+' '+type+' at '+fmt(t)+'):','Missed handover scan');if(why==null)return;if(!String(why).trim()){alert('Type the reason.');return}
+    try{await pull()}catch(e){alert(e.message);return}
+    const s=state(b,l);if(type==='OUT'&&!s.on){alert(l+' is already OFF DUTY (after getting the latest data).');openGuard();return}if(type==='IN'&&s.on){alert(l+' is already ON DUTY.');openGuard();return}
+    if(type==='OUT'&&s.last&&t.getTime()<=Date.parse(s.last.timestamp)){alert('The TIME OUT must be after his TIME IN ('+fmt(s.last.timestamp)+').');return}
+    const all=raw();all.push({guard:l,type,timestamp:t.toISOString(),localTime:t.toLocaleString(),branch:b,automatic:false,hrFix:true,reason:'HR CORRECTION — '+String(why).trim(),by:HRL,fixedAt:new Date().toISOString()});
+    all.sort((x,y)=>(Date.parse(x.timestamp)||0)-(Date.parse(y.timestamp)||0));
+    localStorage.setItem(RAW,JSON.stringify(all));try{const mine=all.filter(x=>BR(x)===b);localStorage.setItem('rustica_guard_duty_logs_'+b,JSON.stringify(mine))}catch(e){}flush();
+    alert('✓ Saved: '+l+' '+type+' at '+fmt(t)+' (HR CORRECTION).\n\nThe guard phones follow after they get the data (internet ON).');openGuard();
+  }
+  function openGuard(){let o=document.getElementById('r358M');if(!o){o=document.createElement('div');o.id='r358M';document.documentElement.appendChild(o)}
+    o.innerHTML='<div class="r358-box"><button type="button" class="r358-x" data-r358-x>✕ CLOSE</button>'+guardHtml()+'</div>';o.classList.add('show')}
+
+  /* ---------------- ➕ ADD MISSING PUNCH (employee) ---------------- */
+  async function addPunch(code){
+    const box=document.getElementById('r358P');if(!box)return;const t=new Date(box.querySelector('[data-r358-pt]').value);const kind=box.querySelector('[data-r358-pk]').value;const why=String(box.querySelector('[data-r358-pr]').value||'').trim();
+    if(isNaN(t)){alert('Choose the date and time.');return}if(t.getTime()>Date.now()+60000){alert('The time is in the future.');return}if(!why){alert('Type the reason (e.g. guard app was not on duty — confirmed by Head / logbook).');return}
+    if(!confirm('ADD '+kind+' for '+code+' at '+fmt(t)+'?\n\nReason: '+why+'\n\nIt is marked HR CORRECTION.'))return;
+    try{await pull()}catch(e){alert(e.message);return}
+    const key='rustica_srf_local_attendance_'+code;let o=null;try{o=JSON.parse(localStorage.getItem(key)||'null')}catch(e){}if(!o||!Array.isArray(o.records))o={employeeCode:code,records:[]};
+    const time=t.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    const map={'TIME OUT':{type:'OUT',kind:'End'},'TIME IN':{type:'IN',kind:'Start'},'BREAK OUT':{type:'OUT',kind:'Break'},'BREAK IN':{type:'IN',kind:'Return'}};
+    const r=Object.assign({},map[kind],{date:t.toISOString(),time,authorizedBy:'HR CORRECTION',handshake:'HR CORRECTION',hrFix:true,reason:'HR CORRECTION — '+why,reasonApproved:'YES',fixedAt:new Date().toISOString(),dutyBranch:branch()});
+    if(o.records.some(x=>x&&x.type===r.type&&Math.abs(Date.parse(x.date)-t.getTime())<60000)){alert('There is already a '+r.type+' at that minute.');return}
+    o.records.push(r);o.records.sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0));localStorage.setItem(key,JSON.stringify(o));flush();
+    alert('✓ Added: '+kind+' • '+fmt(t)+' (HR CORRECTION)');try{window.rcadsR334.empPunches(code)}catch(e){}
+  }
+  function punchForm(code){return '<div id="r358P" class="r358-p"><b>➕ ADD MISSING PUNCH</b><div class="r358-row"><select data-r358-pk><option>TIME OUT</option><option>TIME IN</option><option>BREAK IN</option><option>BREAK OUT</option></select><input type="datetime-local" data-r358-pt value="'+localInput(new Date())+'"></div><input data-r358-pr placeholder="Reason (e.g. guard app not on duty — confirmed by logbook / Head)"><button type="button" data-r358-padd="'+esc(code)+'">SAVE (HR CORRECTION)</button></div>'}
+
+  /* ---------------- buttons in EMPLOYEE DAILY PUNCHES ---------------- */
+  setInterval(()=>{try{const body=document.querySelector('#r334M .r334-body');if(!body)return;
+    const list=body.querySelector('.r334-list');if(list&&!body.querySelector('[data-r358-open]')){const b=document.createElement('button');b.type='button';b.className='r358-open';b.setAttribute('data-r358-open','1');b.textContent='🛡 FIX GUARD DUTY (missed handover / time in / time out)';body.insertBefore(b,body.firstChild)}
+    const em=body.querySelector('[data-r334-code]');if(em&&!body.querySelector('[data-r358-addbtn]')){const b=document.createElement('button');b.type='button';b.className='r358-open';b.setAttribute('data-r358-addbtn',em.getAttribute('data-r334-code'));b.textContent='➕ ADD MISSING PUNCH (HR correction)';em.insertAdjacentElement('afterend',b)}
+  }catch(e){}},800);
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('[data-r358-open]')){openGuard();return}
+    if(t.closest('[data-r358-x]')){const o=document.getElementById('r358M');if(o)o.classList.remove('show');return}
+    const g=t.closest('[data-r358-g]');if(g){const [l,type]=g.getAttribute('data-r358-g').split('|');fixGuard(l,type);return}
+    const ab=t.closest('[data-r358-addbtn]');if(ab){if(document.getElementById('r358P'))return;ab.insertAdjacentHTML('afterend',punchForm(ab.getAttribute('data-r358-addbtn')));return}
+    const pa=t.closest('[data-r358-padd]');if(pa){addPunch(pa.getAttribute('data-r358-padd'));return}
+  });
+  window.rcadsR358={openGuard,state};
 })();
 </script>
 </body>
