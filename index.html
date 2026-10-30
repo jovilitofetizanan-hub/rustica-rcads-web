@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R351 GUARD UPDATE BUTTON</title>
+<title>Rustica RCADS App — R352 GUARD AUTO LOG OUT 1 HOUR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31833,7 +31833,7 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
     let off=document.getElementById('r345Off');
     if(H&&!duty){if(!off){off=document.createElement('div');off.id='r345Off'}if(top){if(top.previousElementSibling!==off)card.insertBefore(off,top)}else if(off.parentElement!==card)card.insertBefore(off,card.firstChild);
       const left=lo?Math.max(0,Math.ceil((lo+HOUR-Date.now())/60000)):0;
-      const h='<b>🌙 OFF DUTY</b><span>'+(lo?'You timed out at '+new Date(lo).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'. ':'')+'Your Guard QR and scanner are closed.</span>'+(left?'<small>📋 DTR is open for '+left+' more minute(s).</small>':'<small>Only HOME and NOTICES are open.</small>')+'<small>Next duty: press 🛡 HANDOVER above (or TIME IN by HR in ⋯ MORE).</small>';
+      const h='<b>🌙 OFF DUTY</b><span>'+(lo?'You timed out at '+new Date(lo).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'. ':'')+'Your Guard QR and scanner are closed.</span>'+(left?'<small>📋 DTR is open. This app LOGS OUT by itself in '+left+' minute(s).</small>':'<small>This app logs out by itself now.</small>')+'<small>Next duty: press 🛡 HANDOVER above (or TIME IN by HR in ⋯ MORE).</small>';
       if(off.dataset.h!==h){off.dataset.h=h;off.innerHTML=h}}
     else if(off)off.remove();
   }
@@ -32155,6 +32155,26 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
       const nav=document.getElementById('r345Nav');const homeOn=!nav||!!nav.querySelector('[data-r345="home"].on');b.style.display=homeOn?'':'none'}
     const lk=document.querySelector('#r342Lock .r342-box');if(lk&&!lk.querySelector('.r351-upd'))lk.appendChild(btn('r351UpdLock'));
   }catch(e){}},1200);
+})();
+</script>
+<script id="rcadsR352Script">
+(function(){
+  'use strict';
+  /* R352 — the guard app LOGS OUT BY ITSELF 1 HOUR after his TIME OUT (handover / HR time out).
+     Not while the handover screen or the HR time-in QR is open, and not while somebody is using the phone (3 min). */
+  if(window.RCADS_PREVIEW)return;
+  const HOUR=3600000;let touch=0;
+  ['pointerdown','keydown','touchstart'].forEach(e=>document.addEventListener(e,()=>{touch=Date.now()},{capture:true,passive:true}));
+  function me(){try{return getLoggedGuardLabel()||''}catch(e){return ''}}
+  function isG(l){return /^Guard \d+$/.test(String(l||''))}
+  function on(l){try{return !!getCurrentGuardOpenDuty(l)}catch(e){return false}}
+  function lastOut(l){try{const L=getGuardDutyLogs().filter(r=>r&&r.guard===l);for(let i=L.length-1;i>=0;i--){if(L[i].type==='OUT')return Date.parse(L[i].timestamp)||0;if(L[i].type==='IN')return 0}}catch(e){}return 0}
+  function busy(){const h=document.getElementById('r331Hand'),g=document.getElementById('r338G');return !!(h||(g&&getComputedStyle(g).display!=='none'&&g.offsetParent!==null))}
+  setInterval(()=>{try{
+    const l=me();if(!isG(l)||on(l))return;const lo=lastOut(l);if(!lo||Date.now()-lo<HOUR)return;
+    if(busy()||Date.now()-touch<180000)return;
+    window.__r331Silent=true;try{guardLogout()}catch(e){}finally{window.__r331Silent=false}
+  }catch(e){console.warn('R352',e)}},20000);
 })();
 </script>
 </body>
