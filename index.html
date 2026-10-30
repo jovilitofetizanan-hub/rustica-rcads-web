@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R343 GUARD HANDOVER LIKE EMPLOYEES</title>
+<title>Rustica RCADS App — R344 CLEAN GUARD SCREEN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31732,5 +31732,52 @@ body.employee-simple-mode #employeeSimplePanel{padding-bottom:calc(24px + env(sa
 .r343-green{background:#1e6b48!important;padding:10px!important;border-radius:14px}
 .r343-green svg{background:#fff;border-radius:6px}
 </style>
+<style id="rcadsR344Style">
+/* R344 clean guard screen */
+#r344Top{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+#r344Top #guardHomeIdentity{flex:1;margin:0!important;text-align:left}
+#r344Top #guardHomeDutyStatus{margin:0!important;padding:10px 14px!important;border-radius:999px!important;font-size:14px!important;white-space:nowrap}
+#guardHomeScreen #r181Guard .r181-steps,#guardHomeScreen #r181Guard .r181-h{display:none}
+#guardHomeScreen #r181Guard{padding:12px!important}
+#guardHomeScreen #r181Guard .r181-big{font-size:17px!important;padding:16px!important}
+#r344More{margin:12px 0;border:1px solid #e3d3bb;border-radius:14px;background:#fffaf2;padding:0 12px}
+#r344More>summary{cursor:pointer;padding:12px 2px;font-weight:900;color:#5b3519;font-size:13px;list-style:none}
+#r344More>summary::-webkit-details-marker{display:none}
+#r344More .r344-in{padding:0 0 12px;display:flex;flex-direction:column;gap:10px}
+#r344More .r344-in>*{margin:0!important}
+#r342Pill{left:auto!important;right:10px!important;top:calc(8px + env(safe-area-inset-top,0px))!important;padding:7px 11px!important;font-size:11px!important}
+body.guard-session-active #centralBranchSelectorCard{display:none!important}
+body.guard-session-active .phone>.screen:not(#guardHomeScreen):not(.hidden){display:none!important}
+</style>
+<script id="rcadsR344Script">
+(function(){
+  'use strict';
+  /* R344 — CLEAN GUARD SCREEN
+     Order: (handover button if not on duty) → WHO + ON DUTY → MY GUARD QR (big) → 📷 SCAN THE EMPLOYEE'S PASS QR
+            → HR NOTICE BOARD → ⋯ MORE (Reliever QR, Time out by HR, My DTR) → LOG OUT.
+     The old GUARD IN / GUARD OUT buttons are hidden (TIME IN / OUT of guards = handover scan or HR scan only). */
+  if(window.RCADS_PREVIEW)return;
+  function tidy(){
+    const gh=document.getElementById('guardHomeScreen');if(!gh||getComputedStyle(gh).display==='none')return;
+    const card=gh.querySelector('.guard-home-card');if(!card)return;
+    const id=document.getElementById('guardHomeIdentity'),st=document.getElementById('guardHomeDutyStatus');
+    const qr=card.querySelector('.rcads-guard-simple-grid'),scan=document.getElementById('r181Guard');
+    const dtr=card.querySelector('.rcads-employee-dtr-box'),board=document.getElementById('r159GuardBoard');
+    const rel=document.getElementById('r207RelBtn'),hr=document.getElementById('r338GBtn');
+    const out=[...card.querySelectorAll(':scope > button')].find(b=>/LOG OUT GUARD/i.test(b.textContent));
+    let top=document.getElementById('r344Top');if(!top){top=document.createElement('div');top.id='r344Top';card.insertBefore(top,card.firstChild)}
+    let more=document.getElementById('r344More');if(!more){more=document.createElement('details');more.id='r344More';more.innerHTML='<summary>⋯ MORE — reliever QR, time out by HR, my DTR</summary><div class="r344-in"></div>'}
+    const inn=more.querySelector('.r344-in');
+    [id,st].forEach(e=>{if(e&&e.parentElement!==top)top.appendChild(e)});
+    let prev=top;[qr,scan,board].forEach(e=>{if(e){if(prev.nextElementSibling!==e)prev.insertAdjacentElement('afterend',e);prev=e}});
+    if(more.previousElementSibling!==prev)prev.insertAdjacentElement('afterend',more);
+    [rel,hr,dtr].forEach(e=>{if(e&&e.parentElement!==inn)inn.appendChild(e)});
+    if(out&&more.nextElementSibling!==out)more.insertAdjacentElement('afterend',out);
+    const sec=[...card.querySelectorAll(':scope > .section')].find(e=>/GUARD NORMAL SCREEN/i.test(e.textContent));if(sec)sec.style.display='none';
+    const row=card.querySelector(':scope > .row');if(row&&row.querySelector('#guardHomeInBtn'))row.style.display='none';
+  }
+  setInterval(()=>{try{tidy()}catch(e){console.warn('R344',e)}},800);
+})();
+</script>
 </body>
 </html>
