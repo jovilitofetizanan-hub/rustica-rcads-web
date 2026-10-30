@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R349 DTR LOG PRINT FIX</title>
+<title>Rustica RCADS App — R351 GUARD UPDATE BUTTON</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31118,7 +31118,7 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   if(typeof prevLogout==='function'){window.guardLogout=function(){
     const me=logged();
     if(!window.__r331Silent&&isG(me)&&openDuty(me)&&!PEND){
-      if(!confirm('⚠ LOG OUT = TIME OUT now (end of your duty).\n\nIf your RELIEF guard is here, do NOT log out. Do the HANDOVER SCAN instead:\n1) Your relief logs in on his phone and scans YOUR QR.\n2) You scan HIS handover QR.\n\nLog out and TIME OUT now?'))return;
+      if(!confirm('⚠ LOG OUT = TIME OUT now (end of your duty).\n\nIf your RELIEF guard is here, do NOT log out. Let him do the HANDOVER: he logs in on his phone and scans YOUR QR. That is all — you do not scan.\n\nLog out and TIME OUT now?'))return;
     }
     PEND=null;paint();return prevLogout.apply(this,arguments)}}
 
@@ -31147,9 +31147,14 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
       if(!out)out=labels(b).concat(PEND.others).find(l=>l!==me&&l.replace(/\s+/g,'').toUpperCase()===m[1]&&tokenFor(l,b,slot)===tok); /* R343: any guard of this branch (records not synced yet) */
       if(!out){alert('That is not the QR of the guard on duty ('+PEND.others.join(', ')+'). RED FLAG if it is fake.');return}
       const geo=await myGeo(me);if(geo.ok!==true){alert('⛔ HANDOVER NOT ALLOWED\n\n'+(geo.state||'Location is OFF or not available.')+'\n\nTurn ON Location, stand at the branch in front of the guard on duty, then scan again.');return}
-      const r=gRec(b,me);
-      const p={v:1,t:'GHAND',b,in:me,out,ts:Date.now(),g:tok,geo:'OK'};p.s=(r&&r.pinHash)?await hmac(r.pinHash,canon(p)):'';
-      PEND.pass={txt:'RCADSGPASS:'+b64u(JSON.stringify(p)),until:Date.now()+QR_MS,out};paint();watch();
+      /* R350: ONE SCAN — the incoming guard's scan does the whole handover (the outgoing guard does not scan) */
+      const nI=gName(b,me),nO=gName(b,out);
+      if(!confirm('HANDOVER\n\n'+out+(nO?' ('+nO+')':'')+' → TIME OUT now\n'+me+(nI?' ('+nI+')':'')+' → TIME IN now\n\nContinue?'))return;
+      try{if(openDuty(out))rcadsAppendAutoGuardDutyEvent(out,'OUT','HANDOVER SCAN → '+me+' (scanned by the incoming guard • GPS ✓)')}catch(e){}
+      try{if(!openDuty(me))rcadsAppendAutoGuardDutyEvent(me,'IN','HANDOVER SCAN ← '+out+' (scanned the QR of the guard on duty • GPS ✓)')}catch(e){}
+      flush();try{if(typeof window.rcadsR287Sync==='function')await window.rcadsR287Sync()}catch(e){}flush();
+      PEND=null;paint();refresh();try{navigator.vibrate&&navigator.vibrate([150,80,150])}catch(e){}
+      alert('✓ HANDOVER DONE • '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'\n\n'+me+' — TIME IN (ON DUTY)\n'+out+' — TIME OUT\n\n'+out+' does not need to scan. His phone goes OFF DUTY by itself.');
     });
   }
   let watchT=null;
@@ -31198,7 +31203,7 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   function start(){const me=logged();if(!isG(me)||openDuty(me))return;let others=onDutyOthers(me);if(!others.length)others=labels().filter(l=>l!==me);PEND={me,others,pass:null};paint()}
   setInterval(()=>{try{const me=logged();const gh=document.getElementById('guardHomeScreen');let b=document.getElementById('r343Hand');
     const show=isG(me)&&!openDuty(me)&&!PEND&&gh&&getComputedStyle(gh).display!=='none';
-    if(show&&!b){b=document.createElement('button');b.id='r343Hand';b.type='button';b.className='r343-hand';b.innerHTML='🛡 HANDOVER — SCAN THE QR OF THE GUARD ON DUTY<small>Then he scans your green QR. Both: Location ON, at the branch.</small>';b.onclick=start;gh.insertBefore(b,gh.firstChild)}
+    if(show&&!b){b=document.createElement('button');b.id='r343Hand';b.type='button';b.className='r343-hand';b.innerHTML='🛡 HANDOVER — SCAN THE QR OF THE GUARD ON DUTY<small>One scan only — you are ON DUTY right away. Location ON, at the branch.</small>';b.onclick=start;gh.insertBefore(b,gh.firstChild)}
     else if(!show&&b)b.remove()}catch(e){}},1500);
   window.rcadsR331={onDutyScan,_pend:()=>PEND,scanOnDuty,start};
 })();
@@ -32099,6 +32104,57 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
     const code=b.getAttribute('data-r348-code'),k=b.getAttribute('data-r348-dk'),on=b.classList.contains('on');
     if(!confirm(on?'UNDO the approved late of '+code+' on '+dLabel(k)+'? (The late counts again.)':'APPROVE the late of '+code+' on '+dLabel(k)+'?\n\nHe came from a COMPANY ERRAND / official business outside. There is NO memo for this late. The late minutes are STILL deducted from the pay.'))return;
     setOb(code,k,!on,'HR OPERATION OFFICER');const d=b.closest('.r334-day');if(d)d.dataset.r348='';paint()},true);
+})();
+</script>
+<script id="rcadsR350Script">
+(function(){
+  'use strict';
+  /* R350 — GUARD HANDOVER, ONE SCAN (back to the old simple way)
+     The INCOMING guard scans the QR of the guard ON DUTY → he is ON DUTY right away (TIME IN) and the
+     outgoing guard is TIMED OUT at the same minute. The outgoing guard does NOT scan anything:
+     his phone picks it up by itself (checks the cloud every 30 seconds while on duty) and goes 🌙 OFF DUTY. */
+  if(window.RCADS_PREVIEW)return;
+  function me(){try{return getLoggedGuardLabel()||''}catch(e){return ''}}
+  function isG(l){return /^Guard \d+$/.test(String(l||''))}
+  function on(l){try{return !!getCurrentGuardOpenDuty(l)}catch(e){return false}}
+  let was={},busy=false,lastPull=0;
+  async function tick(){
+    const l=me();if(!isG(l)){was={};return}
+    const now=on(l);
+    if(now&&!busy&&navigator.onLine&&document.visibilityState!=='hidden'&&Date.now()-lastPull>30000&&typeof window.rcadsCloudPullMerge==='function'){
+      busy=true;lastPull=Date.now();try{await window.rcadsCloudPullMerge()}catch(e){}finally{busy=false}}
+    const after=on(l);
+    if(was[l]===true&&!after){
+      let why='';try{const L=getGuardDutyLogs().filter(r=>r&&r.guard===l);const o=L[L.length-1];if(o&&o.type==='OUT')why=String(o.reason||'')}catch(e){}
+      try{if(window.rcadsR345)window.rcadsR345.offDuty()}catch(e){}
+      try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+      if(/HANDOVER/i.test(why)){const m=/HANDOVER SCAN → (Guard \d+)/.exec(why);alert('✓ HANDOVER DONE\n\n'+(m?m[1]:'Your relief guard')+' is now ON DUTY.\n'+l+' — TIME OUT. You are now OFF DUTY. Thank you!')}
+    }
+    was[l]=after;
+  }
+  setInterval(()=>{tick()},3000);
+})();
+</script>
+<style id="rcadsR351Style">
+.r351-upd{display:block;width:100%;margin:12px 0 4px;padding:12px;border:2px solid #2f6b3a;border-radius:12px;background:#eef8ef;color:#1f4d27;font-weight:900;font-size:14px;cursor:pointer}.r351-upd small{display:block;font-size:10.5px;font-weight:700;opacity:.8;margin-top:2px}#r342Lock .r351-upd{margin-top:14px;background:transparent;color:#cfe9d2;border-color:#4f8a5a}
+</style>
+<script id="rcadsR351Script">
+(function(){
+  'use strict';
+  /* R351 — 🔄 UPDATE RCADS button on the GUARD screen (HOME tab, on or off duty) and on the 🔒 CLOSED screen */
+  if(window.RCADS_PREVIEW)return;
+  function ver(){const m=String(document.title||'').match(/—\s*(R\d+)/);return m?m[1]:''}
+  function go(){if(!confirm('UPDATE RCADS now?\n\nThe app reloads with the newest version. Your duty is NOT ended — log in again with your Guard PIN after.'))return;
+    try{if(typeof window.rcadsUpdateNow==='function'){window.rcadsUpdateNow();return}}catch(e){}location.replace(location.pathname+'?v='+Date.now())}
+  function btn(id){const b=document.createElement('button');b.type='button';b.id=id;b.className='r351-upd';b.innerHTML='🔄 UPDATE RCADS <small>this phone: '+ver()+'</small>';b.onclick=go;return b}
+  setInterval(()=>{try{
+    const gh=document.getElementById('guardHomeScreen');const card=gh&&gh.querySelector('.guard-home-card');
+    let b=document.getElementById('r351Upd');
+    if(card&&getComputedStyle(gh).display!=='none'){if(!b){b=btn('r351Upd');}const out=[...card.querySelectorAll(':scope > button')].find(x=>/LOG OUT GUARD/i.test(x.textContent));
+      if(out){if(out.previousElementSibling!==b)card.insertBefore(b,out)}else if(b.parentElement!==card)card.appendChild(b);
+      const nav=document.getElementById('r345Nav');const homeOn=!nav||!!nav.querySelector('[data-r345="home"].on');b.style.display=homeOn?'':'none'}
+    const lk=document.querySelector('#r342Lock .r342-box');if(lk&&!lk.querySelector('.r351-upd'))lk.appendChild(btn('r351UpdLock'));
+  }catch(e){}},1200);
 })();
 </script>
 </body>
