@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R352 GUARD AUTO LOG OUT 1 HOUR</title>
+<title>Rustica RCADS App — R353 HR HIDE MENU</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -32175,6 +32175,30 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
     if(busy()||Date.now()-touch<180000)return;
     window.__r331Silent=true;try{guardLogout()}catch(e){}finally{window.__r331Silent=false}
   }catch(e){console.warn('R352',e)}},20000);
+})();
+</script>
+<style id="rcadsR353Style">
+body.r353-navoff #simpleHrAdminModal .rcads-hr-sidebar{display:none!important}
+body.r353-navoff #simpleHrAdminModal .rcads-hr-layout{grid-template-columns:minmax(0,1fr)!important;display:block!important}
+body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-width:100%!important}
+#r353Btn{position:fixed;left:10px;bottom:72px;z-index:2147480000;border:0;border-radius:999px;padding:11px 16px;background:#3a2210;color:#f0d9a8;font-weight:900;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer}
+</style>
+<script id="rcadsR353Script">
+(function(){
+  'use strict';
+  /* R353 — HR: ☰ MENU button to HIDE / SHOW the left panel (phones: hidden by default; the choice is remembered).
+     Tapping a menu item on a phone hides the panel again so the page is full width. */
+  const K='rcads_r353_hrnav',small=()=>window.innerWidth<900;
+  function get(){try{return localStorage.getItem(K)}catch(e){return null}}
+  function put(v){try{localStorage.setItem(K,v)}catch(e){}}
+  function hidden(){const v=get();return v?v==='off':small()}
+  function apply(){const m=document.getElementById('simpleHrAdminModal');if(!m)return;const sh=m.querySelector('.rcads-hr-shell');const open=m.style.display!=='none'&&getComputedStyle(m).display!=='none'&&!!sh&&getComputedStyle(sh).visibility!=='hidden'&&sh.offsetHeight>50; /* not in 📱 MOBILE VIEW */
+    document.body.classList.toggle('r353-navoff',open&&hidden());
+    let b=document.getElementById('r353Btn');
+    if(open&&!b){b=document.createElement('button');b.type='button';b.id='r353Btn';b.onclick=()=>{put(hidden()?'on':'off');apply();try{window.scrollTo(0,0)}catch(e){}};document.body.appendChild(b)}
+    if(b){b.style.display=open?'':'none';b.textContent=hidden()?'☰ MENU':'✕ HIDE MENU'}}
+  document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('#simpleHrAdminModal .rcads-hr-nav button');if(t&&small()){setTimeout(()=>{put('off');apply()},150)}},true);
+  setInterval(apply,600);window.addEventListener('resize',apply);
 })();
 </script>
 </body>
