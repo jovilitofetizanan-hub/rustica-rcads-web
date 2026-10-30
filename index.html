@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R342 GUARD CLOSE / OPEN</title>
+<title>Rustica RCADS App — R343 GUARD HANDOVER LIKE EMPLOYEES</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31101,11 +31101,14 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   /* ---------- LOGIN of a guard: wait for the handover scan when another guard is on duty ---------- */
   const prevLogin=window.rcadsAutoGuardHandoverOnLogin;
   let PEND=null; // {me, others, pass:{txt,until}|null}
-  window.rcadsAutoGuardHandoverOnLogin=function(active){
+  window.rcadsAutoGuardHandoverOnLogin=async function(active){
     if(!isG(active))return;
+    /* R343: get the latest duty records FIRST, so the phone knows who is on duty (no more double duty) */
+    try{if(navigator.onLine&&typeof window.rcadsCloudPullMerge==='function')await Promise.race([window.rcadsCloudPullMerge(),new Promise(r=>setTimeout(r,6000))])}catch(e){}
+    if(logged()!==active)return;
     if(openDuty(active)){PEND=null;paint();return} /* already on duty (handover done / reload) */
     const others=onDutyOthers(active);
-    if(!others.length){PEND=null;paint();if(typeof prevLogin==='function')return prevLogin(active);return}
+    if(!others.length){PEND={me:active,others:labels().filter(l=>l!==active),pass:null,none:true};paint();return} /* R343: never time in by itself — scan first (or START MY DUTY if no guard is on duty) */
     PEND={me:active,others,pass:null};paint();
   };
   /* LOG OUT: end only my own duty — never time in another guard by itself */
@@ -31124,9 +31127,10 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     if(!o){o=document.createElement('div');o.id='r331Hand';document.documentElement.appendChild(o)}
     const A=PEND.others;const nm=l=>l+(gName(branch(),l)?' ('+gName(branch(),l)+')':'');
     let h='<div class="r331-box"><div class="r331-h">🛡 GUARD HANDOVER</div><div class="r331-sub">You: <b>'+esc(nm(PEND.me))+'</b></div>'
-      +'<div class="r331-info">'+esc(A.map(nm).join(', '))+' '+(A.length>1?'are':'is')+' still <b>ON DUTY</b>. Do the handover face to face — <b>Location ON</b> on both phones, at the branch.</div>';
+      +(PEND.none&&!PEND.pass?'<div class="r331-info">RCADS shows <b>no other guard ON DUTY</b>. If a guard is still on duty, <b>scan his QR</b> (STEP 1). If you are the <b>first guard</b> today, press <b>▶ START MY DUTY</b>.</div><button type="button" class="r343-start" data-r343-start>▶ START MY DUTY — no guard on duty</button>'
+        :PEND.none?'<div class="r331-info">Handover with the guard you scanned.</div>':'<div class="r331-info">'+esc(A.map(nm).join(', '))+' '+(A.length>1?'are':'is')+' still <b>ON DUTY</b>. Do the handover face to face — <b>Location ON</b> on both phones, at the branch.</div>');
     if(PEND.pass&&Date.now()<PEND.pass.until){const left=Math.ceil((PEND.pass.until-Date.now())/1000);
-      h+='<div class="r331-step ok">✓ STEP 1 DONE — you scanned the QR of '+esc(PEND.pass.out)+'</div><div class="r331-step">STEP 2 — Let <b>'+esc(PEND.pass.out)+'</b> scan this HANDOVER QR with his guard scanner:</div><div class="r331-qr">'+qrSvg(PEND.pass.txt)+'</div><div class="r331-left">Valid for <b data-r331-left>'+left+'</b>s • waiting for '+esc(PEND.pass.out)+' to scan…</div>';
+      h+='<div class="r331-step ok">✓ STEP 1 DONE — you scanned the QR of '+esc(PEND.pass.out)+'</div><div class="r331-step">STEP 2 — Let <b>'+esc(PEND.pass.out)+'</b> scan this HANDOVER QR with his guard scanner:</div><div class="r331-qr r343-green">'+qrSvg(PEND.pass.txt)+'</div><div class="r331-left">Valid for <b data-r331-left>'+left+'</b>s • waiting for '+esc(PEND.pass.out)+' to scan…</div><button type="button" class="r331-mini" data-r343-check>✓ HE ALREADY SCANNED — CHECK NOW</button>';
     }else h+='<div class="r331-step">STEP 1 — Scan the QR on the phone of the guard on duty (it changes every 2 minutes).</div><button type="button" class="r331-big" data-r331-scan>📷 SCAN THE QR OF THE GUARD ON DUTY</button>'+(PEND.pass?'<div class="r331-warn">Your handover QR expired. Scan his QR again.</div>':'');
     h+='<details class="r331-more"><summary>Guard on duty already left / phone dead?</summary><small>Start your duty WITHOUT the handover scan. The other guard will be timed OUT now and HR will see it as <b>NO HANDOVER SCAN</b>.</small><button type="button" class="r331-mini red" data-r331-noscan>START MY DUTY WITHOUT HANDOVER SCAN</button></details>'
       +'<button type="button" class="r331-mini light" data-r331-logout>LOG OUT</button></div>';
@@ -31138,11 +31142,12 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     window.rcadsR181Scan('SCAN THE QR OF THE GUARD ON DUTY',async raw=>{
       const m=String(raw).match(/GUARD-([A-Z0-9]+)-(\d+)-[A-Za-z0-9]+/);if(!m){alert('This is not a Guard QR.');return}
       const tok=m[0],slot=+m[2],b=branch();if(Math.abs(Math.floor(Date.now()/QR_MS)-slot)>1){alert('That QR is old (it changes every 2 minutes). Scan the NEW QR.');return}
-      const out=PEND.others.find(l=>l.replace(/\s+/g,'').toUpperCase()===m[1]&&tokenFor(l,b,slot)===tok);
+      let out=PEND.others.find(l=>l.replace(/\s+/g,'').toUpperCase()===m[1]&&tokenFor(l,b,slot)===tok);
+      if(!out)out=labels(b).concat(PEND.others).find(l=>l!==me&&l.replace(/\s+/g,'').toUpperCase()===m[1]&&tokenFor(l,b,slot)===tok); /* R343: any guard of this branch (records not synced yet) */
       if(!out){alert('That is not the QR of the guard on duty ('+PEND.others.join(', ')+'). RED FLAG if it is fake.');return}
       const geo=await myGeo(me);if(geo.ok!==true){alert('⛔ HANDOVER NOT ALLOWED\n\n'+(geo.state||'Location is OFF or not available.')+'\n\nTurn ON Location, stand at the branch in front of the guard on duty, then scan again.');return}
-      const r=gRec(b,me);if(!r||!r.pinHash){alert('No personal Guard PIN record on this phone. See HR.');return}
-      const p={v:1,t:'GHAND',b,in:me,out,ts:Date.now(),g:tok,geo:'OK'};p.s=await hmac(r.pinHash,canon(p));
+      const r=gRec(b,me);
+      const p={v:1,t:'GHAND',b,in:me,out,ts:Date.now(),g:tok,geo:'OK'};p.s=(r&&r.pinHash)?await hmac(r.pinHash,canon(p)):'';
       PEND.pass={txt:'RCADSGPASS:'+b64u(JSON.stringify(p)),until:Date.now()+QR_MS,out};paint();watch();
     });
   }
@@ -31154,6 +31159,8 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   setInterval(()=>{if(PEND)paint()},1000);
   document.addEventListener('click',e=>{const t=e.target;if(!t.closest||!t.closest('#r331Hand'))return;
     if(t.closest('[data-r331-scan]')){scanOnDuty();return}
+    if(t.closest('[data-r343-check]')){clearTimeout(watchT);(async()=>{try{if(typeof window.rcadsCloudPullMerge==='function')await window.rcadsCloudPullMerge()}catch(e){}if(PEND&&openDuty(PEND.me)){const me=PEND.me;PEND=null;paint();refresh();alert('✓ HANDOVER DONE\n\n'+me+' is now ON DUTY. TIME IN recorded.')}else{alert('Not yet received. Make sure he scanned your green QR and both phones have internet, then press CHECK again.');watch()}})();return}
+    if(t.closest('[data-r343-start]')){if(!PEND)return;const me=PEND.me;if(!confirm('START YOUR DUTY NOW?\n\n'+me+' → TIME IN now.\nUse this only if NO other guard is on duty.'))return;PEND=null;paint();try{if(typeof prevLogin==='function')prevLogin(me)}catch(e){}refresh();flush();return}
     if(t.closest('[data-r331-logout]')){PEND=null;paint();window.__r331Silent=true;try{guardLogout()}finally{window.__r331Silent=false}return}
     if(t.closest('[data-r331-noscan]')){if(!PEND)return;const me=PEND.me,others=PEND.others.slice();
       if(!confirm('START DUTY WITHOUT HANDOVER SCAN?\n\n'+others.join(', ')+' will be timed OUT now and '+me+' timed IN.\nHR will see this as NO HANDOVER SCAN.'))return;
@@ -31171,21 +31178,28 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     if(!tk.includes(p.g)){res('<b>✗ HE DID NOT SCAN YOUR CURRENT QR</b><span>Let him scan your QR again (it changes every 2 minutes).</span>','bad');return}
     const age=Date.now()-Number(p.ts);if(!(age<=MAX_AGE&&age>-60000)){res('<b>✗ EXPIRED</b><span>The handover QR is valid for 2 minutes only. Do it again.</span>','bad');return}
     if(p.geo!=='OK'){res('<b>✗ NOT AT THE BRANCH</b><span>His location was not OK.</span>','bad');return}
-    const r=gRec(p.b,p.in);if(!r||!r.pinHash){res('<b>✗ NOT RECORDED</b><span>No PIN record of '+esc(p.in)+' on this phone. Press GET THE DATA (cloud) or see HR.</span>','bad');return}
-    if(r.status&&r.status!=='ACTIVE'){res('<b>✗ NOT RECORDED</b><span>'+esc(p.in)+' app is '+esc(r.status)+'.</span>','bad');return}
-    let good=false;try{good=(await hmac(r.pinHash,canon(p)))===p.s}catch(e){}
+    const r=gRec(p.b,p.in);
+    if(r&&r.status&&r.status!=='ACTIVE'){res('<b>✗ NOT RECORDED</b><span>'+esc(p.in)+' app is '+esc(r.status)+'.</span>','bad');return}
+    /* R343: the PIN check is done when both phones have the record; without it, YOUR current QR + both GPS still prove he is here */
+    let good=true,note='';if(r&&r.pinHash&&p.s){good=false;try{good=(await hmac(r.pinHash,canon(p)))===p.s}catch(e){}}else note=' • PIN record not synced';
     if(!good){res('<b>✗ FAKE OR ALTERED QR (RED FLAG)</b><span>Do not hand over. Call the Manager / HR.</span>','bad');return}
     const geo=await myGeo(A);if(geo.ok!==true){res('<b>✗ NOT RECORDED</b><span>YOUR location: '+esc(geo.state||'OFF / not available')+'. Turn ON Location at the branch and scan again.</span>','bad');return}
     const nameIn=gName(p.b,p.in),nameOut=gName(p.b,A);
     if(!confirm('HANDOVER\n\n'+A+(nameOut?' ('+nameOut+')':'')+' → TIME OUT now\n'+p.in+(nameIn?' ('+nameIn+')':'')+' → TIME IN now\n\nContinue?'))return;
-    try{if(openDuty(A))rcadsAppendAutoGuardDutyEvent(A,'OUT','HANDOVER SCAN → '+p.in+' (mutual QR • GPS ✓ both)')}catch(e){}
-    try{if(!openDuty(p.in))rcadsAppendAutoGuardDutyEvent(p.in,'IN','HANDOVER SCAN ← '+A+' (mutual QR • GPS ✓ both)')}catch(e){}
+    try{if(openDuty(A))rcadsAppendAutoGuardDutyEvent(A,'OUT','HANDOVER SCAN → '+p.in+' (mutual QR • GPS ✓ both'+note+')')}catch(e){}
+    try{if(!openDuty(p.in))rcadsAppendAutoGuardDutyEvent(p.in,'IN','HANDOVER SCAN ← '+A+' (mutual QR • GPS ✓ both'+note+')')}catch(e){}
     flush();try{if(typeof window.rcadsR287Sync==='function')await window.rcadsR287Sync()}catch(e){}flush();
     const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     alert('✓ HANDOVER DONE • '+t+'\n\n'+A+' — TIME OUT\n'+p.in+' — TIME IN\n\nYour Guard app will now log out. Thank you!');
     window.__r331Silent=true;try{guardLogout()}catch(e){}finally{window.__r331Silent=false}
   }
-  window.rcadsR331={onDutyScan,_pend:()=>PEND,scanOnDuty};
+  /* R343: HANDOVER button on the Guard home of a guard who is NOT on duty (always possible, even if this phone is not synced yet) */
+  function start(){const me=logged();if(!isG(me)||openDuty(me))return;let others=onDutyOthers(me);if(!others.length)others=labels().filter(l=>l!==me);PEND={me,others,pass:null};paint()}
+  setInterval(()=>{try{const me=logged();const gh=document.getElementById('guardHomeScreen');let b=document.getElementById('r343Hand');
+    const show=isG(me)&&!openDuty(me)&&!PEND&&gh&&getComputedStyle(gh).display!=='none';
+    if(show&&!b){b=document.createElement('button');b.id='r343Hand';b.type='button';b.className='r343-hand';b.innerHTML='🛡 HANDOVER — SCAN THE QR OF THE GUARD ON DUTY<small>Then he scans your green QR. Both: Location ON, at the branch.</small>';b.onclick=start;gh.insertBefore(b,gh.firstChild)}
+    else if(!show&&b)b.remove()}catch(e){}},1500);
+  window.rcadsR331={onDutyScan,_pend:()=>PEND,scanOnDuty,start};
 })();
 
 </script>
@@ -31711,5 +31725,12 @@ body.employee-simple-mode #employeeSimplePanel{padding-bottom:calc(24px + env(sa
 })();
 
 </script>
+<style id="rcadsR343Style">
+.r343-hand{display:block;width:100%;margin:0 0 12px;padding:14px 12px;border:0;border-radius:14px;background:#1e6b48;color:#fff;font-weight:900;font-size:15px;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.r343-hand small{display:block;font-weight:700;font-size:11.5px;opacity:.9;margin-top:4px}
+.r343-start{display:block;width:100%;margin:8px 0;padding:12px;border:0;border-radius:12px;background:#5a5a5a;color:#fff;font-weight:900;font-size:13px}
+.r343-green{background:#1e6b48!important;padding:10px!important;border-radius:14px}
+.r343-green svg{background:#fff;border-radius:6px}
+</style>
 </body>
 </html>
