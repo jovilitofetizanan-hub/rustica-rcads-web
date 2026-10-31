@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R361 GUARD SYNC + ONE PHONE FIX</title>
+<title>Rustica RCADS App — R362 GUARD TABLE QR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31269,7 +31269,7 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     const show=isG(me)&&!openDuty(me)&&!PEND&&gh&&getComputedStyle(gh).display!=='none';
     if(show&&!b){b=document.createElement('button');b.id='r343Hand';b.type='button';b.className='r343-hand';b.innerHTML='🛡 HANDOVER — SCAN THE QR OF THE GUARD ON DUTY<small>One scan only — you are ON DUTY right away. Location ON, at the branch.</small>';b.onclick=start;gh.insertBefore(b,gh.firstChild)}
     else if(!show&&b)b.remove()}catch(e){}},1500);
-  window.rcadsR331={onDutyScan,_pend:()=>PEND,scanOnDuty,start};
+  window.rcadsR331={onDutyScan,_pend:()=>PEND,scanOnDuty,start,clear:()=>{PEND=null;paint();refresh()}};
 })();
 
 </script>
@@ -32546,6 +32546,147 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   });
   window.rcadsR358={openGuard,state};
 })();
+</script>
+<style id="rcadsR362Css">
+.r362-btn{display:block;width:100%;margin:0 0 12px;padding:15px 12px;border:0;border-radius:14px;background:#1e6b48;color:#fff;font-weight:900;font-size:16px;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;min-height:auto!important}
+.r362-btn.out{background:#a1281f;margin-top:12px}.r362-btn small{display:block;font-size:11px;font-weight:700;opacity:.92;margin-top:4px}
+#r343Hand{display:none!important}
+#r362M{display:none;position:fixed;inset:0;z-index:2147483300;background:rgba(40,22,10,.72);overflow-y:auto;padding:30px 12px}#r362M.show{display:block}
+#r362M .r362-box{max-width:460px;margin:0 auto;background:#fffaf2;border-radius:18px;padding:16px;color:#3d2615;text-align:left}
+#r362M .r362-h{font-weight:900;font-size:17px;color:#4c2b17;margin:4px 0 6px}#r362M .r362-n{font-size:12px;color:#6b4a2f;line-height:1.45;margin:8px 0}
+#r362M .r362-x{float:right;border:1px solid #c9a46a;background:#fff;border-radius:10px;padding:6px 10px;font-weight:800;color:#5b3519}
+#r362M .r362-cur{text-align:center;border:1px solid #e3cfb3;border-radius:14px;padding:10px;background:#fff;margin:10px 0}#r362M .r362-qr svg{width:220px;max-width:80%}
+#r362M .r362-cur small{display:block;color:#7a6250;font-size:11px;margin:6px 0}#r362M .r362-warn{background:#fff1e6;border:1px solid #e0a370;border-radius:10px;padding:10px;font-weight:800;color:#8a3d12;margin:10px 0}
+#r362M .r362-sec{font-weight:900;font-size:12px;color:#5b3519;margin:14px 0 6px;border-top:1px dashed #d8bfa1;padding-top:10px}
+#r362M label{display:block;font-size:12px;font-weight:800;color:#5b3519}#r362M input{display:block;width:100%;box-sizing:border-box;padding:10px;border:1px solid #d8bfa1;border-radius:10px;margin:4px 0 8px;font-size:15px}
+#r362M button[data-r362-make],#r362M button[data-r362-print]{display:block;width:100%;margin:6px 0;padding:12px;border:0;border-radius:12px;background:#5b3519;color:#fff;font-weight:900;font-size:13px}
+#r362M button[disabled]{opacity:.45}
+</style>
+<script id="rcadsR362Script">
+(function(){
+  'use strict';
+  /* R362 — GUARD TABLE QR (made by HR, printed and placed on the guard table)
+     • HR → ▤ DTR / Export → 🔎 EMPLOYEE DAILY PUNCHES → 🛡 FIX GUARD DUTY → 🖨 GUARD TABLE QR.
+       The QR carries the BRANCH LOCATION (latitude / longitude / allowed meters) and a secret code.
+       Making a NEW QR stops the old one (a photo of the old QR no longer works).
+     • GUARD (logged in on his own phone, Location ON):
+         not on duty → 📷 TIME IN — scan the table QR → TIME IN; the guard on duty is TIMED OUT by itself (relieved).
+         on duty     → 📷 TIME OUT — scan the table QR → TIME OUT (end of duty).
+       The phone's location must MATCH the location in the QR, or nothing is recorded. */
+  if(window.RCADS_PREVIEW)return;
+  const U=c=>String(c||'').trim().toUpperCase();
+  const KEY=b=>'rcads_r362_gtq_'+U(b);
+  const GEO_KEY='rcads_r159_branch_geo_v1';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+  function flush(){try{rcadsCloudFlushQueue()}catch(e){}}
+  function branch(){try{return U(rusticaGetCurrentBranchCode())||'SAN_RAFAEL'}catch(e){return 'SAN_RAFAEL'}}
+  function hrBranch(){try{return U(rcadsR158DtrExportContext().branch)}catch(e){return branch()}}
+  function bName(c){let s={};try{s=window.RUSTICA_BRANCHES||RUSTICA_BRANCHES||{}}catch(e){}const b=Object.values(s).find(x=>x&&x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function labels(b){try{return window.rcadsGuardLabels?window.rcadsGuardLabels(b):['Guard 1','Guard 2']}catch(e){return ['Guard 1','Guard 2']}}
+  function gName(b,l){try{const v=JSON.parse(localStorage.getItem('rcads_guard_full_names_v1_'+U(b))||'{}')||{};return String(v['guard'+String(parseInt(String(l).replace(/\D/g,''),10)||0).padStart(2,'0')]||'').trim()}catch(e){return ''}}
+  function isG(l){return /^Guard \d+$/.test(String(l||''))}
+  function me(){try{return getLoggedGuardLabel()||''}catch(e){return ''}}
+  function openDuty(l){try{return getCurrentGuardOpenDuty(l)}catch(e){return null}}
+  function distM(a,b,c,d){const R=6371000,t=x=>x*Math.PI/180;const dl=t(c-a),dn=t(d-b);const h=Math.sin(dl/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+  function getPos(){return new Promise((res,rej)=>{if(!navigator.geolocation)return rej({code:-1});navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:20000,maximumAge:0})})}
+  function rand(){const a=new Uint8Array(8);crypto.getRandomValues(a);return [...a].map(x=>x.toString(16).padStart(2,'0')).join('').toUpperCase()}
+  function qrSvg(data){const QR=window.RCADSQRCode,E=window.RCADSQRErrorCorrectLevel;if(!QR||!E)return '<div>QR encoder unavailable</div>';const q=new QR(-1,E.M);q.addData(data);q.make();const n=q.getModuleCount(),z=4,s=n+z*2;let d='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+='M'+(c+z)+' '+(r+z)+'h1v1h-1z';return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+s+' '+s+'"><rect width="100%" height="100%" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>'}
+  const qrText=(b,r)=>'RCADS-GTQ|'+b+'|'+Number(r.lat).toFixed(6)+'|'+Number(r.lng).toFixed(6)+'|'+r.radius+'|'+r.k;
+  async function pull(){try{if(navigator.onLine&&typeof window.rcadsCloudPullMerge==='function')await Promise.race([window.rcadsCloudPullMerge(),new Promise(r=>setTimeout(r,7000))])}catch(e){}}
+  function refresh(){['refreshGuardHome','updateGuardDutyUI','renderGuardDutyHistory','updateTopGuardDutyStatus','updateApproverGuardDutyStatus','updateGuardSessionBanner'].forEach(f=>{try{if(typeof window[f]==='function')window[f]()}catch(e){}})}
+
+  /* ================= HR: make / print the table QR ================= */
+  function hrHtml(){const b=hrBranch(),rec=lsGet(KEY(b),null),geo=(lsGet(GEO_KEY,{})||{})[b];
+    const geoOk=geo&&isFinite(geo.lat)&&isFinite(geo.lng);
+    return '<div class="r362-box"><button type="button" class="r362-x" data-r362-x>✕ CLOSE</button><div class="r362-h">🖨 GUARD TABLE QR — '+esc(bName(b))+'</div>'
+      +'<div class="r362-n">Print it and place it on the guard table. Each guard scans it with <b>his own phone</b> (Location ON) to <b>TIME IN</b> or <b>TIME OUT</b>. The phone must be <b>at the location written in the QR</b>, or nothing is recorded.</div>'
+      +(rec?'<div class="r362-cur"><div class="r362-qr">'+qrSvg(qrText(b,rec))+'</div><small>Current QR • made '+esc(new Date(rec.at).toLocaleString())+'<br>Location '+Number(rec.lat).toFixed(5)+', '+Number(rec.lng).toFixed(5)+' • within '+esc(rec.radius)+' m</small><button type="button" data-r362-print>🖨 PRINT THIS QR</button></div>':'<div class="r362-warn">No table QR yet for this branch.</div>')
+      +'<div class="r362-sec">'+(rec?'MAKE A NEW QR (the old one stops working)':'MAKE THE QR')+'</div>'
+      +'<label>Allowed distance (meters)<input type="number" min="20" max="300" step="5" data-r362-rad value="'+esc((rec&&rec.radius)||(geo&&geo.radius)||50)+'"></label>'
+      +'<button type="button" data-r362-make="geo" '+(geoOk?'':'disabled')+'>📍 Use the BRANCH LOCATION'+(geoOk?' ('+Number(geo.lat).toFixed(5)+', '+Number(geo.lng).toFixed(5)+')':' — not set yet')+'</button>'
+      +'<button type="button" data-r362-make="here">📍 Use MY LOCATION NOW (stand at the guard table with your phone)</button>'
+      +'<div class="r362-n">Tip: for a branch with no location yet, go to the guard table with your phone (Location ON) and press “Use MY LOCATION NOW”.</div></div>'}
+  function openHr(){let o=document.getElementById('r362M');if(!o){o=document.createElement('div');o.id='r362M';document.documentElement.appendChild(o)}o.innerHTML=hrHtml();o.classList.add('show')}
+  async function make(how){const b=hrBranch();const rad=Math.max(20,Math.min(300,parseInt((document.querySelector('[data-r362-rad]')||{}).value,10)||50));
+    let lat,lng,acc=null;
+    if(how==='geo'){const g=(lsGet(GEO_KEY,{})||{})[b];if(!g||!isFinite(g.lat)){alert('The branch location is not set.');return}lat=+g.lat;lng=+g.lng}
+    else{let p;try{p=await getPos()}catch(e){alert('Cannot get your location. Turn ON Location and allow it for RCADS, then try again.');return}
+      acc=Math.round(p.coords.accuracy||0);if(acc>60&&!confirm('Your GPS is not exact yet (± '+acc+' m). Better: go outside / wait a few seconds and try again.\n\nUse it anyway?'))return;lat=p.coords.latitude;lng=p.coords.longitude}
+    const old=lsGet(KEY(b),null);if(old&&!confirm('Make a NEW table QR for '+bName(b)+'?\n\nThe OLD printed QR will stop working. Print and replace it on the table.'))return;
+    const rec={k:rand(),lat:+lat.toFixed(6),lng:+lng.toFixed(6),radius:rad,at:new Date().toISOString(),by:'HR OPERATION OFFICER',from:how,acc};
+    localStorage.setItem(KEY(b),JSON.stringify(rec));flush();openHr();alert('✓ New GUARD TABLE QR made for '+bName(b)+'.\n\nPress 🖨 PRINT THIS QR and place it on the guard table.\nThe guard phones get it when they have internet.')}
+  function printQr(){const b=hrBranch(),rec=lsGet(KEY(b),null);if(!rec)return;const w=window.open('','_blank');if(!w){alert('Allow pop-ups to print.');return}
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Guard Table QR — '+esc(bName(b))+'</title><style>body{font-family:Arial,sans-serif;text-align:center;color:#3d2615;margin:24px}h1{font-size:30px;margin:0}h2{font-size:20px;margin:6px 0 14px;color:#6b4a2f}.q{width:420px;max-width:90vw;margin:0 auto;border:6px solid #3d2615;padding:8px}.q svg{width:100%;display:block}ol{text-align:left;max-width:520px;margin:18px auto;font-size:16px;line-height:1.6}small{color:#7a6250}@media print{button{display:none}}</style></head><body>'
+      +'<h1>🛡 GUARD TIME IN / TIME OUT</h1><h2>RUSTICA • '+esc(bName(b).toUpperCase())+'</h2><div class="q">'+qrSvg(qrText(b,rec))+'</div>'
+      +'<ol><li>Open <b>RCADS</b> on YOUR phone and log in as Guard. <b>Location ON.</b></li><li>Press <b>📷 TIME IN</b> (start of duty) or <b>📷 TIME OUT</b> (end of duty).</li><li>Scan this QR. The guard you relieve is timed out by itself.</li></ol>'
+      +'<small>Valid until HR makes a new one • made '+esc(new Date(rec.at).toLocaleDateString())+' • works only at this branch</small><br><br><button onclick="print()" style="padding:12px 24px;font-size:16px">PRINT</button></body></html>');
+    w.document.close();setTimeout(()=>{try{w.focus();w.print()}catch(e){}},400)}
+
+  /* ================= GUARD: scan the table QR ================= */
+  let busy=false;
+  async function scan(){
+    const l=me();if(!isG(l)){alert('Log in as a Guard first.');return}
+    if(typeof window.rcadsR181Scan!=='function'){alert('Scanner not available.');return}
+    window.rcadsR181Scan('SCAN THE GUARD TABLE QR',async raw=>{if(busy)return;busy=true;try{await onScan(l,String(raw||'').trim())}finally{busy=false}});
+  }
+  async function onScan(l,raw){
+    const p=raw.split('|');if(p[0]!=='RCADS-GTQ'||p.length!==6){alert('This is not the GUARD TABLE QR. Scan the QR made by HR on the guard table.');return}
+    const b=branch();const [_,qb,qlat,qlng,qrad,qk]=p;
+    if(U(qb)!==b){alert('⛔ This table QR is for '+bName(U(qb))+', not '+bName(b)+'.');return}
+    let rec=lsGet(KEY(b),null);if(!rec||rec.k!==qk){await pull();rec=lsGet(KEY(b),null)}
+    if(!rec){alert('⛔ This phone has not received the table QR from HR yet.\n\nTurn ON the internet, wait a moment and scan again.');return}
+    if(rec.k!==qk){alert('⛔ OLD OR FAKE QR\n\nHR made a new table QR. Scan the NEW QR on the table. (RED FLAG if it is a photo.)');return}
+    const lat=+rec.lat,lng=+rec.lng,rad=+rec.radius||50;
+    if(Math.abs(lat-(+qlat))>0.00002||Math.abs(lng-(+qlng))>0.00002){alert('⛔ The location in this QR does not match. Scan the NEW QR on the table.');return}
+    let pos;try{pos=await getPos()}catch(e){alert('⛔ NOT RECORDED — LOCATION IS OFF\n\nTurn ON Location (GPS) and allow it for RCADS, then scan again.');return}
+    const d=distM(lat,lng,pos.coords.latitude,pos.coords.longitude),acc=Math.round(pos.coords.accuracy||0),allow=rad+Math.min(acc,25);
+    if(d>allow){alert('⛔ NOT RECORDED — YOU ARE NOT AT THE GUARD TABLE LOCATION\n\nYou are '+Math.round(d)+' m away (allowed '+rad+' m'+(acc?', GPS ± '+acc+' m':'')+').\nStand at the branch / guard table and scan again.');return}
+    const geoTxt='TABLE QR • GPS ✓ '+Math.round(d)+' m';
+    await pull();
+    const mine=openDuty(l),nm=gName(b,l);
+    if(!mine){
+      const others=labels(b).concat((()=>{try{return getGuardDutyLogs().map(r=>r.guard)}catch(e){return []}})()).filter((g,i,a)=>isG(g)&&g!==l&&a.indexOf(g)===i&&openDuty(g));
+      if(!confirm('TIME IN — START OF DUTY\n\n'+l+(nm?' ('+nm+')':'')+' → TIME IN now'+(others.length?'\n'+others.map(g=>g+(gName(b,g)?' ('+gName(b,g)+')':'')+' → TIME OUT (relieved)').join('\n'):'')+'\n\nContinue?'))return;
+      others.forEach(g=>{try{if(openDuty(g))rcadsAppendAutoGuardDutyEvent(g,'OUT','RELIEVED BY '+l+(nm?' ('+nm+')':'')+' — '+geoTxt)}catch(e){}});
+      try{rcadsAppendAutoGuardDutyEvent(l,'IN','TIME IN — '+geoTxt+(others.length?' • relieved '+others.join(', '):''))}catch(e){alert('Not saved: '+e.message);return}
+      done();try{window.rcadsR331&&window.rcadsR331.clear&&window.rcadsR331.clear()}catch(e){}
+      alert('✓ TIME IN • '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'\n\n'+l+' is ON DUTY.'+(others.length?'\n'+others.join(', ')+' — TIMED OUT (relieved).':'')+'\n\nEmployees scan YOUR phone now.');
+    }else{
+      if(!confirm('TIME OUT — END OF DUTY\n\n'+l+(nm?' ('+nm+')':'')+' → TIME OUT now.\n\nIf your relief guard is coming, it is better that HE scans the table QR (TIME IN) — you are timed out by itself.\n\nTIME OUT now?'))return;
+      try{rcadsAppendAutoGuardDutyEvent(l,'OUT','TIME OUT — '+geoTxt+' (no relief scan)')}catch(e){alert('Not saved: '+e.message);return}
+      done();alert('✓ TIME OUT • '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'\n\nYour duty has ended.');
+      try{window.rcadsR345&&window.rcadsR345.offDuty()}catch(e){}
+    }
+  }
+  async function done(){flush();try{if(typeof window.rcadsR287Sync==='function')await window.rcadsR287Sync()}catch(e){}flush();refresh();try{navigator.vibrate&&navigator.vibrate([150,80,150])}catch(e){}paintBtn(true)}
+
+  /* buttons: guard home (TIME IN / TIME OUT) + handover screen (TIME IN) */
+  function paintBtn(force){try{
+    const l=me(),gh=document.getElementById('guardHomeScreen');let b=document.getElementById('r362Btn');
+    const vis=isG(l)&&gh&&getComputedStyle(gh).display!=='none'&&!gh.classList.contains('hidden');
+    const homeTab=!document.querySelector('#r345Nav [data-r345="home"]')||document.querySelector('#r345Nav [data-r345="home"]').classList.contains('on');
+    if(!vis||!homeTab){if(b)b.remove();return}
+    const on=!!openDuty(l);const h=on?'📷 TIME OUT — SCAN THE TABLE QR<small>End of your duty. (If your relief is here, let HIM scan it — you are timed out by itself.)</small>':'📷 TIME IN — SCAN THE TABLE QR<small>Start of duty. The guard on duty is timed out by itself. Location ON, at the guard table.</small>';
+    if(!b){b=document.createElement('button');b.type='button';b.id='r362Btn';b.onclick=scan}
+    b.className='r362-btn'+(on?' out':'');if(force||b.dataset.h!==h){b.dataset.h=h;b.innerHTML=h}
+    const card=gh.querySelector('.guard-home-card')||gh;const ref=on?null:card.firstChild;
+    if(on){if(b.parentElement!==card||card.lastElementChild!==b)card.appendChild(b)}else if(b.parentElement!==card||card.firstChild!==b)card.insertBefore(b,ref);
+    const hb=document.querySelector('#r331Hand .r331-box');if(hb&&!hb.querySelector('[data-r362-hand]')){const x=document.createElement('button');x.type='button';x.className='r362-btn';x.setAttribute('data-r362-hand','1');x.innerHTML='📷 TIME IN — SCAN THE TABLE QR (HR)<small>Easiest: one scan of the QR on the guard table. The guard on duty is timed out by itself.</small>';x.onclick=scan;const sub=hb.querySelector('.r331-sub');sub?sub.insertAdjacentElement('afterend',x):hb.insertBefore(x,hb.firstChild)}
+  }catch(e){}}
+  setInterval(()=>paintBtn(false),1000);
+
+  /* HR: button in the 🛡 FIX GUARD DUTY panel */
+  setInterval(()=>{try{const box=document.querySelector('#r358M .r358-box');if(box&&!box.querySelector('[data-r362-open]')){const x=document.createElement('button');x.type='button';x.className='r358-open';x.setAttribute('data-r362-open','1');x.textContent='🖨 GUARD TABLE QR (guards scan it to TIME IN / TIME OUT)';const h=box.querySelector('.r358-h');h?h.insertAdjacentElement('afterend',x):box.appendChild(x)}}catch(e){}},700);
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('[data-r362-open]')){openHr();return}
+    if(t.closest('[data-r362-x]')){const o=document.getElementById('r362M');if(o)o.classList.remove('show');return}
+    const mk=t.closest('[data-r362-make]');if(mk){make(mk.getAttribute('data-r362-make'));return}
+    if(t.closest('[data-r362-print]')){printQr();return}
+  });
+  window.rcadsR362={openHr,scan,onScan,qrText};
+})();
+
 </script>
 </body>
 </html>
