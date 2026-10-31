@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R360 GUARD HANDOVER QR FIX</title>
+<title>Rustica RCADS App — R361 GUARD SYNC + ONE PHONE FIX</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25533,10 +25533,14 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(!/^Guard \d+$/.test(label))return true; // Existing HR/head authorization stays separate.
     const branch=String(curBranch()||'').toUpperCase();
     const deny=()=>{alert('NOT RECORDED — Guard duty could not be confirmed. Only the ON DUTY guard may record attendance. Connect to the internet and complete handover, then scan again.');return false};
-    if(guardLabel()!==label||String(rec.dutyBranch||'').toUpperCase()!==branch||!navigator.onLine)return deny();
+    if(guardLabel()!==label||String(rec.dutyBranch||'').toUpperCase()!==branch)return deny();
+    /* R361: no internet / slow internet → use this phone's duty record (HR sees ⚠ DUTY NOT VERIFIED) */
+    const localOk=()=>{try{return dutyMatches(JSON.parse(localStorage.getItem('rustica_srf_guard_duty_logs')||'[]'),branch,label)}catch(e){return false}};
+    const offOk=()=>{if(!localOk())return deny();rec.dutyUnverified=true;rec.dutyNote='⚠ DUTY NOT VERIFIED (offline / slow internet)';return true};
+    if(!navigator.onLine)return offOk();
     let timer;
     try{
-      if(!rcadsCloudReady()||String(RUSTICA_CENTRAL_DB.branch||'').toUpperCase()!==branch)return deny();
+      if(!rcadsCloudReady()||String(RUSTICA_CENTRAL_DB.branch||'').toUpperCase()!==branch)return offOk();
       const rows=await Promise.race([
         rcadsCloudRpc('rustica_rcads_list_kv',{p_branch_code:RUSTICA_CENTRAL_DB.branch,p_sync_secret:RUSTICA_CENTRAL_DB.syncSecret}),
         new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),8000)})
@@ -25544,9 +25548,11 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       const row=Array.isArray(rows)&&rows.find(r=>r.data_key==='rustica_srf_guard_duty_logs');
       const remote=row&&JSON.parse(row.data_value);
       const local=JSON.parse(localStorage.getItem('rustica_srf_guard_duty_logs')||'[]');
-      if(guardLabel()!==label||String(curBranch()||'').toUpperCase()!==branch||!Array.isArray(remote)||!Array.isArray(local)||!dutyMatches(remote,branch,label)||!dutyMatches(local,branch,label))return deny();
+      if(guardLabel()!==label||String(curBranch()||'').toUpperCase()!==branch||!Array.isArray(local))return deny();
+      let merged=local;try{if(Array.isArray(remote)&&window.rcadsR361MergeGuard)merged=JSON.parse(window.rcadsR361MergeGuard(JSON.stringify(local),JSON.stringify(remote)))}catch(e){}
+      if(!dutyMatches(merged,branch,label))return deny();
       return true;
-    }catch(e){return deny()}finally{clearTimeout(timer)}
+    }catch(e){return offOk()}finally{clearTimeout(timer)}
   }
   async function appendRecord(c,name,rec){
     if(guardSaveBusy)return false;
@@ -29005,6 +29011,15 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     const out=Object.assign({},R,L,{records:recs,employeeName:L.employeeName||R.employeeName||''});
     if(String(R.savedAt||'')>String(L.savedAt||''))out.savedAt=R.savedAt;return JSON.stringify(out)}
   window.rcadsR287MergeAtt=mergeAtt;
+  /* R361: GUARD DUTY LOGS — every phone's entries are KEPT (union), never overwritten by an older copy from another phone.
+     Before R361 the newest upload replaced the whole list, so a guard phone with old data erased the handover / HR fix. */
+  const GDK=k=>k==='rustica_srf_guard_duty_logs'||/^rustica_guard_duty_logs_/.test(k);
+  function mergeGuard(localStr,remoteStr){let L=null,R=null;try{L=JSON.parse(localStr||'null')}catch(e){}try{R=JSON.parse(remoteStr||'null')}catch(e){}
+    if(!Array.isArray(R))return localStr;if(!Array.isArray(L))return remoteStr;
+    const id=r=>[String(r.guard||''),String(r.type||''),String(r.timestamp||''),String(r.branch||'')].join('|');const m=new Map();
+    R.concat(L).forEach(r=>{if(!r||typeof r!=='object')return;const k=id(r);const y=m.get(k);m.set(k,y?Object.assign({},y,r):r)});
+    const out=[...m.values()].sort((a,b)=>(Date.parse(a.timestamp)||0)-(Date.parse(b.timestamp)||0));return JSON.stringify(out)}
+  window.rcadsR361MergeGuard=mergeGuard;
   /* R321: HR / CEO signature — keep the copy that was SAVED last (updatedAt), not the one touched last on a phone */
   const SIGK=k=>k==='rcads_r171_hr_signature_v1'||k==='rcads_r303_ceo_sig_v1';
   function mergeSig(localStr,remoteStr){let L=null,R=null;try{L=JSON.parse(localStr||'null')}catch(e){}try{R=JSON.parse(remoteStr||'null')}catch(e){}
@@ -29021,7 +29036,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
       (Array.isArray(rows)?rows:[]).forEach(r=>{
         const k=String(r.data_key||"");if(!rcadsCloudShouldSyncKey(k))return;
         const remoteTime=String(r.updated_at||"");const localTime=String(meta[k]||"");const rv=String(r.data_value??"");
-        if(MERGE.has(k)||ATTK(k)||SIGK(k)){const lv=localStorage.getItem(k);const mv=lv?(k===SKEY?mergeSched(lv,rv):ATTK(k)?mergeAtt(lv,rv):SIGK(k)?mergeSig(lv,rv):mergeAccess(lv,rv)):rv;
+        if(MERGE.has(k)||ATTK(k)||SIGK(k)||GDK(k)){const lv=localStorage.getItem(k);const mv=lv?(GDK(k)?mergeGuard(lv,rv):k===SKEY?mergeSched(lv,rv):ATTK(k)?mergeAtt(lv,rv):SIGK(k)?mergeSig(lv,rv):mergeAccess(lv,rv)):rv;
           if(!same(mv,lv)){localStorage.setItem(k,mv);applied++}
           meta[k]=remoteTime>localTime?remoteTime:(localTime||remoteTime||new Date().toISOString());
           if(!same(mv,rv))sendBack.push([k,mv]);return}
@@ -32372,14 +32387,26 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       const code=U(o.c),me=myDev();if(!me)return;const reg=lsGet(RK(code),null);
       if(!reg||!reg.dev){
         /* after HR's LOST / CHANGED PHONE: only a phone that logged in with the PIN AFTER the reset can take the slot */
-        if(reg&&reg.reset&&!(loginAt.code===code&&loginAt.t>Date.parse(reg.at||0)))return;
+        if(reg&&reg.reset&&!((freshAt(code)||0)>Date.parse(reg.at||0)))return;
         lsSet(RK(code),{dev:me,label:devLabel(),at:new Date().toISOString(),name:o.n||''});return}
       if(reg.dev===me)return;
+      /* R361: this phone LOGGED IN (PIN / new setup) after the registration → it becomes THE phone; the older one is signed out.
+         (iPhone: Safari and the Home-Screen app count as different storage — this no longer locks the employee out.) */
+      const fr=freshAt(code);if(fr&&fr>Date.parse(reg.at||0)){lsSet(RK(code),{dev:me,label:devLabel(),at:new Date().toISOString(),name:o.n||reg.name||'',prev:reg.label||''});
+        const log=lsGet(LOG,[])||[];log.push({code,name:o.n||'',at:new Date().toISOString(),type:'PHONE CHANGED (login)',from:reg.label||'',to:devLabel()});lsSet(LOG,log.slice(-500));return}
       blockHere(code,o,reg);
     }finally{busy=false}
   }
+  /* R361: when this phone logged in (kept on the phone, not synced: the key name has "pin") */
+  const FK='rcads_r361_pinlogin_v1';
+  function freshAt(code){const f=lsGetRaw(FK);return f&&f.c===code?f.t:0}
+  function lsGetRaw(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+  setInterval(()=>{try{const o=owner(),f=lsGetRaw(FK);
+    if(!o||!o.c){if(f)localStorage.removeItem(FK);return}
+    const c=U(o.c);if(!f||f.c!==c){localStorage.setItem(FK,JSON.stringify({c,t:Date.now()}));pulledAt=0;setTimeout(check,2500)}
+    const z=U(window.__r339Ok||'');if(z&&z===c&&loginAt.code===c&&f&&f.c===c&&loginAt.t>f.t)localStorage.setItem(FK,JSON.stringify({c,t:loginAt.t}))}catch(e){}},1000);
   function blockHere(code,o,reg){
-    blocked=true;
+    blocked=true;try{localStorage.removeItem(FK)}catch(e){}
     try{localStorage.removeItem('rustica_r160_mypin_device')}catch(e){}
     try{sessionStorage.removeItem('rcads_active_guard_session')}catch(e){}
     let d=document.getElementById('r356Block');if(!d){d=document.createElement('div');d.id='r356Block';document.documentElement.appendChild(d)}
