@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R366 ID BIGGER DETAILS</title>
+<title>Rustica RCADS App — R367 WORKED HOURS FIX</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -32066,9 +32066,28 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
   function recsOf(emp){try{return getEmployeeAttendanceRecordsForDtr(emp)||[]}catch(e){return []}}
   function byDay(emp){const by={};recsOf(emp).forEach(r=>{const k=dkOf(r);if(k)(by[k]=by[k]||[]).push(r)});return by}
   /* minutes actually worked in a day (IN → OUT, breaks not counted); null = still on duty / no TIME OUT */
-  function workedMin(P){const ps=P.filter(r=>!r.errand&&!r.errandReturn).sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0));let at=null,w=0;
-    ps.forEach(r=>{const t=Date.parse(r.date);if(isNaN(t))return;if(r.type==='IN'){if(at==null)at=t}else if(r.type==='OUT'&&at!=null){w+=t-at;at=null}});
-    if(at!=null||!ps.some(r=>r.type==='OUT'))return null;const lastR=ps[ps.length-1];if(lastR&&lastR.type==='OUT'&&lastR.kind==='Break')return null; /* R357: still out on break (no TIME OUT) = not complete */ return Math.round(w/60000)}
+  // Read date-only records together with their displayed clock time.
+  function workedPunchStamp(r){
+    const date=String(r.date||'').trim();
+    const day=date.match(/^(\d{4}-\d{2}-\d{2})$/);
+    if(!day){const stamp=Date.parse(r.date);return Number.isFinite(stamp)?stamp:null}
+    const clock=String(r.time||'').trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+    if(!clock)return null;
+    let hour=Number(clock[1]);const minute=Number(clock[2]),second=Number(clock[3]||0),half=String(clock[4]||'').toUpperCase();
+    if(minute>59||second>59||hour>(half?12:23)||(half&&hour<1))return null;
+    if(half)hour=hour%12+(half==='PM'?12:0);
+    const stamp=Date.parse(day[1]+'T'+String(hour).padStart(2,'0')+':'+clock[2]+':'+String(second).padStart(2,'0')+'+08:00');
+    return Number.isFinite(stamp)?stamp:null;
+  }
+  function workedMin(P){
+    const ps=P.filter(r=>r&&!r.errand&&!r.errandReturn&&['IN','OUT'].includes(String(r.type||'').toUpperCase())).map(r=>({r,t:workedPunchStamp(r)}));
+    if(!ps.length||ps.some(x=>x.t===null))return null;
+    ps.sort((a,b)=>a.t-b.t);let at=null,w=0,paired=false;
+    for(const {r,t} of ps){if(String(r.type).toUpperCase()==='IN'){if(at===null)at=t}else if(at!==null){w+=t-at;at=null;paired=true}else return null}
+    const last=ps[ps.length-1].r;
+    if(at!==null||!paired||last.kind==='Break')return null;
+    return Math.round(w/60000);
+  }
   function dayLateUt(emp,dk,P){
     let s=null;try{s=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!s||s.type!=='TIME')return {late:0,ut:0,sched:s};
     const ins=P.filter(r=>r.type==='IN'),outs=P.filter(r=>r.type==='OUT');let late=0,ut=0;
