@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R362 GUARD TABLE QR</title>
+<title>Rustica RCADS App — R363 GUARD TABLE QR EACH OWN SCAN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -32551,6 +32551,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 .r362-btn{display:block;width:100%;margin:0 0 12px;padding:15px 12px;border:0;border-radius:14px;background:#1e6b48;color:#fff;font-weight:900;font-size:16px;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;min-height:auto!important}
 .r362-btn.out{background:#a1281f;margin-top:12px}.r362-btn small{display:block;font-size:11px;font-weight:700;opacity:.92;margin-top:4px}
 #r343Hand{display:none!important}
+#r331Hand .r331-info,#r331Hand .r331-step,#r331Hand [data-r331-scan],#r331Hand .r331-more,#r331Hand .r331-qr,#r331Hand .r331-left,#r331Hand [data-r343-check],#r331Hand .r331-warn,#r331Hand [data-r343-start]{display:none!important}
 #r362M{display:none;position:fixed;inset:0;z-index:2147483300;background:rgba(40,22,10,.72);overflow-y:auto;padding:30px 12px}#r362M.show{display:block}
 #r362M .r362-box{max-width:460px;margin:0 auto;background:#fffaf2;border-radius:18px;padding:16px;color:#3d2615;text-align:left}
 #r362M .r362-h{font-weight:900;font-size:17px;color:#4c2b17;margin:4px 0 6px}#r362M .r362-n{font-size:12px;color:#6b4a2f;line-height:1.45;margin:8px 0}
@@ -32570,7 +32571,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
        The QR carries the BRANCH LOCATION (latitude / longitude / allowed meters) and a secret code.
        Making a NEW QR stops the old one (a photo of the old QR no longer works).
      • GUARD (logged in on his own phone, Location ON):
-         not on duty → 📷 TIME IN — scan the table QR → TIME IN; the guard on duty is TIMED OUT by itself (relieved).
+         not on duty → 📷 TIME IN — scan the table QR → TIME IN (only him; R363: nobody is timed out by itself).
          on duty     → 📷 TIME OUT — scan the table QR → TIME OUT (end of duty).
        The phone's location must MATCH the location in the QR, or nothing is recorded. */
   if(window.RCADS_PREVIEW)return;
@@ -32619,7 +32620,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function printQr(){const b=hrBranch(),rec=lsGet(KEY(b),null);if(!rec)return;const w=window.open('','_blank');if(!w){alert('Allow pop-ups to print.');return}
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Guard Table QR — '+esc(bName(b))+'</title><style>body{font-family:Arial,sans-serif;text-align:center;color:#3d2615;margin:24px}h1{font-size:30px;margin:0}h2{font-size:20px;margin:6px 0 14px;color:#6b4a2f}.q{width:420px;max-width:90vw;margin:0 auto;border:6px solid #3d2615;padding:8px}.q svg{width:100%;display:block}ol{text-align:left;max-width:520px;margin:18px auto;font-size:16px;line-height:1.6}small{color:#7a6250}@media print{button{display:none}}</style></head><body>'
       +'<h1>🛡 GUARD TIME IN / TIME OUT</h1><h2>RUSTICA • '+esc(bName(b).toUpperCase())+'</h2><div class="q">'+qrSvg(qrText(b,rec))+'</div>'
-      +'<ol><li>Open <b>RCADS</b> on YOUR phone and log in as Guard. <b>Location ON.</b></li><li>Press <b>📷 TIME IN</b> (start of duty) or <b>📷 TIME OUT</b> (end of duty).</li><li>Scan this QR. The guard you relieve is timed out by itself.</li></ol>'
+      +'<ol><li>Open <b>RCADS</b> on YOUR phone and log in as Guard. <b>Location ON.</b></li><li>Press <b>📷 TIME IN</b> (start of duty) or <b>📷 TIME OUT</b> (end of duty).</li><li>Scan this QR. <b>Each guard scans for HIMSELF</b>: the incoming guard = TIME IN, the guard going home = TIME OUT.</li></ol>'
       +'<small>Valid until HR makes a new one • made '+esc(new Date(rec.at).toLocaleDateString())+' • works only at this branch</small><br><br><button onclick="print()" style="padding:12px 24px;font-size:16px">PRINT</button></body></html>');
     w.document.close();setTimeout(()=>{try{w.focus();w.print()}catch(e){}},400)}
 
@@ -32647,14 +32648,15 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const mine=openDuty(l),nm=gName(b,l);
     if(!mine){
       const others=labels(b).concat((()=>{try{return getGuardDutyLogs().map(r=>r.guard)}catch(e){return []}})()).filter((g,i,a)=>isG(g)&&g!==l&&a.indexOf(g)===i&&openDuty(g));
-      if(!confirm('TIME IN — START OF DUTY\n\n'+l+(nm?' ('+nm+')':'')+' → TIME IN now'+(others.length?'\n'+others.map(g=>g+(gName(b,g)?' ('+gName(b,g)+')':'')+' → TIME OUT (relieved)').join('\n'):'')+'\n\nContinue?'))return;
-      others.forEach(g=>{try{if(openDuty(g))rcadsAppendAutoGuardDutyEvent(g,'OUT','RELIEVED BY '+l+(nm?' ('+nm+')':'')+' — '+geoTxt)}catch(e){}});
-      try{rcadsAppendAutoGuardDutyEvent(l,'IN','TIME IN — '+geoTxt+(others.length?' • relieved '+others.join(', '):''))}catch(e){alert('Not saved: '+e.message);return}
+      /* R363: TIME IN only for ME — nobody else is timed out by itself. The guard going home scans the table QR for his own TIME OUT. */
+      if(!confirm('TIME IN — START OF DUTY\n\n'+l+(nm?' ('+nm+')':'')+' → TIME IN now.\n\nContinue?'))return;
+      try{rcadsAppendAutoGuardDutyEvent(l,'IN','TIME IN — '+geoTxt)}catch(e){alert('Not saved: '+e.message);return}
       done();try{window.rcadsR331&&window.rcadsR331.clear&&window.rcadsR331.clear()}catch(e){}
-      alert('✓ TIME IN • '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'\n\n'+l+' is ON DUTY.'+(others.length?'\n'+others.join(', ')+' — TIMED OUT (relieved).':'')+'\n\nEmployees scan YOUR phone now.');
+      alert('✓ TIME IN • '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'\n\n'+l+' is ON DUTY. Employees can scan YOUR phone now.'+(others.length?'\n\n'+others.map(g=>g+(gName(b,g)?' ('+gName(b,g)+')':'')).join(', ')+' is still ON DUTY → he must scan the TABLE QR to TIME OUT before going home.':''));
     }else{
-      if(!confirm('TIME OUT — END OF DUTY\n\n'+l+(nm?' ('+nm+')':'')+' → TIME OUT now.\n\nIf your relief guard is coming, it is better that HE scans the table QR (TIME IN) — you are timed out by itself.\n\nTIME OUT now?'))return;
-      try{rcadsAppendAutoGuardDutyEvent(l,'OUT','TIME OUT — '+geoTxt+' (no relief scan)')}catch(e){alert('Not saved: '+e.message);return}
+      const rel=labels(b).filter(g=>g!==l&&openDuty(g));
+      if(!confirm('TIME OUT — END OF DUTY\n\n'+l+(nm?' ('+nm+')':'')+' → TIME OUT now.'+(rel.length?'':'\n\n⚠ No other guard is ON DUTY yet. Your relief must scan the TABLE QR (TIME IN).')+'\n\nTIME OUT now?'))return;
+      try{rcadsAppendAutoGuardDutyEvent(l,'OUT','TIME OUT — '+geoTxt+(rel.length?' • on duty: '+rel.join(', '):' • no guard on duty after'))}catch(e){alert('Not saved: '+e.message);return}
       done();alert('✓ TIME OUT • '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'\n\nYour duty has ended.');
       try{window.rcadsR345&&window.rcadsR345.offDuty()}catch(e){}
     }
@@ -32667,12 +32669,12 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const vis=isG(l)&&gh&&getComputedStyle(gh).display!=='none'&&!gh.classList.contains('hidden');
     const homeTab=!document.querySelector('#r345Nav [data-r345="home"]')||document.querySelector('#r345Nav [data-r345="home"]').classList.contains('on');
     if(!vis||!homeTab){if(b)b.remove();return}
-    const on=!!openDuty(l);const h=on?'📷 TIME OUT — SCAN THE TABLE QR<small>End of your duty. (If your relief is here, let HIM scan it — you are timed out by itself.)</small>':'📷 TIME IN — SCAN THE TABLE QR<small>Start of duty. The guard on duty is timed out by itself. Location ON, at the guard table.</small>';
+    const on=!!openDuty(l);const h=on?'📷 TIME OUT — SCAN THE TABLE QR<small>End of your duty. Scan it before you go home. Location ON.</small>':'📷 TIME IN — SCAN THE TABLE QR<small>Start of your duty. Location ON, at the guard table.</small>';
     if(!b){b=document.createElement('button');b.type='button';b.id='r362Btn';b.onclick=scan}
     b.className='r362-btn'+(on?' out':'');if(force||b.dataset.h!==h){b.dataset.h=h;b.innerHTML=h}
     const card=gh.querySelector('.guard-home-card')||gh;const ref=on?null:card.firstChild;
     if(on){if(b.parentElement!==card||card.lastElementChild!==b)card.appendChild(b)}else if(b.parentElement!==card||card.firstChild!==b)card.insertBefore(b,ref);
-    const hb=document.querySelector('#r331Hand .r331-box');if(hb&&!hb.querySelector('[data-r362-hand]')){const x=document.createElement('button');x.type='button';x.className='r362-btn';x.setAttribute('data-r362-hand','1');x.innerHTML='📷 TIME IN — SCAN THE TABLE QR (HR)<small>Easiest: one scan of the QR on the guard table. The guard on duty is timed out by itself.</small>';x.onclick=scan;const sub=hb.querySelector('.r331-sub');sub?sub.insertAdjacentElement('afterend',x):hb.insertBefore(x,hb.firstChild)}
+    const hb=document.querySelector('#r331Hand .r331-box');if(hb&&!hb.querySelector('[data-r362-hand]')){const x=document.createElement('button');x.type='button';x.className='r362-btn';x.setAttribute('data-r362-hand','1');x.innerHTML='📷 TIME IN — SCAN THE TABLE QR (HR)<small>Scan the QR on the guard table. The guard going home scans it too for HIS time out.</small>';x.onclick=scan;const sub=hb.querySelector('.r331-sub');sub?sub.insertAdjacentElement('afterend',x):hb.insertBefore(x,hb.firstChild)}
   }catch(e){}}
   setInterval(()=>paintBtn(false),1000);
 
