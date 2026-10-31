@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R359 GUARD DUTY VALIDATION</title>
+<title>Rustica RCADS App — R360 GUARD HANDOVER QR FIX</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31181,7 +31181,16 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     if(!PEND)return;const me=PEND.me;
     if(typeof window.rcadsR181Scan!=='function'){alert('Scanner not available.');return}
     window.rcadsR181Scan('SCAN THE QR OF THE GUARD ON DUTY',async raw=>{
-      const m=String(raw).match(/GUARD-([A-Z0-9]+)-(\d+)-[A-Za-z0-9]+/);if(!m){alert('This is not a Guard QR.');return}
+      // R360: the displayed Guard QR wraps its token in an RCADS app link.
+      let guardQrText=String(raw||'');
+      try{
+        const decoded=typeof window.rcadsR143DecodeScannedQr==='function'?window.rcadsR143DecodeScannedQr(guardQrText):null;
+        if(decoded&&decoded.payload){
+          if(decoded.payload.role!=='GUARD'||String(decoded.payload.branch||'').toUpperCase()!==String(branch()).toUpperCase()){alert('Scan the Guard QR for this branch.');return}
+          guardQrText=String(decoded.attendanceToken||'');
+        }
+      }catch(e){alert('Cannot read this Guard QR. Ask the guard to refresh it and scan again.');return}
+      const m=guardQrText.match(/^GUARD-([A-Z0-9]+)-(\d+)-[A-Za-z0-9]+$/);if(!m){alert('This is not a Guard QR.');return}
       const tok=m[0],slot=+m[2],b=branch();if(Math.abs(Math.floor(Date.now()/QR_MS)-slot)>1){alert('That QR is old (it changes every 2 minutes). Scan the NEW QR.');return}
       let out=PEND.others.find(l=>l.replace(/\s+/g,'').toUpperCase()===m[1]&&tokenFor(l,b,slot)===tok);
       if(!out)out=labels(b).concat(PEND.others).find(l=>l!==me&&l.replace(/\s+/g,'').toUpperCase()===m[1]&&tokenFor(l,b,slot)===tok); /* R343: any guard of this branch (records not synced yet) */
