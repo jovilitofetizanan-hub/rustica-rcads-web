@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R363 GUARD TABLE QR EACH OWN SCAN</title>
+<title>Rustica RCADS App — R366 ID BIGGER DETAILS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -23855,7 +23855,7 @@ body.r162-has-nav{padding-bottom:78px!important}
   /* R322: a lighter logo for the ID (the dark-brown inside of the logo prints too dark) */
   let R322L='';function r322Logo(){return R322L||R255_LOGO}
   (function(){try{const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;const g=c.getContext('2d');g.drawImage(im,0,0);const d=g.getImageData(0,0,c.width,c.height);
-    for(let i=0;i<d.data.length;i+=4){if(d.data[i+3]<10)continue;const r=d.data[i],gg=d.data[i+1],b=d.data[i+2];const l=0.3*r+0.59*gg+0.11*b;if(l<110){const t=Math.min(1,(110-l)/110)*0.62;d.data[i]=Math.round(r+(178-r)*t);d.data[i+1]=Math.round(gg+(128-gg)*t);d.data[i+2]=Math.round(b+(84-b)*t)}}
+    for(let i=0;i<d.data.length;i+=4){if(d.data[i+3]<10)continue;const r=d.data[i],gg=d.data[i+1],b=d.data[i+2];const l=0.3*r+0.59*gg+0.11*b,sat=r-b; /* R364: the gold R + RUSTICA brighter, the inside a little lighter */ if(sat>45&&r>90){const f=0.55*Math.min(1,(sat-45)/60);d.data[i]=Math.round(r+(255-r)*f);d.data[i+1]=Math.round(gg+(205-gg)*f);d.data[i+2]=Math.round(b+(90-b)*f*0.6)}else if(l<110){const t=Math.min(1,(110-l)/110)*0.32;d.data[i]=Math.round(r+(178-r)*t);d.data[i+1]=Math.round(gg+(128-gg)*t);d.data[i+2]=Math.round(b+(84-b)*t)}}
     g.putImageData(d,0,0);R322L=c.toDataURL('image/png')}catch(e){}};im.src=R255_LOGO}catch(e){}})();
   function r191Front(c){
     const nm=r191Name(c.name);
@@ -32547,6 +32547,15 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   window.rcadsR358={openGuard,state};
 })();
 </script>
+<style id="rcadsR364Css">
+/* R364 — ID: bigger round logo (almost touching the line), RESTAURANT bold + as dark as rustica */
+.r313-head{top:3.4mm!important;height:17.2mm!important;left:2.8mm!important}
+.r313-logo{width:17.2mm!important;height:17.2mm!important;flex:0 0 17.2mm!important}
+.r313-txt span{font-weight:700!important;color:#3d2615!important}
+.r255-pos{font-weight:800!important;color:#000!important}
+.r255-grid{left:3.5mm!important;right:3.5mm!important;top:62.6mm!important;grid-template-columns:20mm 1fr!important;row-gap:1.1mm!important;font-size:2.6mm!important}
+.r255-grid span{font-weight:700;color:#2b1a0e}
+</style>
 <style id="rcadsR362Css">
 .r362-btn{display:block;width:100%;margin:0 0 12px;padding:15px 12px;border:0;border-radius:14px;background:#1e6b48;color:#fff;font-weight:900;font-size:16px;line-height:1.3;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer;min-height:auto!important}
 .r362-btn.out{background:#a1281f;margin-top:12px}.r362-btn small{display:block;font-size:11px;font-weight:700;opacity:.92;margin-top:4px}
