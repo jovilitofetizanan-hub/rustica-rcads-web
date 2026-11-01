@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R371 EDITABLE DTR SUMMARY</title>
+<title>Rustica RCADS App — R372 ANDROID QR READER FALLBACK</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25572,32 +25572,54 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 
   /* ---------------- QR scanner (BarcodeDetector, or jsQR for iPhone / other browsers) ---------------- */
   const JSQR='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
-  function loadJsQR(){if(window.jsQR)return Promise.resolve(window.jsQR);return new Promise((res,rej)=>{const s=document.createElement('script');s.src=JSQR;s.onload=()=>res(window.jsQR);s.onerror=()=>rej(new Error('QR reader did not load (internet required).'));document.head.appendChild(s)})}
+  let qrLoading=null;
+  function loadJsQR(){
+    if(typeof window.jsQR==='function')return Promise.resolve(window.jsQR);
+    if(qrLoading)return qrLoading;
+    qrLoading=new Promise((resolve,reject)=>{
+      const s=document.createElement('script');let done=false;
+      const finish=err=>{if(done)return;done=true;clearTimeout(timeout);s.onload=s.onerror=null;if(err){s.remove();reject(err)}else resolve(window.jsQR)};
+      const timeout=setTimeout(()=>finish(new Error('Backup QR reader did not load. Check internet and reopen the scanner.')),10000);
+      s.src=JSQR;s.onload=()=>finish(typeof window.jsQR==='function'?null:new Error('Backup QR reader unavailable. Reopen the scanner.'));
+      s.onerror=()=>finish(new Error('Backup QR reader did not load. Check internet and reopen the scanner.'));document.head.appendChild(s);
+    }).finally(()=>{qrLoading=null});return qrLoading;
+  }
   let scanStop=null;
   async function openScanner(title,onText){
     closeScanner();
     const o=document.createElement('div');o.id='r181Scan';o.innerHTML='<div class="r181-sbox"><div class="r181-sh"><b>'+esc(title)+'</b><button type="button" id="r181ScanClose">✕</button></div><video id="r181Video" playsinline muted></video><div class="r181-frame"></div><div class="r181-smsg" id="r181ScanMsg">Opening the camera…</div></div>';
     document.documentElement.appendChild(o);o.querySelector('#r181ScanClose').onclick=closeScanner;
-    const msg=t=>{const m=document.getElementById('r181ScanMsg');if(m)m.textContent=t};
-    let stream=null,timer=null,stopped=false;
-    scanStop=()=>{stopped=true;clearTimeout(timer);try{stream&&stream.getTracks().forEach(t=>t.stop())}catch(e){}};
+    let stream=null,timer=null,stopped=false,misses=0,det=null,jq=null,fallbackError='';
+    const stop=()=>{stopped=true;clearTimeout(timer);try{stream&&stream.getTracks().forEach(t=>t.stop())}catch(e){}};
+    scanStop=stop;
+    const msg=t=>{if(!stopped){const m=o.querySelector('#r181ScanMsg');if(m)m.textContent=t}};
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){msg('No camera access in this browser. Open RCADS in Chrome/Safari using the HTTPS link.');return}
-    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})}catch(e){msg(e&&e.name==='NotAllowedError'?'Camera not allowed. Allow it in the browser settings.':'Cannot open the camera.');return}
-    if(stopped){scanStop();return}
-    const v=document.getElementById('r181Video');v.srcObject=stream;try{await v.play()}catch(e){}
-    let det=null;if('BarcodeDetector' in window){try{det=new BarcodeDetector({formats:['qr_code']})}catch(e){}}
-    let jq=null;if(!det){try{jq=await loadJsQR()}catch(e){msg(e.message);return}}
+    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})}catch(e){msg(e&&e.name==='NotAllowedError'?'Camera not allowed. Allow it in the browser settings.':'Cannot open the camera. Close other camera apps and reopen the scanner.');return}
+    if(stopped){stop();return}
+    const v=o.querySelector('#r181Video');v.srcObject=stream;try{await v.play()}catch(e){msg('Camera preview could not start. Close and reopen the scanner.');return}
+    if(stopped)return;
+    if('BarcodeDetector' in window){try{det=new BarcodeDetector({formats:['qr_code']})}catch(e){}}
     const cv=document.createElement('canvas'),g=cv.getContext('2d',{willReadFrequently:true});
-    msg('Point the camera at the QR…');
-    const tick=async()=>{if(stopped)return;try{if(v.readyState>=2){let txt='';
-      if(det){const c=await det.detect(v);if(c&&c.length)txt=String(c[0].rawValue||'')}
-      else{const w=v.videoWidth,h=v.videoHeight;if(w&&h){const sc=Math.min(1,640/Math.max(w,h));cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);g.drawImage(v,0,0,cv.width,cv.height);const d=g.getImageData(0,0,cv.width,cv.height);const r=jq(d.data,cv.width,cv.height);if(r)txt=r.data}}
-      if(txt){closeScanner();onText(txt.trim());return}}}catch(e){}
-      timer=setTimeout(tick,250)};
-    tick();
+    let backup=null;
+    const enableBackup=()=>{if(jq||backup||fallbackError)return;msg('Trying the backup QR reader…');backup=loadJsQR().then(fn=>{if(!stopped){jq=fn;msg('Backup reader ready. Hold the whole QR steady and avoid glare.')}}).catch(e=>{fallbackError=e.message;msg(fallbackError)}).finally(()=>{backup=null})};
+    if(!det)enableBackup();else msg('Point the camera at the QR…');
+    const tick=async()=>{
+      if(stopped)return;let txt='';
+      if(v.readyState>=2){
+        if(det){let deadline;try{const codes=await Promise.race([det.detect(v),new Promise((_,reject)=>{deadline=setTimeout(()=>reject(new Error('QR detector timeout')),800)})]);if(codes&&codes.length)txt=String(codes[0].rawValue||'')}
+          catch(e){det=null;enableBackup()}finally{clearTimeout(deadline)}}
+        if(stopped)return;
+        if(!txt){misses++;if(misses>=6)enableBackup();
+          if(jq&&g){try{const w=v.videoWidth,h=v.videoHeight;if(w&&h){const sc=Math.min(1,960/Math.max(w,h));cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);g.drawImage(v,0,0,cv.width,cv.height);const d=g.getImageData(0,0,cv.width,cv.height);const r=jq(d.data,cv.width,cv.height,{inversionAttempts:'attemptBoth'});if(r)txt=String(r.data||'')}}catch(e){msg('QR image could not be read. Hold the QR steady or reopen the scanner.')}}
+        }
+        if(txt.trim()&&!stopped){closeScanner();onText(txt.trim());return}
+      }
+      if(!stopped)timer=setTimeout(tick,250);
+    };tick();
   }
   function closeScanner(){if(scanStop){scanStop();scanStop=null}const o=document.getElementById('r181Scan');if(o)o.remove()}
-  window.rcadsR181Scan=openScanner; /* R299 */
+  window.rcadsR181Scan=openScanner;
+
 
   /* ---------------- PASS (employee side) ---------------- */
   let PASS=null;          // {code, payload, until}
