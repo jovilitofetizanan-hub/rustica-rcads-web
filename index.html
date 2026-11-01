@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R370 PHONE STORAGE RECOVERY</title>
+<title>Rustica RCADS App — R371 EDITABLE DTR SUMMARY</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -32778,5 +32778,89 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 })();
 
 </script>
-</body>
-</html>
+<style id="rcadsR371Css">#r371Editor[hidden]{display:none}#r371Editor{position:fixed;inset:0;z-index:2147483300;background:#26170edb;padding:12px;display:flex;align-items:stretch;justify-content:center}#r371Editor *{box-sizing:border-box}.r371-box{background:#fffaf2;color:#3d2412;border-radius:14px;width:100%;max-width:1600px;display:flex;flex-direction:column;overflow:hidden}.r371-box header{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#3d2412;color:white;padding:14px}.r371-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px;border-bottom:1px solid #dec6a8}.r371-box button{padding:10px 14px;border:0;border-radius:8px;background:#c8902a;color:#24160e;font-weight:bold;cursor:pointer}.r371-tools span{flex:1;min-width:220px;font-size:13px}.r371-box main{overflow:auto;padding:12px}.r371-box h3{margin:8px 0;font-size:15px}.r371-scroll{overflow:auto;max-height:55vh;margin-bottom:22px}.r371-box table{border-collapse:collapse;font-size:12px}.r371-box td,.r371-box th{border:1px solid #dec6a8;padding:5px;white-space:nowrap}.r371-box th{position:sticky;top:0;background:#f2e5cf;z-index:1}.r371-box input{width:125px;padding:9px;border:1px solid #b99b73;border-radius:5px;background:#fff;color:#26170e;font-size:14px}.r371-box input:focus{outline:2px solid #2f6b3a}.r371-box input.remarks{width:320px}</style>
+<script id="rcadsR371Script">
+(function(){
+  'use strict';
+  const PREFIX='rcads_r371_dtr_edits_';
+  const U=v=>String(v==null?'':v).trim().toUpperCase();
+  const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const hr=()=>document.body.classList.contains('hr-session-active');
+  function context(){const c=window.rcadsR158DtrExportContext();if(!c||!c.branch||!c.cutoff||!c.cutoff.from||!c.cutoff.to)throw Error('Choose a branch and cutoff first.');return c}
+  const key=c=>PREFIX+encodeURIComponent([c.branch,c.cutoff.from,c.cutoff.to].join('|'));
+  function read(k){const raw=localStorage.getItem(k);if(!raw)return {cells:{}};const d=JSON.parse(raw);if(!d||!d.cells||typeof d.cells!=='object')throw Error('Saved DTR corrections could not be read.');return d}
+  const id=(sheet,code,header)=>JSON.stringify([sheet,U(code),U(header)]);
+  function layout(ws){const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});const h=rows.findIndex(r=>U(r[0])==='EMPCODE');return {rows,h,headers:h<0?[]:rows[h]}}
+  const employee=r=>/^[A-Z0-9]+-[A-Z0-9-]+$/.test(U(r&&r[0]));
+  const editable=(header,c)=>c>=3&&!!U(header)&&U(header)!=='SIGNATURE';
+  function parse(value,header){const s=String(value).trim();if(!s)return '';
+    if(U(header)==='REMARKS')return s;
+    if(U(s)==='FOR REVIEW')return 'FOR REVIEW';
+    if(/\[h\]:mm/i.test(header)){const m=s.match(/^(\d+):([0-5]\d)$/);if(!m)throw Error(header+': use hours:minutes, e.g. 1:30.');return (+m[1]*60+(+m[2]))/1440}
+    if(!/^\d+(?:\.\d+)?$/.test(s)||!Number.isFinite(Number(s)))throw Error(header+': enter a non-negative number.');return Number(s)
+  }
+  function display(cell,header){const v=cell?cell.v:'';if(typeof v==='number'&&/\[h\]:mm/i.test(header)){const m=Math.round(v*1440);return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')}return v==null?'':String(v)}
+  function apply(wb,c){const d=read(key(c));wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n],l=layout(ws);if(l.h<0)return;
+    l.rows.forEach((row,r)=>{if(r<=l.h||!employee(row))return;
+      const ai=l.headers.findIndex(h=>U(h)==='ABSENT'),pi=l.headers.findIndex(h=>U(h).startsWith('PAID DAYS'));
+      const oldAbsent=ai>=0?Number(row[ai]):NaN,oldPaid=pi>=0?Number(row[pi]):NaN;
+      l.headers.forEach((h,col)=>{if(!editable(h,col))return;const e=d.cells[id(n,row[0],h)];if(!e)return;const ref=XLSX.utils.encode_cell({r,c:col});let value=e.value;
+        if(value!==''&&value!=='FOR REVIEW'&&U(h)!=='REMARKS'&&(typeof value!=='number'||!Number.isFinite(value)||value<0))return;
+        const cell=Object.assign({},ws[ref]||{},{v:value,t:typeof value==='number'?'n':'s'});delete cell.f;delete cell.w;delete cell.h;if(/\[h\]:mm/i.test(h))cell.z='[h]:mm';ws[ref]=cell;
+      });
+      if(ai>=0&&pi>=0&&d.cells[id(n,row[0],l.headers[ai])]&&!d.cells[id(n,row[0],l.headers[pi])]){
+        const av=ws[XLSX.utils.encode_cell({r,c:ai})]?.v;
+        if(typeof av==='number'&&Number.isFinite(oldPaid)&&Number.isFinite(oldAbsent))ws[XLSX.utils.encode_cell({r,c:pi})]={t:'n',v:Math.max(0,oldPaid+oldAbsent-av)};
+      }
+    });
+  });return wb}
+  const build=window.buildEditableDTRWorkbook;
+  window.buildEditableDTRWorkbook=function(){const wb=build.apply(this,arguments);return wb?apply(wb,context()):wb};
+  let state=null;
+  function message(t){const e=document.getElementById('r371Status');if(e)e.textContent=t}
+  function open(){
+    if(!hr()){alert('Only HR can edit the DTR Summary Log.');return}
+    if(state&&state.dirty&&!confirm('Discard unsaved summary changes?'))return;
+    try{
+      const c=context(),k=key(c),raw=localStorage.getItem(k),wb=window.buildEditableDTRWorkbook();
+      state={c,k,raw,wb,dirty:false,fields:[]};let m=document.getElementById('r371Editor');
+      if(!m){m=document.createElement('div');m.id='r371Editor';document.body.appendChild(m)}
+      let tables='';wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n],l=layout(ws);if(l.h<0)return;
+        tables+='<section><h3>'+esc(n)+'</h3><div class="r371-scroll"><table><thead><tr>'+l.headers.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>';
+        l.rows.forEach((row,r)=>{if(r<=l.h||!employee(row))return;tables+='<tr>'+l.headers.map((h,col)=>{const ref=XLSX.utils.encode_cell({r,c:col}),value=display(ws[ref],h);if(!editable(h,col))return '<td>'+esc(value)+'</td>';
+          const i=state.fields.length;state.fields.push({n,code:row[0],h,ref,initial:value});
+          return '<td><input data-r371-field="'+i+'" aria-label="'+esc(row[0]+' '+h)+'" value="'+esc(value)+'"'+(U(h)==='REMARKS'?' class="remarks"':'')+'></td>'}).join('')+'</tr>'});tables+='</tbody></table></div></section>';
+      });
+      m.innerHTML='<div class="r371-box"><header><b>EDIT DTR SUMMARY LOG — '+esc(c.branchName||c.branch)+' • '+esc(c.cutoff.from)+' to '+esc(c.cutoff.to)+'</b><button data-r371-close>CLOSE</button></header><div class="r371-tools"><button data-r371-save>SAVE CHANGES</button><button data-r371-reset>RESTORE CALCULATED SUMMARY</button><span id="r371Status" role="status">Edit values, then save. Time columns use H:MM; overtime uses decimal hours. Saved corrections appear in Excel exports. Original punches remain unchanged.</span></div><main>'+tables+'</main></div>';
+      m.hidden=false;
+    }catch(e){state=null;alert(e.message)}
+  }
+  function save(){
+    if(!state||!hr()){message('HR session ended. Sign in as HR again.');return false}
+    try{
+      if(key(context())!==state.k)throw Error('Branch or cutoff changed. Reopen the summary before saving.');
+      if(localStorage.getItem(state.k)!==state.raw)throw Error('Saved corrections changed on this device. Reopen the summary to load them before editing.');
+      const d=read(state.k),now=new Date().toISOString();let changes=0;
+      document.querySelectorAll('#r371Editor [data-r371-field]').forEach(input=>{const f=state.fields[+input.dataset.r371Field];if(input.value===f.initial)return;
+        let v;try{v=parse(input.value,f.h)}catch(e){input.focus();throw e}
+        d.cells[id(f.n,f.code,f.h)]={value:v,previous:state.wb.Sheets[f.n][f.ref]?.v??'',by:'HR OPERATION OFFICER',at:now};changes++;
+      });
+      if(!changes){message('No changes to save.');return true}
+      d.branch=state.c.branch;d.from=state.c.cutoff.from;d.to=state.c.cutoff.to;d.updatedAt=now;
+      localStorage.setItem(state.k,JSON.stringify(d)); // Atomic save: a quota error leaves the draft open.
+      state.dirty=false;open();message('Saved on this device. Included in the next Excel export; cloud sync follows when connected.');return true;
+    }catch(e){message('NOT SAVED — '+(e.name==='QuotaExceededError'?'Phone storage is full. Keep this screen open and copy your changes before freeing space.':e.message));return false}
+  }
+  function close(){if(state?.dirty&&!confirm('Discard unsaved summary changes?'))return;document.getElementById('r371Editor').hidden=true;state=null}
+  function reset(){if(!state||!hr())return;if(!confirm('Remove saved summary corrections for this branch and cutoff and return to calculated values?'))return;
+    try{if(key(context())!==state.k||localStorage.getItem(state.k)!==state.raw)throw Error('Summary changed. Reopen it first.');localStorage.setItem(state.k,JSON.stringify({cells:{},updatedAt:new Date().toISOString(),by:'HR OPERATION OFFICER'}));state.dirty=false;open()}catch(e){message('NOT RESTORED — '+e.message)}}
+  document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-r334-view],[data-r371-save],[data-r371-close],[data-r371-reset]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();if(t.hasAttribute('data-r334-view'))open();else if(t.hasAttribute('data-r371-save'))save();else if(t.hasAttribute('data-r371-close'))close();else reset()},true);
+  document.addEventListener('input',e=>{if(e.target.matches('#r371Editor [data-r371-field]')&&state){state.dirty=true;message('Unsaved changes')}});
+  window.addEventListener('beforeunload',e=>{if(state?.dirty){e.preventDefault();e.returnValue=''}});
+  if(window.rcadsR334)window.rcadsR334.viewSummary=open;
+  window.rcadsR371={open,save,apply,parse};
+})();
+
+
+</script>
+</body></html>
