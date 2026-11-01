@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R368 DTR SUMMARY VALIDATION</title>
+<title>Rustica RCADS App — R369 ATTENDANCE ACCESS SYNC</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25616,8 +25616,36 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(!label)return {ok:false,msg:'Not a genuine Guard QR (RED FLAG).'};
     return {ok:true,token:tok,label,branch};
   }
+
+  // R369: server PIN login can succeed before the attendance signing record arrives.
+  // Recover through the existing authenticated sync; never invent a PIN/access record.
+  let accessSync=null,accessRetryAt=0,accessMessage='';
+  function attendanceReady(code){const r=person(code);return !!(r&&r.status==='ACTIVE'&&r.pinHash)}
+  async function syncAttendanceAccess(){
+    if(accessSync)return accessSync;
+    accessRetryAt=Date.now()+30000;
+    accessMessage='Syncing attendance access from HR…';
+    accessSync=(async()=>{
+      let timer;
+      try{
+        if(!navigator.onLine)throw new Error('Connect to the internet, then press SCAN to retry.');
+        if(typeof window.rcadsCloudPullMerge!=='function'||!rcadsCloudReady())throw new Error('Device connection is not ready. Sign in again with your HR-issued PIN.');
+        await Promise.race([window.rcadsCloudPullMerge(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('Sync timed out. Press SCAN to retry.')),10000)})]);
+        accessMessage='Attendance access has not arrived yet. Keep HR RCADS online, then press SCAN to retry. Your PIN does not need to be reset.';
+      }catch(e){accessMessage=e.message||'Could not sync. Press SCAN to retry.'}
+      finally{clearTimeout(timer)}
+    })();
+    try{return await accessSync}finally{accessSync=null}
+  }
+  function accessNotice(code){
+    const r=person(code);
+    if(r&&['DISABLED','BLOCKED','INACTIVE'].includes(r.status))return 'Attendance access is disabled. Please see HR.';
+    if(r&&r.status==='SETUP')return 'PIN setup is still pending in the access record. Sync again; if unchanged, open your personal QR from HR to finish setup.';
+    return accessMessage||'Your attendance access needs to sync from HR. Press SCAN to connect and retry.';
+  }
+
   async function makePayload(code,branch,type,guard,geo,ph){
-    const r=person(code);if(!r||r.status!=='ACTIVE'||!r.pinHash)throw new Error('You need your own PIN first. Ask HR for a QR.');
+    const r=person(code);if(!r||r.status!=='ACTIVE'||!r.pinHash)throw new Error(accessNotice(code));
     const p={v:1,t:type,c:U(code),b:branch||'',ts:Date.now(),g:guard?guard.token:'',gl:guard?guard.label:'',geo:geo||'NA',ph:ph||'OWN'};
     p.s=await hmac(r.pinHash,canon(p));return 'RCADSPASS:'+b64u(JSON.stringify(p));
   }
@@ -25693,7 +25721,12 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       const [host,after]=hosts[0];
       if(!el){el=document.createElement('div');el.id='r181Pass';el.className='r181-card';el.setAttribute('data-r162-tab','home')}
       if(after&&after.parentElement===host){if(after.nextElementSibling!==el)after.insertAdjacentElement('afterend',el)}else if(el.parentElement!==host)host.insertBefore(el,host.firstChild);
-      if(!person(me.code)||person(me.code).status!=='ACTIVE'){const h='<div class="r181-h">📲 ATTENDANCE</div><div class="r181-warn">You need your own PIN first for QR attendance. Ask HR for a 📲 QR.</div>';if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}renderBusy=false;return}
+      if(!attendanceReady(me.code)){
+        if(Date.now()>=accessRetryAt)void syncAttendanceAccess();
+        const r=person(me.code),blocked=r&&['DISABLED','BLOCKED','INACTIVE'].includes(r.status);
+        const h='<div class="r181-h">📲 ATTENDANCE</div><div class="r181-warn" role="status">'+esc(accessNotice(me.code))+'</div>'+(blocked?'':'<button type="button" class="r181-big" data-r181-scanguard>📷 SCAN THE GUARD’S QR<small>Sync access and continue to TIME IN / TIME OUT</small></button>');
+        if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}renderBusy=false;return;
+      }
       const h=await passHtml(me);
       const sig=h.replace(/data-r181-left>\d+</,'');
       if(el.dataset.h!==sig){el.dataset.h=sig;el.innerHTML=h}else{const l=el.querySelector('[data-r181-left]');if(l&&PASS)l.textContent=Math.max(0,Math.ceil((PASS.until-Date.now())/1000))}
@@ -25867,7 +25900,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   /* ---------------- clicks ---------------- */
   document.addEventListener('click',async e=>{
     const t=e.target;if(!t.closest)return;
-    if(t.closest('[data-r181-scanguard]')){const inBorrow=!!t.closest('#r181Borrow');const who=inBorrow&&BORROW?{code:BORROW.code,name:BORROW.name,branch:BORROW.branch,ph:'BORROWED:'+BORROW.owner}:meFromSession();if(!who)return;openScanner('Scan the Guard’s QR',txt=>{onGuardScanned(txt,who).then(()=>{if(inBorrow&&PASS)PASS.borrow=true})});return}
+    if(t.closest('[data-r181-scanguard]')){const inBorrow=!!t.closest('#r181Borrow');const who=inBorrow&&BORROW?{code:BORROW.code,name:BORROW.name,branch:BORROW.branch,ph:'BORROWED:'+BORROW.owner}:meFromSession();if(!who)return;void (async()=>{if(!attendanceReady(who.code)){await syncAttendanceAccess();if(!attendanceReady(who.code)){alert(accessNotice(who.code));return}}const current=inBorrow?BORROW:meFromSession();if(!current||U(current.code)!==U(who.code))return;openScanner('Scan the Guard’s QR',txt=>{onGuardScanned(txt,who).then(()=>{if(inBorrow&&PASS)PASS.borrow=true})})})();return}
     if(t.closest('[data-r181-scanpass]')){openScanner('Scan the employee’s PASS QR',guardHandle);return}
     if(t.closest('[data-r181-scanbreak]')){openScanner('Scan the employee’s QR (BREAK)',breakHandle);return}
     const o=t.closest('[data-r181-out]');if(o){doOut(o.getAttribute('data-r181-out')==='EARLY'?'Early Leave':'End Shift');return}
