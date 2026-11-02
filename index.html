@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R385 HTML BACKUP</title>
+<title>Rustica RCADS App — R386 AUTOMATIC FOLDER BACKUP</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25461,7 +25461,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R385 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R386 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -33217,10 +33217,55 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       if(status)status.textContent=message;const old=document.getElementById('rcadsPreserveStatus');if(old)old.textContent=message;return name;
     }catch(e){if(status)status.textContent='Backup failed: '+e.message;if(!auto)alert('Backup failed: '+e.message);return '';}
   }
-  window.rcadsHtmlBackup={build};
+  window.rcadsHtmlBackup={build,source};
   window.rcadsExportFullPreserveBackup=download;
   window.rcadsDashboardBackupDownload=()=>download(false);
 })();
 
+
+(()=>{
+  // Directory permission stays on this browser/device; never sync a handle through RCADS.
+  if(window.RCADS_OFFLINE_BACKUP)return;
+  let handle=null,enabled=false,busy=false,last='',message='Automatic backup is OFF.',loaded=false;
+  const hr=()=>typeof hrApproverSelectionUnlocked!=='undefined'&&hrApproverSelectionUnlocked===true;
+  function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('rcads-folder-backup-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('settings');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
+  async function setting(value){const d=await db();try{return await new Promise((resolve,reject)=>{const tx=d.transaction('settings',value===undefined?'readonly':'readwrite'),s=tx.objectStore('settings');const r=value===undefined?s.get('folder'):s.put(value,'folder');tx.oncomplete=()=>resolve(r.result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('Folder settings could not be saved.'));});}finally{d.close()}}
+  function status(text){message=text;render();}
+  async function run(){
+    if(busy||!enabled||!handle||!hr())return false;
+    busy=true;render();
+    try{
+      if(await handle.queryPermission({mode:'readwrite'})!=='granted'){status('Permission needed. Click Resume auto-backup.');return false;}
+      const raw=await rcadsHtmlBackup.source();if(!enabled||!hr())return false;
+      const snap=rcadsCollectFullPreserveBackup(),html=rcadsHtmlBackup.build(raw,snap),branch=String(snap.branch).replace(/[^A-Z0-9_-]/gi,'_');
+      const day=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+      for(const suffix of [day,'LATEST']){
+        const file=await handle.getFileHandle('RCADS_'+branch+'_AutoBackup_'+suffix+'.html',{create:true});
+        const writer=await file.createWritable();try{await writer.write(html);await writer.close()}catch(e){try{await writer.abort()}catch(_){}throw e}
+        if(await (await file.getFile()).text()!==html)throw Error('Saved file verification failed.');
+      }
+      last=new Date().toLocaleString('en-PH',{timeZone:'Asia/Manila'});status('Saved and verified: '+last+' • '+handle.name);return true;
+    }catch(e){status('Backup NOT completed: '+e.message);return false}finally{busy=false;render()}
+  }
+  async function choose(){if(!hr())return;try{
+    if(!window.showDirectoryPicker)throw Error('Use the RCADS app in desktop Edge or Chrome for folder backups.');
+    const selected=await window.showDirectoryPicker({mode:'readwrite',id:'rcads-backups'});
+    await setting({handle:selected,enabled:true});handle=selected;enabled=true;status('Folder selected: '+handle.name);await run();
+  }catch(e){if(e.name!=='AbortError')status(e.message)}}
+  async function resume(){if(!hr()||!handle)return;try{if(await handle.requestPermission({mode:'readwrite'})!=='granted'){status('Folder permission was not granted.');return}await setting({handle,enabled:true});enabled=true;await run()}catch(e){status(e.message)}}
+  async function pause(){if(!hr())return;try{await setting({handle,enabled:false});enabled=false;status(busy?'Pausing after the current save finishes.':'Automatic backup paused.')}catch(e){status(e.message)}}
+  function render(){
+    const parent=document.getElementById('rcadsDashboardBackup');if(!parent)return;
+    let el=document.getElementById('rcadsAutoBackup');if(!el){el=document.createElement('div');el.id='rcadsAutoBackup';el.style.cssText='margin-top:14px;padding-top:12px;border-top:1px solid #aac0d4';el.innerHTML='<b>AUTOMATIC FOLDER BACKUP</b><p>While RCADS is open and HR is signed in, save every minute: LATEST plus a dated HTML copy for each day. Daily copies are updated during that day; older days are retained.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" data-auto="choose">Choose backup folder</button><button type="button" data-auto="resume">Resume auto-backup</button><button type="button" data-auto="now">Backup now</button><button type="button" data-auto="pause">Pause</button></div><p data-auto-status role="status"></p><small>Folder access may require Resume after reopening RCADS. Keep the app open until the saved confirmation appears. Backups contain records available on this HR device.</small>';parent.appendChild(el);el.addEventListener('click',e=>{const action=e.target.closest('[data-auto]')?.dataset.auto;if(action==='choose')choose();if(action==='resume')resume();if(action==='now')run();if(action==='pause')pause()})}
+    el.querySelector('[data-auto-status]').textContent=(busy?'Saving… ':enabled?'ON • ':'OFF • ')+message;
+    el.querySelectorAll('button').forEach(b=>b.disabled=busy||!hr());
+    el.querySelector('[data-auto="now"]').disabled=busy||!hr()||!handle||!enabled;
+    el.querySelector('[data-auto="resume"]').disabled=busy||!hr()||!handle;
+  }
+  async function load(){if(loaded||!hr())return;loaded=true;try{const saved=await setting();if(saved){handle=saved.handle;enabled=saved.enabled===true;status(enabled?'Saved folder: '+handle.name+'. Checking permission…':'Automatic backup paused.');if(enabled)await run()}}catch(e){status('Could not load folder settings: '+e.message)}}
+  window.rcadsAutoBackup={run,choose,resume,pause};
+  setInterval(()=>{render();load()},1500);setInterval(run,60000);
+  window.addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});
+})();
 </script>
 </body></html>
