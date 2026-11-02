@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R373 OT CONFIRMATION AND EMPLOYEE DTR</title>
+<title>Rustica RCADS App — R374 HR NOTICES NAVIGATION</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21677,6 +21677,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
   function hrSectionHtml(){
     const bopts=branches().map(b=>'<option value="'+esc(b.code)+'">'+esc(b.name)+'</option>').join('');
     return '<div class="r159-hr-title">📢 HR NOTICE BOARD • CODE OF DISCIPLINE • MEMO CIRCULAR • BRANCH LOCATION</div>'
+    +'<nav class="r373-hr-shortcuts" aria-label="Notices and documents"><b>NOTICES &amp; DOCUMENTS</b><button type="button" data-r373-hr-jump="r159NList">📢 Notices</button><button type="button" data-r373-hr-doc="ORG">🏢 Organizational Chart</button><button type="button" data-r373-hr-doc="COD">📘 Code of Discipline</button><button type="button" data-r373-hr-doc="MC">📄 Memo Circulars</button><button type="button" data-r373-hr-doc="CV">⭐ Core Values</button><button type="button" data-r373-hr-jump="r373OrgTitle">⬆ Upload Chart</button></nav>'
     +'<div class="r159-hr-grid">'
     +'<div class="r159-hr-card"><h4>POST HR NOTICE / MEMO</h4>'
       +'<label>TITLE</label><input id="r159NTitle" maxlength="120" placeholder="e.g. Schedule of Monthly Meeting">'
@@ -21693,7 +21694,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
       +'<label>EFFECTIVE DATE</label><input id="r159CEff" type="date">'
       +'<label>FULL TEXT (paste here)</label><textarea id="r159CBody" rows="8" placeholder="Paste the complete Code of Discipline text here... (or upload the PDF below)"></textarea>'+fileField('C')
       +'<button type="button" class="r159-btn" id="r159CSave">SAVE / UPDATE CODE OF DISCIPLINE</button><div id="r159CInfo" class="r159-info"></div></div>'
-    +'<div class="r159-hr-card"><h4>ORGANIZATIONAL CHART — ALL RCADS USERS</h4><label>TITLE</label><input id="r373OrgTitle" value="ORGANIZATIONAL CHART">'+fileField('O')+'<button type="button" class="r159-btn" id="r373OrgSave">UPLOAD ORGANIZATIONAL CHART</button><div id="r373OrgStatus" role="status"></div></div>'
+    +'<div class="r159-hr-card"><h4>ORGANIZATIONAL CHART — ALL RCADS USERS</h4><label>TITLE</label><input id="r373OrgTitle" value="ORGANIZATIONAL CHART">'+fileField('O')+'<button type="button" class="r159-btn" id="r373OrgSave">UPLOAD ORGANIZATIONAL CHART</button><button type="button" class="r159-btn" id="r373OrgView">VIEW ORGANIZATIONAL CHART</button><div id="r373OrgSaved" class="r159-info"></div><div id="r373OrgStatus" role="status"></div></div>'
     +'<div class="r159-hr-card"><h4>RUSTICA CORE VALUES (VIEW-ONLY, INCLUDING OWNERS)</h4>'
       +'<label>TITLE</label><input id="r159VTitle" value="RUSTICA CORE VALUES">'
       +'<label>FULL TEXT</label><textarea id="r159VBody" rows="6" placeholder="Type or paste Rustica’s Core Values... (or upload the PDF / image below)"></textarea>'+fileField('V')
@@ -21753,6 +21754,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
     if(admin.style.display!=='none'&&sec.offsetParent!==null){
       const sig=JSON.stringify([board().updatedAt||'',localStorage.length]);
       if(sec.dataset.sig!==sig){sec.dataset.sig=sig;renderNoticeList();renderMcList();renderGeo();renderLocLog()}
+      const org=read('rcads_r373_org_chart_v1',null),saved=sec.querySelector('#r373OrgSaved');if(saved)saved.textContent=org?'Saved: '+(org.att&&org.att.name||org.title)+' • '+fmtStamp(org.updatedAt):'No Organizational Chart saved on this device yet.';
       ensureLate(sec,'r159HrLate');
     }
   }
@@ -21782,6 +21784,16 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
       if(!confirm('Reset the 1-week limit of '+(own||code)+' for '+Object.keys(m).length+' document(s)?'))return;
       write('rcads_r159_views_'+id,{});document.getElementById('r159ResetCode').value='';document.getElementById('r159ResetOwner').value='';
       alert('Reset ✓ — they can open the documents again.');return;
+    }
+    const quickDoc=t.closest('[data-r373-hr-doc]'),quickJump=t.closest('[data-r373-hr-jump]');
+    if(quickDoc||quickJump){
+      if(!window.rcadsR182||!window.rcadsR182.canIssue())return;
+      if(quickDoc){await openDocList(quickDoc.getAttribute('data-r373-hr-doc'),{id:'HR',name:'HR OPERATION OFFICER',code:'RUS-HR01',role:'HR'});return}
+      const dest=document.getElementById(quickJump.getAttribute('data-r373-hr-jump'));if(dest){const card=dest.closest('.r159-hr-card')||dest;card.scrollIntoView({behavior:'smooth',block:'start'});card.setAttribute('tabindex','-1');card.focus({preventScroll:true})}return;
+    }
+    if(t.closest('#r373OrgView')){
+      if(!window.rcadsR182||!window.rcadsR182.canIssue()){alert('Open the chart from your own Notice Board.');return}
+      await openDocList('ORG',{id:'HR',name:'HR OPERATION OFFICER',code:'RUS-HR01',role:'HR'});return;
     }
     if(t.closest('#r373OrgSave')){
       if(!window.rcadsR182||!window.rcadsR182.canIssue()){alert('HR access is required.');return}
@@ -25233,7 +25245,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   /* ---------- one page per menu ---------- */
   const DASH=['r177Top','r177Preview','rcadsHrFallbackBanner','rcadsApprovalTimerBox','hrSharedMonitoringPanel','rcadsR97HrLivePanel','rcadsR110HrOwnerMonitor','rcadsHrDashboardTop'];
   const GROUPS={rcadsR132CameraPanel:['rcadsR132CameraPanel','rcadsR133EnrollPanel','rcadsR143HrQrPanel'],centralDbStatus:['centralDbStatus','r172DbBar','r182Panel'],hrScheduleUploadPanel:['hrExtraRegistrationNotice','hrScheduleUploadPanel'],rcadsBiometricHrTopBlock:['rcadsBiometricHrTopBlock','hrExtraRegistrationNotice'],rcadsApproverAccessSection:['rcadsApproverAccessSection','rcadsR131ReplacementPanel']};
-  function allView(){try{return localStorage.getItem('r177_hr_allview')==='1'}catch(e){return false}}
+  function allView(){if(document.getElementById('simpleHrAdminModal')?.classList.contains('r178-sec'))return false;try{return localStorage.getItem('r177_hr_allview')==='1'}catch(e){return false}}
   function mainEl(){return document.querySelector('#simpleHrAdminModal .rcads-hr-main')}
   function topChild(el){const m=mainEl();if(!m||!el)return null;let x=el;while(x&&x.parentElement!==m)x=x.parentElement;return x}
   let page='DASH';
@@ -25252,7 +25264,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   const oGo=window.rcadsHrGo;
   if(typeof oGo==='function'){
     window.rcadsHrGo=function(id){
-      if(allView())return oGo.apply(this,arguments);
+      if(allView()){const m=mainEl();if(m)m.classList.remove('r177-paged','r177-sub');return oGo.apply(this,arguments)}
       const el=document.getElementById(id);const c=topChild(el);
       const dashSet=DASH.map(x=>topChild(document.getElementById(x))).filter(Boolean);
       page=(!c||id==='rcadsHrDashboardTop'||dashSet.includes(c))?'DASH':id;
@@ -25800,6 +25812,11 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const head=noBreak+'<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span><em>'+flags.map(esc).join(' • ').replace(/&amp;/g,'&')+'</em></div>';
     const base={handshake:'MUTUAL QR',guardToken:p.g,geo:p.geo,guardGeo:'OK',guardGeoCheckedAt:guardGeo.at||new Date().toISOString(),phone:p.ph||'OWN',authorizedBy:gl,authorizedDepartment:'Security / Guard',dutyBranch:curBranch()};
     if(st.state==='NONE'){
+      if(/^Guard \d+$/.test(gl)&&window.rcadsR373&&window.rcadsR373.dutyTypeEligible(v.emp)){
+        const choice=await window.rcadsR373.chooseDutyType(v.emp);if(!choice)return;
+        if(guardLabel()!==gl||!guardTokens().includes(p.g)||Date.now()-Number(p.ts)>MAX_AGE||shiftState(p.c).state!=='NONE'){resultBox('r181GuardRes','<b>SCAN AGAIN</b><span>The session, QR or attendance status changed. Nothing was recorded.</span>','bad');return}
+        base.dutyType=choice;base.dutyTypeBy=gl;base.dutyTypeSetAt=new Date().toISOString();
+      }
       const s=nowStampLocal();if(!(await appendRecord(p.c,name,Object.assign({type:'IN',kind:'Start',date:s.date.toISOString(),time:s.time},base)))){return};
       resultBox('r181GuardRes',head+'<b class="big ok">✓ TIME IN • '+esc(s.time)+'</b><span>Recorded. (Mutual scan ✓)</span>','ok');return;
     }
@@ -25819,7 +25836,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     recs.filter(r=>!r.errand&&!r.errandReturn).forEach(r=>{const t=Date.parse(r.date);if(r.type==='IN'){if(brkAt!=null){brk+=t-brkAt;brkAt=null}inAt=t}else if(r.type==='OUT'){if(inAt!=null){w+=t-inAt;inAt=null}if(r.kind==='Break')brkAt=t}});
     const now=Date.now();if(inAt!=null)w+=now-inAt;if(brkAt!=null)brk+=now-brkAt;return {st,worked:Math.round(w/60000),brk:Math.round(brk/60000)}}
   function hmR(m){m=Math.max(0,Math.round(m));return Math.floor(m/60)+'h '+(m%60)+'m'}
-  const UT_REASONS=['No guest / slow business','Transferred to another branch','Family emergency','Sick / not feeling well','Sent home by the Manager / Head','Approved half-day / leave','Personal errand (approved)','Power / water interruption','Other (type the reason)'];
+  const UT_REASONS=['No guest / slow business','Duty in catering','Transferred to another branch','Family emergency','Sick / not feeling well','Sent home by the Manager / Head','Approved half-day / leave','Personal errand (approved)','Power / water interruption','Other (type the reason)'];
   function flagUtApproved(code,reason,by){try{const a=JSON.parse(localStorage.getItem('rustica_central_approver_flags_v2')||'[]');a.push({employeeCode:U(code),issueType:'UNDERTIME',decision:'APPROVED',createdAt:new Date().toISOString(),reason,approvedBy:by,source:'R217'});localStorage.setItem('rustica_central_approver_flags_v2',JSON.stringify(a));try{rcadsCloudFlushQueue()}catch(e){}}catch(e){}}
   function utLog(ev){const k='rcads_r217_ut_log_v1';const a=lsGet(k,[])||[];a.push(Object.assign({at:new Date().toISOString()},ev));lsSet(k,a.slice(-600))}
   let pendingHead=null;
@@ -32909,6 +32926,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 
 <style id="rcadsR373Css">.r373-card,.r373-dtr{background:#fffaf2;border:1px solid #d8bfa1;border-radius:12px;padding:12px;margin:12px 0;color:#3d2615;font:13px Arial,sans-serif}.r373-card h3,.r373-dtr h3{font-size:16px;margin:3px 0 10px}.r373-card label{display:block;margin:8px 0}.r373-card select,.r373-card input{box-sizing:border-box;max-width:100%;width:100%;padding:9px}.r373-card button{background:#365d36;color:white;border:0;border-radius:8px;padding:10px;margin:5px 4px 5px 0;font-weight:bold}.r373-badge{background:#9a351f;color:#fff;border-radius:12px;padding:2px 6px;font-size:11px}.r373-request{padding:10px;border-bottom:1px solid #d8bfa1;line-height:1.7}.r373-scroll{overflow:auto;max-height:480px}.r373-scroll table{border-collapse:collapse;width:100%;font-size:12px}.r373-scroll td,.r373-scroll th{border:1px solid #ccb89c;padding:7px;white-space:nowrap;text-align:left}.r373-scroll th{background:#eee0c9}.r373-dtr p{font-size:11px}.r373-card summary{cursor:pointer;padding:10px 0;font-weight:bold}.r373-date{position:sticky;left:0;background:#fffaf2}.r373-doclocked .r159-docbtns,.r373-doclocked .r159-docnote,.r373-doclocked #r159EmpBoard .r159-notice:not(.unread),.r373-doclocked #r159EmpBoard [data-r328-mine]{display:none!important}
 .r373-punches{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.r373-punches>div{padding:8px;background:#eef3e9;border:1px solid #bfd0af;border-radius:8px}.r373-punches small,.r373-punches b{display:block}.r373-punches b{margin-top:5px;font-size:13px}@media(max-width:600px){.r373-punches{grid-template-columns:repeat(2,1fr)}}
+.r373-duty-modal{position:fixed;inset:0;z-index:2147483646;background:#24170ee8;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}.r373-duty-modal>.r373-card{width:100%;max-width:440px;box-sizing:border-box}.r373-duty-modal select{font-size:16px;min-height:44px}
+.r373-hr-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px;margin:10px 0 16px;border:2px solid #c9a46a;border-radius:12px;background:#fffaf2}.r373-hr-shortcuts>b{grid-column:1/-1;font-size:14px;color:#4c2b17}.r373-hr-shortcuts button{min-height:48px!important;width:100%;margin:0!important;padding:10px 8px!important;background:#4c2b17!important;color:#fff!important;border:0;border-radius:8px;font-size:13px!important;font-weight:700;white-space:normal;line-height:1.3}.r159-hr-card{scroll-margin-top:16px}@media(max-width:600px){.r373-hr-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 <script id="rcadsR373Script">(function(){
   'use strict';
@@ -32925,6 +32944,15 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function find(c){for(const b of branches()){const e=staff(b.code).find(e=>U(e.code)===U(c));if(e)return {e,b:b.code}}return null}
   function current(){try{if(typeof currentEmployee!=='undefined'&&currentEmployee)return currentEmployee}catch(_){}const s=window.currentManagerSession;return s&&s.empCode?(find(s.empCode)||{}).e:null}
   function management(e){if(!e)return false;try{if(isManagementEmployee(e))return true}catch(_){}if(U(e.dept)==='MANAGEMENT')return true;return /MANAGER|DEPUTY\s*CHEF|SUPERVISOR|CAPTAIN\s*WAITER|ASST\.?\s*DEPUTY|ASSISTANT\s*DEPUTY/.test(U(e.position))||Object.values(read(HEADS,{})).some(r=>r&&typeof r==='object'&&Object.values(r).some(c=>U(c)===U(e.code)))}
+  function dutyTypeEligible(e){if(!e)return false;try{if(isManagementEmployee(e))return true}catch(_){}return U(e.dept)==='MANAGEMENT'||/\bMANAGER\b|\bCAPT(?:AIN)?\b|\b(?:SENIOR|SR\.?)\s+WAITER\b|\bWAITRESS\b/.test(U(e.position));}
+  function chooseDutyType(e){if(document.getElementById('r373DutyDialog'))return Promise.resolve(null);return new Promise(resolve=>{
+    const modal=document.createElement('div');modal.id='r373DutyDialog';modal.className='r373-duty-modal';modal.setAttribute('role','dialog');modal.setAttribute('aria-modal','true');modal.setAttribute('aria-labelledby','r373DutyTitle');
+    modal.innerHTML='<form class="r373-card"><h3 id="r373DutyTitle">Guard — Choose duty type</h3><p>'+E(e.name)+' • '+E(e.code)+'</p><label>Duty for this Time In<select id="r373DutyChoice" required><option value="">— Choose duty —</option><option value="Catering Duty">Catering Duty</option><option value="Restaurant Duty">Restaurant Duty</option></select></label><p>The selected duty will appear in the employee’s DTR.</p><button type="submit">CONTINUE TIME IN</button><button type="button" data-r373-duty-cancel>CANCEL — DO NOT RECORD</button></form>';
+    const finish=value=>{document.removeEventListener('keydown',key);modal.remove();resolve(value)};
+    const key=ev=>{if(ev.key==='Escape'){ev.preventDefault();finish(null)}};document.addEventListener('keydown',key);
+    modal.querySelector('form').addEventListener('submit',ev=>{ev.preventDefault();const v=modal.querySelector('select').value;if(['Catering Duty','Restaurant Duty'].includes(v))finish(v)});
+    modal.querySelector('[data-r373-duty-cancel]').onclick=()=>finish(null);document.body.appendChild(modal);modal.querySelector('select').focus();
+  });}
   function records(e){try{return getEmployeeAttendanceRecordsForDtr(e)||[]}catch(_){return read('rustica_srf_local_attendance_'+U(e.code),{}).records||[]}}
   function duty(c){const f=find(c),e=f?f.e:{code:c};const rs=records(e).filter(r=>r&&['IN','OUT'].includes(r.type)&&Number.isFinite(Date.parse(r.date))).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));
     const last=rs[rs.length-1];if(!last)return null;const started=rs.filter(r=>r.type==='IN'&&r.kind!=='Return').pop();
@@ -32986,14 +33014,16 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function scheduleParts(branch,code,day){const entries=library().filter(x=>U(x.branch)===U(branch)).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));const pick=acs=>{for(const x of entries.filter(x=>isAcs(x)===acs)){const v=scheduleCell(x,code,day);if(v&&(v.text!==''||v.breakHours!==''||v.ot!==''))return v}return null};return {original:pick(false),acs:pick(true)};}
   const hhmm=m=>{m=Math.max(0,Math.round(Number(m)||0));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')};
   function punchText(r){if(r.time)return r.time;const d=new Date(r.date);return isNaN(d)?'—':d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});}
-  function dtrHtml(title,branch,emp,provided,cut){const rs=records(emp);const rows=rs.length?rs:provided||[];let from=cut&&cut.from||today(),to=cut&&cut.to||today();const days=[];for(let d=new Date(from+'T00:00:00');dateKey(d)<=to&&days.length<32;d.setDate(d.getDate()+1))days.push(dateKey(d));days.sort();
+  function dtrHtml(title,branch,emp,provided,cut){const rs=records(emp);const rows=rs.length?rs:provided||[];const showDuty=dutyTypeEligible(emp)||rows.some(r=>r.dutyType);let from=cut&&cut.from||today(),to=cut&&cut.to||today();const days=[];for(let d=new Date(from+'T00:00:00');dateKey(d)<=to&&days.length<32;d.setDate(d.getDate()+1))days.push(dateKey(d));days.sort();
     const body=days.map(day=>{const p=rows.filter(r=>dateKey(r.date||r.timestamp)===day).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));const br=U((p.find(r=>r.dutyBranch)||{}).dutyBranch||branch);const sp=scheduleParts(br,emp.code,day);let sum=null;try{sum=calculateEmployeeDtrSummary(emp,{from:day,to:day})}catch(_){}const review=sum&&sum.dtrReview||[];
       const times=(type,kind)=>p.filter(r=>r.type===type&&(kind==='break'?/break/i.test(r.kind||''):kind==='return'?r.kind==='Return':kind==='start'?r.kind!=='Return':!/break/i.test(r.kind||''))).map(r=>E(punchText(r))).join('<br>');
       const values=[E(day),E(sp.original&&sp.original.text||'—'),E(sp.acs&&sp.acs.text||'—'),E(sp.acs&&sp.acs.breakHours!==''?sp.acs.breakHours:'—'),E(sp.acs&&sp.acs.ot!==''?sp.acs.ot:'—'),times('IN','start'),times('OUT','break'),times('IN','return'),times('OUT','end'),review.some(r=>r.late)?'FOR REVIEW':sum?hhmm(sum.lateMinutes):'—',review.some(r=>r.ut)?'FOR REVIEW':sum?hhmm(sum.undertimeMinutes):'—',E(bName(br))];
+      if(showDuty){const types=[...new Set(p.filter(r=>r.type==='IN'&&r.kind!=='Return').map(r=>r.dutyType).filter(Boolean))];values.push(E(types.join(' / ')||'Not specified'));}
       return '<tr>'+values.map((v,i)=>'<td'+(i===0?' class="r373-date"':'')+'>'+(v||'—')+'</td>').join('')+'</tr>';
     }).join('');
     const nowRows=rows.filter(r=>dateKey(r.date||r.timestamp)===today());const latest=[['TIME-IN',r=>r.type==='IN'&&r.kind!=='Return'],['BREAK-OUT',r=>r.type==='OUT'&&/break/i.test(r.kind||'')],['BREAK-IN',r=>r.type==='IN'&&r.kind==='Return'],['TIME-OUT',r=>r.type==='OUT'&&!/break/i.test(r.kind||'')]].map(([label,pick])=>'<div><small>'+label+'</small><b>'+E(nowRows.filter(pick).map(punchText).join(' / ')||'Not recorded')+'</b></div>').join('');
-    return '<section class="r373-dtr"><h3>'+E(title)+'</h3><p>TODAY’S SAVED PUNCHES • '+E(today())+'</p><div class="r373-punches">'+latest+'</div><p>'+E(from)+' to '+E(to)+' • '+(navigator.onLine?(syncError?'Sync pending — showing saved records.':'Saved attendance • refreshes automatically.'): 'Offline — showing saved records; new Guard punches appear after sync.')+'</p><p>Swipe sideways to see all DTR columns →</p><div class="r373-scroll"><table><thead><tr>'+['DATE','ORIGINAL SCHED.'].map(t=>'<th rowspan="2">'+t+'</th>').join('')+'<th colspan="3">ACS</th>'+['TIME-IN','BREAK-OUT','BREAK-IN','TIME-OUT','LATE','UNDER TIME','BRANCH'].map(t=>'<th rowspan="2">'+t+'</th>').join('')+'</tr><tr><th>CHANGE SCHED.</th><th>LONG BREAK (HRS)</th><th>APPROVE O.T.</th></tr></thead><tbody>'+body+'</tbody></table></div><p>Original Schedule and ACS come from uploaded filled schedules. Actual punches are shown only after saving. ACS approved OT remains subject to the existing approval and actual-time checks.</p></section>';
+    const dutyToday=showDuty?'<p><b>DUTY TYPE:</b> '+E([...new Set(nowRows.filter(r=>r.type==='IN'&&r.kind!=='Return').map(r=>r.dutyType).filter(Boolean))].join(' / ')||'Not specified')+'</p>':'';
+    return '<section class="r373-dtr"><h3>'+E(title)+'</h3><p>TODAY’S SAVED PUNCHES • '+E(today())+'</p><div class="r373-punches">'+latest+'</div>'+dutyToday+'<p>'+E(from)+' to '+E(to)+' • '+(navigator.onLine?(syncError?'Sync pending — showing saved records.':'Saved attendance • refreshes automatically.'): 'Offline — showing saved records; new Guard punches appear after sync.')+'</p><p>Swipe sideways to see all DTR columns →</p><div class="r373-scroll"><table><thead><tr>'+['DATE','ORIGINAL SCHED.'].map(t=>'<th rowspan="2">'+t+'</th>').join('')+'<th colspan="3">ACS</th>'+['TIME-IN','BREAK-OUT','BREAK-IN','TIME-OUT','LATE','UNDER TIME','BRANCH',...(showDuty?['DUTY TYPE']:[])].map(t=>'<th rowspan="2">'+t+'</th>').join('')+'</tr><tr><th>CHANGE SCHED.</th><th>LONG BREAK (HRS)</th><th>APPROVE O.T.</th></tr></thead><tbody>'+body+'</tbody></table></div><p>Original Schedule and ACS come from uploaded filled schedules. Actual punches are shown only after saving. ACS approved OT remains subject to the existing approval and actual-time checks.</p></section>';
   }
   function refreshDtr(){const e=current();if(!e)return;for(const id of ['rcadsEmployeeOwnDtrOutput','approverReadOnlyOutput','r159ApDtr']){const out=document.getElementById(id);if(!out||!out.querySelector('.r373-dtr,.r159-dtr'))continue;let cut=null;try{cut=getSavedHrCutoffPeriod()}catch(_){}const f=find(e.code),html=dtrHtml(e.name+' • MY DTR',f?f.b:'',e,[],cut);if(out.dataset.r373html!==html){out.dataset.r373html=html;const scroll=out.querySelector('.r373-scroll')?.scrollLeft||0;out.innerHTML=html;out.querySelector('.r373-scroll').scrollLeft=scroll;}}}
   function ownerTick(){const home=document.getElementById('topManagementHomeScreen'),root=home&&home.querySelector('.r100-content');let box=document.getElementById('r373Owner');if(!root||!window.rcadsTopManagementSession||getComputedStyle(home).display==='none'){if(box)box.remove();return}if(!box){box=document.createElement('section');box.id='r373Owner';box.className='r373-card';box.setAttribute('data-r162-tab','home');root.insertBefore(box,root.querySelector(':scope > .r162-nav'));}
@@ -33005,7 +33035,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function documentsLocked(){const e=current();if(!e||management(e)||!document.body.classList.contains('employee-simple-mode'))return false;return document.body.classList.contains('r330-locked');}
   function enforceDocuments(){const locked=documentsLocked();document.body.classList.toggle('r373-doclocked',locked);if(locked){const reader=document.getElementById('r159Reader'),title=document.getElementById('r159ReaderTitle');if(reader?.dataset.r373Reference==='1'||(title&&/ORGANIZATIONAL|CORE VALUES|CODE OF DISCIPLINE|MEMO CIRCULAR/i.test(title.textContent)))document.getElementById('r159ReaderClose')?.click();}}
   document.addEventListener('click',e=>{if(documentsLocked()&&e.target.closest('[data-r159-doc],[data-r159-mc],[data-r328-lib],[data-r328-open]')){e.preventDefault();e.stopImmediatePropagation();}},true);
-  window.rcadsR373={confirmedOt,isResident,residentOnDuty,management,documentsLocked,enforceDocuments,dtrHtml,cancelConfirmed,submit,decide,requests,decision,scheduleParts,scheduleCell,otTick,ownerTick,refreshDtr};
+  window.rcadsR373={confirmedOt,isResident,residentOnDuty,management,dutyTypeEligible,chooseDutyType,documentsLocked,enforceDocuments,dtrHtml,cancelConfirmed,submit,decide,requests,decision,scheduleParts,scheduleCell,otTick,ownerTick,refreshDtr};
   window.addEventListener('rcads:dtr-refresh',()=>{refreshDtr();otTick();});
   window.addEventListener('storage',()=>{refreshDtr();otTick();ownerTick();});
   window.addEventListener('online',()=>sync(true).then(()=>{refreshDtr();otTick();ownerTick()}).catch(()=>{}));
