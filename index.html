@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R383 9PM STORE CLOSED TIME OUT</title>
+<title>Rustica RCADS App — R384 VERIFIED PHILIPPINE TIME</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25447,7 +25447,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R383 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R384 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -25556,7 +25556,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   async function hmac(keyHex,msg){const kb=new Uint8Array(keyHex.match(/../g).map(h=>parseInt(h,16)));const k=await crypto.subtle.importKey('raw',kb,{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg))).slice(0,32)}
   function canon(p){return ['RCADS-R181',p.t,p.c,p.b,p.ts,p.g||'',p.gl||'',p.geo||'',p.ph||''].join('|')}
   function qrSvg(data){const QR=window.RCADSQRCode,E=window.RCADSQRErrorCorrectLevel;if(!QR||!E)return '<div>QR encoder unavailable</div>';const q=new QR(-1,E.M);q.addData(data);q.make();const n=q.getModuleCount(),z=4,s=n+z*2;let d='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+='M'+(c+z)+' '+(r+z)+'h1v1h-1z';return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+s+' '+s+'"><rect width="100%" height="100%" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>'}
-  function nowStampLocal(){const tn=(window.rcadsTrueNow&&window.rcadsTrueNow());const sk=tn==null?0:Date.now()-tn;window.__r301skew=sk;const d=(tn!=null&&Math.abs(sk)>120000)?new Date(tn):new Date(); /* R301: phone clock wrong → internet time */return {date:d,time:d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}}
+  function nowStampLocal(){const tn=window.rcadsTrueNow&&window.rcadsTrueNow();if(tn==null)throw Error('Server time is not verified');window.__r301skew=Date.now()-tn;const d=new Date(tn);return {date:d,time:d.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',second:'2-digit'})}}
   function fmtT(iso){const d=new Date(iso);return isNaN(d)?'':d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
 
   /* ---------------- attendance store (same key the DTR uses) ---------------- */
@@ -25606,8 +25606,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       return true;
     }catch(e){return offOk()}finally{clearTimeout(timer)}
   }
-  function storeClosedTime(){return Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',hourCycle:'h23'}).format(new Date()))>=21}
+  function storeClosedTime(){return Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Manila',hour:'2-digit',hourCycle:'h23'}).format(nowStampLocal().date))>=21}
   async function appendRecord(c,name,rec){
+    if(!window.rcadsSyncClock||!(await window.rcadsSyncClock())){alert('NOT RECORDED: Philippine server time could not be verified. Connect and scan again.');return false}
+    const verified=nowStampLocal();rec=Object.assign({},rec,{date:verified.date.toISOString(),time:verified.time,timeSource:'official-server',timeZone:'Asia/Manila'});
     if(rec.type==='OUT'&&rec.kind==='Break'&&storeClosedTime()){rec=Object.assign({},rec,{kind:'End Shift',reason:'Store closed — 9:00 PM onwards',reasonApproved:'N/A'});delete rec.errand;delete rec.errandBy;delete rec.errandWhat}
     if(guardSaveBusy)return false;
     guardSaveBusy=true;
@@ -25753,6 +25755,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   }
   let r287Off=false;
   async function refreshAttendanceStatus(resultId){
+    if(!window.rcadsSyncClock||!(await window.rcadsSyncClock())){resultBox(resultId,'<b>NOT RECORDED</b><span>Cannot verify Philippine server time. Connect to the internet and scan again.</span>','bad');return false}
     /* R287: offline is allowed — the record is saved on this phone and syncs automatically when internet returns */
     try{
       if(!navigator.onLine||typeof window.rcadsCloudPullMerge!=='function')throw new Error('Offline');
@@ -30591,13 +30594,18 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
     var t=document.createElement('div');t.className='r301-trust';t.innerHTML='🔒 Official RCADS: <b>'+OFFICIAL+'</b><br>Never give your PIN or your QR to anyone. HR will NEVER ask for your PIN by chat, text or call.';c.appendChild(t)}
   setInterval(function(){try{guardFake();trust()}catch(e){}},700);
   /* 3) TRUE TIME: internet time from the official site — a phone whose clock was changed cannot fake TIME IN / OUT */
-  var base=null;
+  var base=null,clockPending=null;
   async function syncClock(){
-    if(!navigator.onLine||!/^https?:$/.test(location.protocol))return;
-    try{var t0=performance.now();var r=await fetch(location.pathname+'?clock='+Date.now(),{method:'HEAD',cache:'no-store'});var t1=performance.now();
-      var d=Date.parse(r.headers.get('Date')||'');if(!isNaN(d))base={srv:d+500,perf:t1-(t1-t0)/2}}catch(e){}
+    if(clockPending)return clockPending;
+    if(!navigator.onLine||!/^https?:$/.test(location.protocol))return false;
+    clockPending=(async()=>{const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),8000);try{
+      var t0=performance.now();var r=await fetch(location.pathname+'?clock='+crypto.randomUUID(),{method:'HEAD',cache:'no-store',signal:ctrl.signal});var t1=performance.now();
+      var d=Date.parse(r.headers.get('Date')||'');if(!r.ok||!Number.isFinite(d)||t1-t0>8000)return false;
+      base={srv:d+500,perf:t1-(t1-t0)/2};return true;
+    }catch(e){return false}finally{clearTimeout(timer);clockPending=null}})();return clockPending;
   }
-  window.rcadsTrueNow=function(){return base?base.srv+(performance.now()-base.perf):null};
+  window.rcadsSyncClock=syncClock;
+  window.rcadsTrueNow=function(){return base&&performance.now()-base.perf<15*60000?base.srv+(performance.now()-base.perf):null};
   window.rcadsClockSkewMs=function(){var t=window.rcadsTrueNow();return t==null?0:Date.now()-t};
   window.addEventListener('online',function(){setTimeout(syncClock,1500)});
   setInterval(syncClock,10*60000);setTimeout(syncClock,2500);
