@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R384 VERIFIED PHILIPPINE TIME</title>
+<title>Rustica RCADS App — R385 HTML BACKUP</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -13990,7 +13990,8 @@ async function rcadsRestoreFullPreserveBackup(event){
 
   try{
     const text=await file.text();
-    const data=JSON.parse(text);
+    const backupMatch=/<script\b[^>]*\bid=["']rcadsBackupData["'][^>]*>([\s\S]*?)<\/script\s*>/i.exec(text);
+    const data=JSON.parse(backupMatch?backupMatch[1]:text);
 
     if(data?.rcadsBackupFormat!==RCADS_PRESERVE_FORMAT){
       alert("This is not a valid RCADS MASTER PRESERVE ALL backup.");
@@ -14683,7 +14684,7 @@ function rcadsRefreshHrDashboard(){
     <h3 style="margin:0 0 6px;color:#254d72">RCADS DATA BACKUP</h3>
     <p style="margin:0 0 10px">Download a copy of the RCADS records stored on this HR device, including schedules and DTR data.</p>
     <button type="button" onclick="rcadsDashboardBackupDownload()" style="padding:12px 18px;border:0;border-radius:8px;background:#254d72;color:white;font-weight:900;max-width:100%">DOWNLOAD FULL RCADS BACKUP</button>
-    <p id="rcadsDashboardBackupStatus" role="status" style="margin:8px 0 0;overflow-wrap:anywhere">The backup downloads as a .json file. Check your browser Downloads after saving.</p>
+    <p id="rcadsDashboardBackupStatus" role="status" style="margin:8px 0 0;overflow-wrap:anywhere">The backup downloads as an HTML file. Open it in Edge or Chrome to view your saved RCADS dashboard.</p>
   </div>
   <div class="rcads-hr-topbar">
     <div>
@@ -14991,7 +14992,7 @@ function rcadsRefreshHrDashboard(){
         RESTORE FULL RCADS DATA BACKUP
       </button>
 
-      <input id="rcadsFullRestoreFile" type="file" accept=".json,application/json"
+      <input id="rcadsFullRestoreFile" type="file" accept=".html,.json,text/html,application/json"
         onchange="rcadsRestoreFullPreserveBackup(event)" style="display:none">
 
       <div id="rcadsPreserveStatus"
@@ -25460,7 +25461,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R384 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R385 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -33166,5 +33167,60 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   window.rcadsHolidays={rows,lookup,save,employeeBranch,mount};
   setInterval(mount,1200);window.addEventListener('storage',renderRows);mount();
 })();
+
+/* Portable RCADS snapshot: application + embedded records, isolated from live sync. */
+(()=>{
+  function backupBoot(){
+    const snap=JSON.parse(document.getElementById('rcadsBackupData').textContent);
+    window.RCADS_OFFLINE_BACKUP=snap;
+    function storage(values){const m=new Map(Object.entries(values||{}));return {get length(){return m.size},key:i=>[...m.keys()][i]??null,getItem:k=>m.has(String(k))?m.get(String(k)):null,setItem:(k,v)=>m.set(String(k),String(v)),removeItem:k=>m.delete(String(k)),clear:()=>m.clear()};}
+    Object.defineProperty(window,'localStorage',{value:storage(snap.localStorage),configurable:false});
+    Object.defineProperty(window,'sessionStorage',{value:storage(),configurable:false});
+    window.fetch=()=>Promise.reject(Error('Offline backup: live connection disabled.'));
+    const show=()=>{
+      try{window.centralSyncEnabled=()=>false;window.rcadsCloudReady=()=>false;window.rcadsCentralOfflineFallback=true;
+        hrApproverSelectionUnlocked=true;
+        if(typeof loadSimpleHrPins==='function')loadSimpleHrPins();
+        if(typeof renderSimpleHrAdmin==='function')renderSimpleHrAdmin();
+        if(typeof showHrOnlyPanels==='function')showHrOnlyPanels();
+        const modal=document.getElementById('simpleHrAdminModal');if(modal)modal.style.display='block';
+        if(typeof rcadsRefreshHrDashboard==='function')rcadsRefreshHrDashboard();
+      }catch(e){console.warn('Backup dashboard',e)}
+      const bar=document.createElement('div');bar.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:2147483647;padding:10px;background:#254d72;color:white;text-align:center;font:14px Arial';
+      bar.textContent='RCADS BACKUP • '+snap.branch+' • '+new Date(snap.createdAt).toLocaleString()+' • Offline copy. Changes stay in this window; download a new backup to keep them.';document.body.appendChild(bar);
+    };
+    window.addEventListener('load',()=>setTimeout(show,700));
+  }
+  function build(source,snapshot){
+    if(!source.includes('function rcadsCollectFullPreserveBackup(')||!/<head\b[^>]*>/i.test(source))throw Error('RCADS application source is unavailable. Reopen the online app and retry.');
+    const payload=JSON.stringify({...snapshot,applicationSource:source}).replace(/</g,'\\u003c');
+    const policy='<meta id="rcadsBackupPolicy" http-equiv="Content-Security-Policy" content="connect-src \'none\'; form-action \'none\'; frame-src \'none\'; worker-src \'none\'; object-src \'none\'">';
+    const block=policy+'<script id="rcadsBackupData" type="application/json">'+payload+'</scr'+'ipt><script id="rcadsBackupBoot">('+backupBoot.toString()+')();</scr'+'ipt>';
+    return source.replace(/<head\b[^>]*>/i,m=>m+block);
+  }
+  let sourcePromise;
+  async function source(){
+    if(window.RCADS_OFFLINE_BACKUP)return window.RCADS_OFFLINE_BACKUP.applicationSource;
+    if(!sourcePromise)sourcePromise=fetch(location.pathname,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Could not read the RCADS application for backup.');return r.text()}).catch(e=>{sourcePromise=null;throw e});
+    return sourcePromise;
+  }
+  async function download(auto=false){
+    if(typeof hrApproverSelectionUnlocked==='undefined'||!hrApproverSelectionUnlocked){if(!auto)alert('Sign in as HR before saving a backup.');return '';}
+    const status=document.getElementById('rcadsDashboardBackupStatus');
+    try{
+      if(status)status.textContent='Preparing RCADS HTML backup…';
+      const raw=await source(),snap=rcadsCollectFullPreserveBackup(),html=build(raw,snap);
+      const name='RCADS_'+snap.branch+'_FULL_BACKUP_'+rcadsTimestampForFile()+'.html';
+      const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
+      localStorage.setItem('rcads_last_full_preserve_backup',snap.createdAt);
+      const message='Backup download requested: '+name+'. Open this HTML file in Edge or Chrome to view the saved RCADS dashboard.';
+      if(status)status.textContent=message;const old=document.getElementById('rcadsPreserveStatus');if(old)old.textContent=message;return name;
+    }catch(e){if(status)status.textContent='Backup failed: '+e.message;if(!auto)alert('Backup failed: '+e.message);return '';}
+  }
+  window.rcadsHtmlBackup={build};
+  window.rcadsExportFullPreserveBackup=download;
+  window.rcadsDashboardBackupDownload=()=>download(false);
+})();
+
 </script>
 </body></html>
