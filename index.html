@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R372 ANDROID QR READER FALLBACK</title>
+<title>Rustica RCADS App — R373 OT CONFIRMATION AND EMPLOYEE DTR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21312,6 +21312,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
     return '<div class="r159-docbtns">'
       +'<button type="button" class="r159-docbtn" data-r159-doc="COD">📘 CODE OF DISCIPLINE'+(b.cod||(window.rcadsR328&&window.rcadsR328.count('COD'))?'':' <small>(not yet posted)</small>')+'</button>'
       +'<button type="button" class="r159-docbtn" data-r159-doc="MC">📄 MEMO CIRCULARS <small>('+(b.circulars.length+(window.rcadsR328?window.rcadsR328.count('MC'):0))+')</small></button>'
+      +'<button type="button" class="r159-docbtn wide" data-r159-doc="ORG">🏢 ORGANIZATIONAL CHART</button>'
       +'<button type="button" class="r159-docbtn wide" data-r159-doc="CV">⭐ RUSTICA CORE VALUES'+(b.cv?'':' <small>(not yet posted)</small>')+'</button>'
       +'</div><div class="r159-docnote">VIEW ONLY • Each document can be opened once a week. Downloading, copying, printing and screenshots are not allowed. Your name is watermarked.</div>';
   }
@@ -21400,7 +21401,9 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
     return '<div class="r159-locked-doc"><div class="i">🔒</div><b>YOU HAVE ALREADY READ THIS</b><p>You opened this on <b>'+esc(d(g.last))+'</b>.</p><p>You can open it again on <b>'+esc(d(g.next))+'</b>.</p><small>Each document can be opened only once a week. If HR posts a new version, you can open it right away. If you need to read it again now, see HR.</small></div>';
   }
   function openReader(title,bodyHtml,v,docKey){
-    const r=ensureReader();readerViewer=v||null;
+    const reference=/^(ORG|CV|COD|MC)_/.test(docKey||'')||/^(MEMO CIRCULARS|CODE OF DISCIPLINE)$/.test(title||'');
+    if(reference&&window.rcadsR373&&window.rcadsR373.documentsLocked())return;
+    const r=ensureReader();r.dataset.r373Reference=reference?'1':'';readerViewer=v||null;
     const gate=viewGate(v,docKey);
     if(!gate.ok)bodyHtml=lockedHtml(gate);
     const protect=false; // R166: no blur — documents are shown clearly
@@ -21436,7 +21439,9 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
   document.addEventListener('visibilitychange',()=>{if(document.hidden)shield()});
   window.addEventListener('beforeprint',shield);
 
-  function openDocList(kind,v,force){
+  async function openDocList(kind,v,force){
+    if(window.rcadsR373&&window.rcadsR373.documentsLocked())return;
+    if(kind==='ORG'){const o=read('rcads_r373_org_chart_v1',null);if(!o){alert('No Organizational Chart posted yet.');return}await ensureAttLocal(o.att);openReader(o.title,'<div class="r159-doc-meta">Updated '+esc(fmtStamp(o.updatedAt))+' • HR OPERATION OFFICER</div>'+attPagesHtml(o.att),v,'ORG_'+o.version);return}
     if(!force&&(kind==='MC'||kind==='COD')&&window.rcadsR328&&window.rcadsR328.openLib(kind,v))return;
     const b=board();
     if(kind==='CV'){
@@ -21524,6 +21529,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
   function dayLabel(dk){const d=new Date(dk+'T00:00:00');return d.toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'})}
 
   function personalCutoffHtml(title,branch,emp,rows){
+    if(window.rcadsR373)return window.rcadsR373.dtrHtml(title,branch,emp,rows,cutoff());
     const c=cutoff(),byDate=groupByDate(rows),days=cutoffDates(c);
     let worked=0,late=0,lateDays=0,absent=0,under=0;
     const body=days.map(dk=>{
@@ -21687,6 +21693,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
       +'<label>EFFECTIVE DATE</label><input id="r159CEff" type="date">'
       +'<label>FULL TEXT (paste here)</label><textarea id="r159CBody" rows="8" placeholder="Paste the complete Code of Discipline text here... (or upload the PDF below)"></textarea>'+fileField('C')
       +'<button type="button" class="r159-btn" id="r159CSave">SAVE / UPDATE CODE OF DISCIPLINE</button><div id="r159CInfo" class="r159-info"></div></div>'
+    +'<div class="r159-hr-card"><h4>ORGANIZATIONAL CHART — ALL RCADS USERS</h4><label>TITLE</label><input id="r373OrgTitle" value="ORGANIZATIONAL CHART">'+fileField('O')+'<button type="button" class="r159-btn" id="r373OrgSave">UPLOAD ORGANIZATIONAL CHART</button><div id="r373OrgStatus" role="status"></div></div>'
     +'<div class="r159-hr-card"><h4>RUSTICA CORE VALUES (VIEW-ONLY, INCLUDING OWNERS)</h4>'
       +'<label>TITLE</label><input id="r159VTitle" value="RUSTICA CORE VALUES">'
       +'<label>FULL TEXT</label><textarea id="r159VBody" rows="6" placeholder="Type or paste Rustica’s Core Values... (or upload the PDF / image below)"></textarea>'+fileField('V')
@@ -21775,6 +21782,17 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
       if(!confirm('Reset the 1-week limit of '+(own||code)+' for '+Object.keys(m).length+' document(s)?'))return;
       write('rcads_r159_views_'+id,{});document.getElementById('r159ResetCode').value='';document.getElementById('r159ResetOwner').value='';
       alert('Reset ✓ — they can open the documents again.');return;
+    }
+    if(t.closest('#r373OrgSave')){
+      if(!window.rcadsR182||!window.rcadsR182.canIssue()){alert('HR access is required.');return}
+      if(!pendingAtt.O){alert('Choose a PDF or image of the Organizational Chart first.');return}
+      const a=saveAttachment(pendingAtt.O);if(!a)return;
+      const prev=read('rcads_r373_org_chart_v1',null),version=Date.now().toString(36);
+      if(prev&&!write('rcads_r373_org_history_'+prev.version,prev))return;
+      if(!write('rcads_r373_org_chart_v1',{att:a,title:document.getElementById('r373OrgTitle').value.trim()||'ORGANIZATIONAL CHART',updatedAt:new Date().toISOString(),version,by:'HR OPERATION OFFICER'}))return;
+      clearFile('O');document.getElementById('r373OrgStatus').textContent='Saved on this device. Syncing to other RCADS users…';
+      try{await rcadsCloudFlushQueue();const pending=typeof rcadsCloudQueue!=='undefined'&&rcadsCloudQueue.size;if(!navigator.onLine||pending)throw Error('Sync pending');document.getElementById('r373OrgStatus').textContent='Organizational Chart saved and synced.'}catch(err){document.getElementById('r373OrgStatus').textContent='Saved locally — upload pending. Keep this device online.'}
+      ensureAll();return;
     }
     if(t.closest('#r159VSave')){
       const body=document.getElementById('r159VBody').value.trim();
@@ -25566,7 +25584,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(rec&&typeof rec==='object'&&Math.abs(window.__r301skew||0)>120000){rec.phoneClockOffMin=Math.round((window.__r301skew||0)/60000);rec.clockCorrected=true} /* R301: HR sees it */
     const k=attKey(c);const s=lsGet(k,null)||{employeeCode:U(c),employeeName:name||'',records:[]};
     s.records=(s.records||[]).concat([rec]).sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0));s.employeeName=s.employeeName||name||'';s.savedAt=new Date().toISOString();
-    const ok=lsSet(k,s);try{window.dispatchEvent(new CustomEvent('rcads:dtr-refresh'))}catch(e){}return ok!==false;
+    const ok=lsSet(k,s);if(ok!==false){try{window.dispatchEvent(new CustomEvent('rcads:dtr-refresh'));Promise.resolve(rcadsCloudFlushQueue()).catch(()=>{})}catch(e){}}return ok!==false;
     }finally{guardSaveBusy=false}
   }
 
@@ -28687,7 +28705,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   function deptOf(e){const d=U(e.dept);if(d==='KITCHEN'||d==='DINING')return d;if(d==='EXTRA')return KITCHEN_RE.test(e.position||'')?'KITCHEN':'DINING';return d}
   function isSep(c){try{return !!(window.rcadsIsSeparated&&window.rcadsIsSeparated(c))}catch(e){return false}}
   function cut(){try{const c=getSavedHrCutoffPeriod();if(c&&c.from)return c}catch(e){}return null}
-  function all(){const v=lsGet(KEY,[]);return Array.isArray(v)?v:[]}
+  function all(){const v=lsGet(KEY,[]);return (Array.isArray(v)?v:[]).concat(window.rcadsR373?window.rcadsR373.confirmedOt():[])}
   function appMin(code,dk){return all().filter(r=>U(r.code)===U(code)&&r.date===dk&&!r.voided&&sameDay(r)).reduce((s,r)=>s+(+r.hours||0)*60,0)}
   function acsMin(code,dk){try{return window.rcadsR215&&window.rcadsR215.acsOtMinutes?window.rcadsR215.acsOtMinutes(code,dk):0}catch(e){return 0}}
   function hasInToday(code){let recs=[];try{recs=getEmployeeAttendanceRecordsForDtr({code})||[]}catch(e){}const t=today();return recs.some(r=>{let k='';try{k=dtrDateKey(r.date)}catch(e){}return k===t&&r.type==='IN'})}
@@ -28718,7 +28736,8 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
 
   /* ---- Head 1 card ---- */
   function ctx(){try{const a=typeof getCurrentApproverAssignment==='function'?getCurrentApproverAssignment():null;if(!a||!document.body.classList.contains('approver-only-mode'))return null;
-    if(a.key!=='kitchenHead1'&&a.key!=='diningHead1')return null;const e=currentEmployee;let br=(window.rcadsHeadBranch&&window.rcadsHeadBranch(e))||'';if(!br)for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(!br)return null;
+    if(a.key!=='kitchenHead1'&&a.key!=='diningHead1')return null;const e=currentEmployee;
+    if(window.rcadsR373&&!window.rcadsR373.isResident(e.code,a.key))return null;let br=(window.rcadsHeadBranch&&window.rcadsHeadBranch(e))||'';if(!br)for(const x of branches()){if(staff(x.code).some(q=>U(q.code)===U(e.code))){br=x.code;break}}if(!br)return null;
     return {b:br,dept:a.key==='kitchenHead1'?'KITCHEN':'DINING',by:(a.key==='kitchenHead1'?'KITCHEN HEAD 1':'DINING HEAD 1')+' • '+(e.name||e.code),me:U(e.code)}}catch(e){return null}}
   let MSG='';
   function cardHtml(c){
@@ -28739,16 +28758,17 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     const app=document.getElementById('rcadsR131ApproverApp');const host=app&&app.querySelector('.r131-shell');if(!host)return;
     if(!el){el=document.createElement('div');el.id='r218Card';el.className='r218-card';el.setAttribute('data-r162-tab','approvals');
       el.addEventListener('change',e=>{if(e.target.id==='r218Reason'){const o=document.getElementById('r218Other');if(o)o.hidden=!/^Other/.test(e.target.value)}});
-      el.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;const cc=ctx();if(!cc)return;
+      el.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;const cc=ctx();if(!cc)return;
         if(t.closest('[data-r218-save]')){const code=document.getElementById('r218Emp').value,date=today(),h=+document.getElementById('r218Hrs').value;let reason=document.getElementById('r218Reason').value;
+          if(!window.rcadsR373||!window.rcadsR373.residentOnDuty(cc.me,cc.b)){MSG='The resident Head must be on duty in this branch.';el.dataset.h='';tick();return}
           if(!code){MSG='Choose the employee.';el.dataset.h='';tick();return}if(!hasInToday(code)){MSG='⛔ No TIME IN today for this employee — overtime can only be approved on the same day for someone who is on duty.';el.dataset.h='';tick();return}
           if(/^Other/.test(reason)){reason=String(document.getElementById('r218Other').value||'').trim();if(!reason){MSG='Type the reason.';el.dataset.h='';tick();return}}
           if(code===cc.me){MSG='You cannot approve your own overtime.';el.dataset.h='';tick();return}
-          const e2=staff(cc.b).find(x=>U(x.code)===code);const L=all();
-          if(L.some(r=>!r.voided&&U(r.code)===code&&r.date===date)&&!confirm('There is already approved OT for '+(e2?e2.name:code)+' on '+fmt(date)+'. Add '+h+' more hour(s)?'))return;
+          const e2=staff(cc.b).find(x=>U(x.code)===code);const L=lsGet(KEY,[]);
+          if(all().some(r=>!r.voided&&U(r.code)===code&&r.date===date)&&!confirm('There is already approved OT for '+(e2?e2.name:code)+' on '+fmt(date)+'. Add '+h+' more hour(s)?'))return;
           L.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),code,name:e2?e2.name:code,branch:cc.b,dept:cc.dept,date,hours:h,reason,by:cc.by,at:new Date().toISOString()});lsSet(KEY,L.slice(-3000));
           MSG='✓ '+h+' hour(s) OT approved for '+(e2?e2.name:code)+' • '+fmt(date)+'. Put the same in the ACS.';el.dataset.h='';tick();return}
-        const v=t.closest('[data-r218-void]');if(v){if(!confirm('Remove this approved overtime?'))return;const L=all();const r=L.find(x=>x.id===v.getAttribute('data-r218-void'));if(r&&r.date!==today()){MSG='Past overtime cannot be changed.';el.dataset.h='';tick();return}if(r){r.voided=true;r.voidedBy=cc.by;r.voidedAt=new Date().toISOString();lsSet(KEY,L)}MSG='Removed.';el.dataset.h='';tick()}
+        const v=t.closest('[data-r218-void]');if(v){if(!confirm('Remove this approved overtime?'))return;const requestId=v.getAttribute('data-r218-void');if(requestId.startsWith('R373_')){if(window.rcadsR373)await window.rcadsR373.cancelConfirmed(requestId);el.dataset.h='';tick();return}const L=lsGet(KEY,[]);const r=L.find(x=>x.id===requestId);if(r&&r.date!==today()){MSG='Past overtime cannot be changed.';el.dataset.h='';tick();return}if(r){r.voided=true;r.voidedBy=cc.by;r.voidedAt=new Date().toISOString();lsSet(KEY,L)}MSG='Removed.';el.dataset.h='';tick()}
       })}
     const nav=host.querySelector(':scope > .r162-nav');if(el.parentElement!==host){if(nav)host.insertBefore(el,nav);else host.appendChild(el)}
     if(el.dataset.h&&el.contains(document.activeElement))return;const h=cardHtml(c);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
@@ -31151,10 +31171,11 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   function lockTick(){
     const panel=document.getElementById('employeeSimplePanel');const e=emp();
     const on=!!(panel&&e&&document.body.classList.contains('employee-simple-mode')&&getComputedStyle(panel).display!=='none');
-    const exempt=on&&['HRA','DH1','MANAGER'].includes(staffRole(e.code));
+    const exempt=on&&(['HRA','DH1','MANAGER'].includes(staffRole(e.code))||(window.rcadsR373&&window.rcadsR373.management(e)));
     const st=on&&!exempt?state(e.code):{open:true};
     const locked=on&&!exempt&&!st.open;
     document.body.classList.toggle('r330-locked',locked);
+    if(window.rcadsR373)window.rcadsR373.enforceDocuments();
     if(!panel)return;
     [...panel.children].forEach(c=>c.classList.toggle('r330-hide',locked&&!KEEP(c)));
     let L=document.getElementById('r330Lock');
@@ -32884,5 +32905,112 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 })();
 
 
+</script>
+
+<style id="rcadsR373Css">.r373-card,.r373-dtr{background:#fffaf2;border:1px solid #d8bfa1;border-radius:12px;padding:12px;margin:12px 0;color:#3d2615;font:13px Arial,sans-serif}.r373-card h3,.r373-dtr h3{font-size:16px;margin:3px 0 10px}.r373-card label{display:block;margin:8px 0}.r373-card select,.r373-card input{box-sizing:border-box;max-width:100%;width:100%;padding:9px}.r373-card button{background:#365d36;color:white;border:0;border-radius:8px;padding:10px;margin:5px 4px 5px 0;font-weight:bold}.r373-badge{background:#9a351f;color:#fff;border-radius:12px;padding:2px 6px;font-size:11px}.r373-request{padding:10px;border-bottom:1px solid #d8bfa1;line-height:1.7}.r373-scroll{overflow:auto;max-height:480px}.r373-scroll table{border-collapse:collapse;width:100%;font-size:12px}.r373-scroll td,.r373-scroll th{border:1px solid #ccb89c;padding:7px;white-space:nowrap;text-align:left}.r373-scroll th{background:#eee0c9}.r373-dtr p{font-size:11px}.r373-card summary{cursor:pointer;padding:10px 0;font-weight:bold}.r373-date{position:sticky;left:0;background:#fffaf2}.r373-doclocked .r159-docbtns,.r373-doclocked .r159-docnote,.r373-doclocked #r159EmpBoard .r159-notice:not(.unread),.r373-doclocked #r159EmpBoard [data-r328-mine]{display:none!important}
+.r373-punches{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.r373-punches>div{padding:8px;background:#eef3e9;border:1px solid #bfd0af;border-radius:8px}.r373-punches small,.r373-punches b{display:block}.r373-punches b{margin-top:5px;font-size:13px}@media(max-width:600px){.r373-punches{grid-template-columns:repeat(2,1fr)}}
+</style>
+<script id="rcadsR373Script">(function(){
+  'use strict';
+  const U=x=>String(x||'').trim().toUpperCase(), E=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const REQ='rcads_r373_ot_request_',DEC='rcads_r373_ot_decision_',HEADS='rcads_r231_branch_heads_v1';
+  const REASONS=['Full house / heavy guest volume','Catering / event / function','Short of staff (absent / leave)','Covering for a late reliever','Special order / big order','Opening / closing preparation','Other (type the reason)'];
+  const read=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(_){return d}};
+  function put(k,v){localStorage.setItem(k,JSON.stringify(v));window.dispatchEvent(new CustomEvent('rcads:dtr-refresh'))}
+  const dateKey=d=>{d=new Date(d);return isNaN(d)?'':d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+  const today=()=>dateKey(new Date());
+  function branches(){try{return Object.values(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:window.RUSTICA_BRANCHES||{}).filter(b=>b&&b.code)}catch(_){return []}}
+  const bName=b=>(branches().find(x=>x.code===b)||{}).name||String(b||'').replace(/_/g,' ');
+  function staff(b){try{return (rusticaManagerLoadBranchEmployeeMaster(b)||[]).filter(e=>e&&e.code)}catch(_){return []}}
+  function find(c){for(const b of branches()){const e=staff(b.code).find(e=>U(e.code)===U(c));if(e)return {e,b:b.code}}return null}
+  function current(){try{if(typeof currentEmployee!=='undefined'&&currentEmployee)return currentEmployee}catch(_){}const s=window.currentManagerSession;return s&&s.empCode?(find(s.empCode)||{}).e:null}
+  function management(e){if(!e)return false;try{if(isManagementEmployee(e))return true}catch(_){}if(U(e.dept)==='MANAGEMENT')return true;return /MANAGER|DEPUTY\s*CHEF|SUPERVISOR|CAPTAIN\s*WAITER|ASST\.?\s*DEPUTY|ASSISTANT\s*DEPUTY/.test(U(e.position))||Object.values(read(HEADS,{})).some(r=>r&&typeof r==='object'&&Object.values(r).some(c=>U(c)===U(e.code)))}
+  function records(e){try{return getEmployeeAttendanceRecordsForDtr(e)||[]}catch(_){return read('rustica_srf_local_attendance_'+U(e.code),{}).records||[]}}
+  function duty(c){const f=find(c),e=f?f.e:{code:c};const rs=records(e).filter(r=>r&&['IN','OUT'].includes(r.type)&&Number.isFinite(Date.parse(r.date))).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));
+    const last=rs[rs.length-1];if(!last)return null;const started=rs.filter(r=>r.type==='IN'&&r.kind!=='Return').pop();
+    if(!started||Date.now()-Date.parse(started.date)>36*3600000)return null;
+    if(last.type==='OUT'&&!/break/i.test(last.kind||''))return null;
+    return {branch:U(last.dutyBranch||started.dutyBranch||(f&&f.b)),last,started};}
+  function residentCode(b,dept){return U((read(HEADS,{})[b]||{})[dept==='KITCHEN'?'kitchenHead1':'diningHead1'])}
+  function isResident(c,key){return branches().some(b=>U((read(HEADS,{})[b.code]||{})[key])===U(c))}
+  function residentOnDuty(c,b){const d=duty(c);return !!d&&d.branch===U(b)}
+  function department(e){const d=U(e.dept);if(d==='KITCHEN'||d==='DINING')return d;if(d==='EXTRA')return /COOK|KITCHEN|DISH|PANTRY|CHEF|PREP|BAKER|BUTCHER|UTILITY|STEWARD|GRILL|FRY/i.test(e.position||'')?'KITCHEN':'DINING';return d}
+  function roving(e){if(!e)return '';const p=U(e.position);if(/DEPUTY\s*CHEF\s*-?\s*[1-6](?!\d)/.test(p))return 'KITCHEN';if(/MANAGER/.test(p)&&!/ASST|ASSISTANT/.test(p))return 'DINING';return ''}
+  function requests(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith(REQ)){const r=read(k,null);if(r&&r.id)out.push(r)}}return out.sort((a,b)=>String(b.at).localeCompare(String(a.at)))}
+  const decision=r=>read(DEC+r.id,null);
+  function confirmedOt(){return requests().flatMap(r=>{const d=decision(r);if(!d||d.status!=='CONFIRMED'||d.requestId!==r.id||U(d.byCode)!==U(r.residentCode)||dateKey(d.at)!==r.date||dateKey(r.at)!==r.date)return [];
+    return [{id:'R373_'+r.id,code:r.code,name:r.name,branch:r.branch,dept:r.dept,date:r.date,hours:r.hours,reason:r.reason,by:d.by+' (requested by '+r.by+')',at:d.at,requestId:r.id}];});}
+  let syncing=null,lastSync=0,syncError='',busy=false;
+  async function sync(force=false){if(syncing)return syncing;if(!force&&Date.now()-lastSync<4500)return;if(!navigator.onLine)throw Error('Offline — wait for internet before requesting or confirming OT.');
+    syncing=(async()=>{if(typeof rcadsCloudPullMerge!=='function'||!rcadsCloudReady())throw Error('Cloud connection is not ready.');await rcadsCloudPullMerge();lastSync=Date.now();syncError='';})().catch(e=>{syncError=e.message;throw e}).finally(()=>{syncing=null});return syncing;}
+  async function publish(k,v){if(!rcadsCloudReady()||!navigator.onLine)throw Error('Internet is required.');await rcadsCloudPushKey(k,JSON.stringify(v),new Date().toISOString());put(k,v);}
+  async function submit({branch,code,hours,reason}){
+    await sync(true);const me=current(),dept=roving(me),d=me&&duty(me.code);branch=U(branch);code=U(code);hours=Number(hours);reason=String(reason||'').trim();
+    if(!me||!dept||!d||d.branch!==branch)throw Error('The roving Head must be on duty in the requested branch.');
+    const rc=residentCode(branch,dept);if(!rc)throw Error('HR must assign the resident Head 1 for this branch first.');if(rc===U(me.code))throw Error('Use your resident Head APPROVE OVERTIME card.');
+    const target=staff(branch).find(e=>U(e.code)===code)||(find(code)||{}).e;
+    if(!target||department(target)!==dept||!residentOnDuty(code,branch)||code===U(me.code))throw Error('Choose an on-duty employee of this department in this branch.');
+    if(window.rcadsIsSeparated&&window.rcadsIsSeparated(code))throw Error('This employee is separated.');
+    if(!Number.isInteger(hours)||hours<1||hours>6||!reason)throw Error('Choose 1–6 whole hours and a reason.');
+    if(requests().some(r=>r.code===code&&r.date===today()&&r.branch===branch&&!decision(r)))throw Error('There is already a pending request for this employee today.');
+    const f=find(rc),r={id:crypto.randomUUID(),code,name:target.name,branch,dept,date:today(),hours,reason,by:me.name||me.code,byCode:U(me.code),residentCode:rc,residentName:f?f.e.name:rc,at:new Date().toISOString()};
+    await publish(REQ+r.id,r);return r;
+  }
+  async function decide(id,status,note=''){
+    await sync(true);const r=read(REQ+id,null),me=current();if(!r||!me||!['CONFIRMED','REJECTED'].includes(status))throw Error('Request not available.');
+    if(U(me.code)!==r.residentCode||residentCode(r.branch,r.dept)!==U(me.code)||!residentOnDuty(me.code,r.branch))throw Error('Only the assigned resident Head, on duty in this branch, can confirm or reject.');
+    if(r.date!==today())throw Error('This request has expired. OT must be confirmed on the same day.');if(decision(r))throw Error('This request already has a decision.');
+    if(status==='REJECTED'&&!String(note).trim())throw Error('Enter a reason for rejection.');
+    await publish(DEC+id,{requestId:id,status,by:me.name||me.code,byCode:U(me.code),at:new Date().toISOString(),note:String(note).trim()});return true;
+  }
+  async function cancelConfirmed(id){const rid=id.replace(/^R373_/,''),r=read(REQ+rid,null),me=current();await sync(true);if(!r||!me||residentCode(r.branch,r.dept)!==U(me.code)||r.residentCode!==U(me.code)||r.date!==today()||!residentOnDuty(me.code,r.branch))throw Error('Only the resident Head on duty can remove today’s confirmation.');const old=decision(r);if(!old||old.status!=='CONFIRMED')return;await publish(DEC+rid,{...old,status:'VOIDED',voidedBy:me.name,voidedAt:new Date().toISOString(),previous:old});}
+  function host(){const e=current();if(!e)return null;const a=document.querySelector('#rcadsR131ApproverApp .r131-shell');if(a&&document.body.classList.contains('approver-only-mode'))return {el:a,tab:'approvals'};const m=document.getElementById('managerHomeScreen');if(m&&window.currentManagerSession&&!m.classList.contains('hidden'))return {el:m};const p=document.getElementById('employeeSimplePanel');if(p&&document.body.classList.contains('employee-simple-mode')&&management(e))return {el:p,tab:'home'};return null;}
+  function requestList(list,me){return list.map(r=>{const d=decision(r),expired=r.date!==today(),can=!d&&!expired&&r.residentCode===U(me.code)&&residentCode(r.branch,r.dept)===U(me.code);return '<article class="r373-request"><b>'+E(r.name)+' • '+E(r.code)+'</b><div>'+E(bName(r.branch))+' • '+E(r.date)+' • '+r.hours+' hour(s)</div><div>'+E(r.reason)+'</div><div>Requested by '+E(r.by)+' • Resident Head: '+E(r.residentName)+'</div><strong>'+E(d?d.status:expired?'EXPIRED':'PENDING CONFIRMATION')+'</strong>'+(d?'<div>'+E(d.by)+' • '+E(d.at)+(d.note?' • '+E(d.note):'')+'</div>':'')+(can?'<div class="r373-actions"><button data-r373-confirm="'+E(r.id)+'">CONFIRM</button><button data-r373-reject="'+E(r.id)+'">REJECT</button></div>':'')+'</article>'}).join('')||'<p>No OT requests.</p>';}
+  function otTick(force=false){const h=host(),me=current();let el=document.getElementById('r373Ot');if(!h||!me){if(el)el.remove();return}const dept=roving(me),mine=requests().filter(r=>r.byCode===U(me.code)||r.residentCode===U(me.code));const resident=branches().some(b=>['KITCHEN','DINING'].some(d=>residentCode(b.code,d)===U(me.code)));if(!dept&&!resident&&!mine.length){if(el)el.remove();return}
+    if(!el){el=document.createElement('section');el.id='r373Ot';el.className='r373-card';h.el.insertBefore(el,h.el.querySelector(':scope > .r162-nav'));el.addEventListener('click',otClick);el.addEventListener('change',e=>{if(e.target.id==='r373Reason')document.getElementById('r373Other').hidden=e.target.value!==REASONS[6]});}if(h.tab)el.setAttribute('data-r162-tab',h.tab);
+    const pending=mine.filter(r=>!decision(r)&&r.date===today()&&r.residentCode===U(me.code)).length;const nav=h.el.querySelector('[data-r162-go="approvals"]');if(nav){let b=nav.querySelector('.r373-badge');if(!b){b=document.createElement('em');b.className='r373-badge';nav.appendChild(b)}b.textContent=pending?' '+pending+' OT':'';}
+    if((!force&&el.contains(document.activeElement))||busy)return;const d=duty(me.code),br=d&&d.branch,can=dept&&br&&residentCode(br,dept)!==U(me.code);const emps=can?branches().flatMap(b=>staff(b.code)).filter((e,i,a)=>a.findIndex(q=>U(q.code)===U(e.code))===i&&department(e)===dept&&residentOnDuty(e.code,br)&&U(e.code)!==U(me.code)):[];
+    const html='<h3>OT Requests — For Your Confirmation <span class="r373-badge">'+pending+'</span></h3><p>Roving Head requests stay pending until the resident Head confirms. Same-day confirmation and existing ACS checks apply.</p>'+(can?'<details><summary>Request employee overtime</summary><form id="r373RequestForm"><input type="hidden" name="branch" value="'+E(br)+'"><p>'+E(bName(br))+' • '+E(dept)+'</p><label>Employee<select name="code" required><option value="">Choose employee</option>'+emps.map(e=>'<option value="'+E(e.code)+'">'+E(e.name)+'</option>').join('')+'</select></label><label>Hours<select name="hours">'+[1,2,3,4,5,6].map(n=>'<option>'+n+'</option>').join('')+'</select></label><label>Reason<select id="r373Reason" name="reason">'+REASONS.map(r=>'<option>'+E(r)+'</option>').join('')+'</select></label><input id="r373Other" name="other" hidden placeholder="Type the reason"><button type="submit">REQUEST RESIDENT HEAD CONFIRMATION</button></form></details>':'')+requestList(mine,me)+'<div role="status" id="r373OtStatus"></div>';
+    if(el.dataset.html!==html){el.dataset.html=html;el.innerHTML=html;const f=el.querySelector('form');if(f)f.addEventListener('submit',async ev=>{ev.preventDefault();const data=Object.fromEntries(new FormData(f));if(data.reason===REASONS[6])data.reason=data.other;await action(()=>submit(data),'Request sent to the resident Head.');});}
+  }
+  async function action(fn,msg){if(busy)return;busy=true;try{await fn();busy=false;otTick(true);const s=document.getElementById('r373OtStatus');if(s)s.textContent=msg}catch(e){const s=document.getElementById('r373OtStatus');if(s)s.textContent=e.message;else alert(e.message)}finally{busy=false}}
+  function otClick(e){const c=e.target.closest('[data-r373-confirm]'),r=e.target.closest('[data-r373-reject]');if(c)action(()=>decide(c.dataset.r373Confirm,'CONFIRMED'),'OT confirmed. Existing ACS and actual-time checks still apply.');if(r){const note=prompt('Reason for rejecting this OT request:');if(note!==null)action(()=>decide(r.dataset.r373Reject,'REJECTED',note),'Request rejected.');}}
+
+  // Read schedule entries without changing the original/ACS lookup or any calculation.
+  function library(){try{return rcadsGetScheduleLibrary()||[]}catch(_){return []}}
+  function isAcs(x){return /\bACS\b/.test(U(x.category||x.fileName))}
+  function scheduleCell(x,code,day){
+    const row=(x.rowData||[]).find(r=>U(r['EMPLOYEE ID'])===U(code)&&excelDateToISO(r.DATE)===day);if(row){const i=excelTimeToHHMM(row['TIME IN']),o=excelTimeToHHMM(row['TIME OUT']);return {text:i&&o?i+' – '+o:String(row['TIME IN']||''),breakHours:row['LONG BREAK(HRS)']??'',ot:row['APPROVE O.T.']??''};}
+    for(const w of x.weeklyBlocks||[]){const col=(w.dateCols||[]).find(c=>c.date===day);if(!col)continue;const r=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===U(code));if(!r)continue;const raw=r[col.idx],out=col.outIdx!==undefined?r[col.outIdx]:null;let text=raw==null?'':String(raw);if(out!==null&&out!==undefined&&out!==''){const i=excelTimeToHHMM(raw),o=excelTimeToHHMM(out);if(i&&o)text=i+' – '+o;}const sub=(w.matrix[w.headerRow+1]||[]).map(U);return {text,breakHours:/BREAK/.test(sub[col.idx+1]||'')?r[col.idx+1]??'':'',ot:/OT|O\.T/.test(sub[col.idx+2]||'')?r[col.idx+2]??'':''};}return null;
+  }
+  function scheduleParts(branch,code,day){const entries=library().filter(x=>U(x.branch)===U(branch)).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));const pick=acs=>{for(const x of entries.filter(x=>isAcs(x)===acs)){const v=scheduleCell(x,code,day);if(v&&(v.text!==''||v.breakHours!==''||v.ot!==''))return v}return null};return {original:pick(false),acs:pick(true)};}
+  const hhmm=m=>{m=Math.max(0,Math.round(Number(m)||0));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')};
+  function punchText(r){if(r.time)return r.time;const d=new Date(r.date);return isNaN(d)?'—':d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});}
+  function dtrHtml(title,branch,emp,provided,cut){const rs=records(emp);const rows=rs.length?rs:provided||[];let from=cut&&cut.from||today(),to=cut&&cut.to||today();const days=[];for(let d=new Date(from+'T00:00:00');dateKey(d)<=to&&days.length<32;d.setDate(d.getDate()+1))days.push(dateKey(d));days.sort();
+    const body=days.map(day=>{const p=rows.filter(r=>dateKey(r.date||r.timestamp)===day).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));const br=U((p.find(r=>r.dutyBranch)||{}).dutyBranch||branch);const sp=scheduleParts(br,emp.code,day);let sum=null;try{sum=calculateEmployeeDtrSummary(emp,{from:day,to:day})}catch(_){}const review=sum&&sum.dtrReview||[];
+      const times=(type,kind)=>p.filter(r=>r.type===type&&(kind==='break'?/break/i.test(r.kind||''):kind==='return'?r.kind==='Return':kind==='start'?r.kind!=='Return':!/break/i.test(r.kind||''))).map(r=>E(punchText(r))).join('<br>');
+      const values=[E(day),E(sp.original&&sp.original.text||'—'),E(sp.acs&&sp.acs.text||'—'),E(sp.acs&&sp.acs.breakHours!==''?sp.acs.breakHours:'—'),E(sp.acs&&sp.acs.ot!==''?sp.acs.ot:'—'),times('IN','start'),times('OUT','break'),times('IN','return'),times('OUT','end'),review.some(r=>r.late)?'FOR REVIEW':sum?hhmm(sum.lateMinutes):'—',review.some(r=>r.ut)?'FOR REVIEW':sum?hhmm(sum.undertimeMinutes):'—',E(bName(br))];
+      return '<tr>'+values.map((v,i)=>'<td'+(i===0?' class="r373-date"':'')+'>'+(v||'—')+'</td>').join('')+'</tr>';
+    }).join('');
+    const nowRows=rows.filter(r=>dateKey(r.date||r.timestamp)===today());const latest=[['TIME-IN',r=>r.type==='IN'&&r.kind!=='Return'],['BREAK-OUT',r=>r.type==='OUT'&&/break/i.test(r.kind||'')],['BREAK-IN',r=>r.type==='IN'&&r.kind==='Return'],['TIME-OUT',r=>r.type==='OUT'&&!/break/i.test(r.kind||'')]].map(([label,pick])=>'<div><small>'+label+'</small><b>'+E(nowRows.filter(pick).map(punchText).join(' / ')||'Not recorded')+'</b></div>').join('');
+    return '<section class="r373-dtr"><h3>'+E(title)+'</h3><p>TODAY’S SAVED PUNCHES • '+E(today())+'</p><div class="r373-punches">'+latest+'</div><p>'+E(from)+' to '+E(to)+' • '+(navigator.onLine?(syncError?'Sync pending — showing saved records.':'Saved attendance • refreshes automatically.'): 'Offline — showing saved records; new Guard punches appear after sync.')+'</p><p>Swipe sideways to see all DTR columns →</p><div class="r373-scroll"><table><thead><tr>'+['DATE','ORIGINAL SCHED.'].map(t=>'<th rowspan="2">'+t+'</th>').join('')+'<th colspan="3">ACS</th>'+['TIME-IN','BREAK-OUT','BREAK-IN','TIME-OUT','LATE','UNDER TIME','BRANCH'].map(t=>'<th rowspan="2">'+t+'</th>').join('')+'</tr><tr><th>CHANGE SCHED.</th><th>LONG BREAK (HRS)</th><th>APPROVE O.T.</th></tr></thead><tbody>'+body+'</tbody></table></div><p>Original Schedule and ACS come from uploaded filled schedules. Actual punches are shown only after saving. ACS approved OT remains subject to the existing approval and actual-time checks.</p></section>';
+  }
+  function refreshDtr(){const e=current();if(!e)return;for(const id of ['rcadsEmployeeOwnDtrOutput','approverReadOnlyOutput','r159ApDtr']){const out=document.getElementById(id);if(!out||!out.querySelector('.r373-dtr,.r159-dtr'))continue;let cut=null;try{cut=getSavedHrCutoffPeriod()}catch(_){}const f=find(e.code),html=dtrHtml(e.name+' • MY DTR',f?f.b:'',e,[],cut);if(out.dataset.r373html!==html){out.dataset.r373html=html;const scroll=out.querySelector('.r373-scroll')?.scrollLeft||0;out.innerHTML=html;out.querySelector('.r373-scroll').scrollLeft=scroll;}}}
+  function ownerTick(){const home=document.getElementById('topManagementHomeScreen'),root=home&&home.querySelector('.r100-content');let box=document.getElementById('r373Owner');if(!root||!window.rcadsTopManagementSession||getComputedStyle(home).display==='none'){if(box)box.remove();return}if(!box){box=document.createElement('section');box.id='r373Owner';box.className='r373-card';box.setAttribute('data-r162-tab','home');root.insertBefore(box,root.querySelector(':scope > .r162-nav'));}
+    let html='<h3>HEADS / MANAGEMENT — TIME IN TODAY</h3>';for(const b of branches()){const emps=staff(b.code).filter(management),rows=emps.map(e=>{const p=records(e).filter(r=>dateKey(r.date)===today());const first=p.find(r=>r.type==='IN'&&r.kind!=='Return');if(!first)return '';const d=duty(e.code);const out=p.filter(r=>r.type==='OUT'&&!/break/i.test(r.kind||'')).pop();return '<tr><td>'+E(e.name)+'</td><td>'+E(e.position)+'</td><td>'+E(punchText(first))+'</td><td>'+E(out?punchText(out):'—')+'</td><td>'+E(d?'ON DUTY • '+bName(d.branch):'TIMED OUT')+'</td></tr>'}).join('');html+='<details><summary>'+E(b.name)+'</summary><div class="r373-scroll"><table><thead><tr><th>Name</th><th>Position</th><th>IN</th><th>OUT</th><th>Status / Duty branch</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+(!rows?'<p>No saved Head / Management Time In today.</p>':'')+'</details>';}
+    html+='<h3>BRANCH SCHEDULES — ORIGINAL / ACS</h3><p>Uploaded schedules appear here automatically after sync.</p>';for(const b of branches()){const entries=library().filter(x=>U(x.branch)===b.code).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));html+='<details><summary>'+E(b.name)+' • '+entries.length+' schedule file(s)</summary>'+entries.map(x=>'<details><summary>'+E(x.category||'Schedule')+' • '+E(x.fileName||'Uploaded schedule')+'</summary><small>'+E(x.savedAt||'')+'</small>'+scheduleTable(x)+'</details>').join('')+(!entries.length?'<p>No uploaded schedule yet.</p>':'')+'</details>';}
+    if(box.dataset.html!==html){const open=[...box.querySelectorAll('details')].map((d,i)=>d.open?i:-1);box.dataset.html=html;box.innerHTML=html;box.querySelectorAll('details').forEach((d,i)=>d.open=open.includes(i));}
+  }
+  function scheduleTable(x){const matrices=(x.weeklyBlocks||[]).map(w=>w.matrix);if(!matrices.length&&x.rowData&&x.rowData.length){const cols=Object.keys(x.rowData[0]);matrices.push([cols,...x.rowData.map(r=>cols.map(k=>r[k]))]);}return matrices.map(m=>'<div class="r373-scroll"><table><tbody>'+m.filter(r=>r&&r.some(v=>v!==''&&v!=null)).map(r=>'<tr>'+r.map(v=>'<td>'+E(v)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>').join('')||'<p>No readable schedule rows in this upload.</p>';}
+  function documentsLocked(){const e=current();if(!e||management(e)||!document.body.classList.contains('employee-simple-mode'))return false;return document.body.classList.contains('r330-locked');}
+  function enforceDocuments(){const locked=documentsLocked();document.body.classList.toggle('r373-doclocked',locked);if(locked){const reader=document.getElementById('r159Reader'),title=document.getElementById('r159ReaderTitle');if(reader?.dataset.r373Reference==='1'||(title&&/ORGANIZATIONAL|CORE VALUES|CODE OF DISCIPLINE|MEMO CIRCULAR/i.test(title.textContent)))document.getElementById('r159ReaderClose')?.click();}}
+  document.addEventListener('click',e=>{if(documentsLocked()&&e.target.closest('[data-r159-doc],[data-r159-mc],[data-r328-lib],[data-r328-open]')){e.preventDefault();e.stopImmediatePropagation();}},true);
+  window.rcadsR373={confirmedOt,isResident,residentOnDuty,management,documentsLocked,enforceDocuments,dtrHtml,cancelConfirmed,submit,decide,requests,decision,scheduleParts,scheduleCell,otTick,ownerTick,refreshDtr};
+  window.addEventListener('rcads:dtr-refresh',()=>{refreshDtr();otTick();});
+  window.addEventListener('storage',()=>{refreshDtr();otTick();ownerTick();});
+  window.addEventListener('online',()=>sync(true).then(()=>{refreshDtr();otTick();ownerTick()}).catch(()=>{}));
+  let polling=false;async function tick(){if(document.hidden||polling)return;polling=true;try{if(current()||window.rcadsTopManagementSession){try{await sync()}catch(_){}refreshDtr();otTick();ownerTick();enforceDocuments();}}catch(e){console.warn('R373',e)}finally{polling=false}}
+  setInterval(tick,5000);setTimeout(tick,1200);
+})();
 </script>
 </body></html>
