@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R374 HR NOTICES NAVIGATION</title>
+<title>Rustica RCADS App — R375 ORGANIZATIONAL CHART SYNC</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21441,7 +21441,14 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
 
   async function openDocList(kind,v,force){
     if(window.rcadsR373&&window.rcadsR373.documentsLocked())return;
-    if(kind==='ORG'){const o=read('rcads_r373_org_chart_v1',null);if(!o){alert('No Organizational Chart posted yet.');return}await ensureAttLocal(o.att);openReader(o.title,'<div class="r159-doc-meta">Updated '+esc(fmtStamp(o.updatedAt))+' • HR OPERATION OFFICER</div>'+attPagesHtml(o.att),v,'ORG_'+o.version);return}
+    if(kind==='ORG'){
+      let fresh=false,timer;
+      try{if(navigator.onLine&&rcadsCloudReady()){await Promise.race([rcadsCloudPullMerge(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('timeout')),10000)})]);fresh=true}}catch(e){}finally{clearTimeout(timer)}
+      const o=read('rcads_r373_org_chart_v1',null);if(!o){alert(fresh?'No Organizational Chart posted yet.':'Cannot check the latest chart. Connect to the internet and try again.');return}
+      await ensureAttLocal(o.att);
+      openReader(o.title,'<div class="r159-doc-meta">'+(fresh?'Cloud checked just now':'OFFLINE / SYNC PENDING — saved copy; latest version not verified')+'<br>Updated '+esc(fmtStamp(o.updatedAt))+' • '+esc(o.att&&o.att.name||'')+' • HR OPERATION OFFICER</div>'+attPagesHtml(o.att),v,'ORG_'+o.version);return;
+    }
+
     if(!force&&(kind==='MC'||kind==='COD')&&window.rcadsR328&&window.rcadsR328.openLib(kind,v))return;
     const b=board();
     if(kind==='CV'){
@@ -21803,7 +21810,15 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
       if(prev&&!write('rcads_r373_org_history_'+prev.version,prev))return;
       if(!write('rcads_r373_org_chart_v1',{att:a,title:document.getElementById('r373OrgTitle').value.trim()||'ORGANIZATIONAL CHART',updatedAt:new Date().toISOString(),version,by:'HR OPERATION OFFICER'}))return;
       clearFile('O');document.getElementById('r373OrgStatus').textContent='Saved on this device. Syncing to other RCADS users…';
-      try{await rcadsCloudFlushQueue();const pending=typeof rcadsCloudQueue!=='undefined'&&rcadsCloudQueue.size;if(!navigator.onLine||pending)throw Error('Sync pending');document.getElementById('r373OrgStatus').textContent='Organizational Chart saved and synced.'}catch(err){document.getElementById('r373OrgStatus').textContent='Saved locally — upload pending. Keep this device online.'}
+      try{
+        if(!navigator.onLine||!rcadsCloudReady())throw Error('Cloud not ready');
+        await rcadsCloudFlushQueue();
+        const cloud=await rcadsCloudRpc('rustica_rcads_list_kv',{p_branch_code:RUSTICA_CENTRAL_DB.branch,p_sync_secret:RUSTICA_CENTRAL_DB.syncSecret});
+        const row=Array.isArray(cloud)&&cloud.find(r=>r.data_key==='rcads_r373_org_chart_v1');const remote=row&&JSON.parse(row.data_value);
+        const attRow=Array.isArray(cloud)&&cloud.find(r=>r.data_key===ATT_PREFIX+a.id);const pages=attRow&&JSON.parse(attRow.data_value);
+        if(!remote||remote.version!==version||remote.att?.id!==a.id||!Array.isArray(pages?.pages)||pages.pages.length!==a.pages)throw Error('Upload not yet verified');
+        document.getElementById('r373OrgStatus').textContent='Organizational Chart saved and synced — verified in cloud. Open the chart again on your phone.';
+      }catch(err){document.getElementById('r373OrgStatus').textContent='Saved locally — upload pending or not verified. Keep this laptop online; other devices may still show the old chart.'}
       ensureAll();return;
     }
     if(t.closest('#r159VSave')){
