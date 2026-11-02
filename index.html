@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R377 DIRECT ROTATE AND VIEW SWITCH</title>
+<title>Rustica RCADS App — R378 DOCUMENT TOOLBAR ACCESS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25447,7 +25447,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R377 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R378 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -32948,6 +32948,9 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 #r159Reader.r376-rotated .r159-reader-box,#r328Pm.r376-rotated .r328-box{position:fixed!important;left:50%!important;top:50%!important;width:100vh!important;width:100dvh!important;height:100vw!important;height:100dvw!important;max-width:none!important;max-height:none!important;margin:0!important;border-radius:0!important;transform:translate(-50%,-50%) rotate(90deg)!important;transform-origin:center!important}
 
 #r377View{position:fixed;right:8px;bottom:70px;z-index:2147480001;display:flex;gap:4px;align-items:center;padding:5px;border-radius:10px;background:#fffaf2;color:#4c2b17;box-shadow:0 2px 10px #0005;font:11px Arial}#r377View button{padding:9px 8px;border:1px solid #b99461;border-radius:7px;background:#fff;color:#4c2b17;font-weight:bold}#r377View button[aria-pressed="true"]{background:#4c2b17;color:white}.r354-tools [data-r354="rot"]{font-size:11px}
+
+/* Document controls must stay above the HR attendance counters (2147483200). */
+#r159Reader{z-index:2147483350!important}
 </style>
 <script id="rcadsR373Script">(function(){
   'use strict';
