@@ -6151,7 +6151,7 @@ function calculateEmployeeDtrSummary(emp, cutoff=null){
     }
 
     if(hasWorked){
-      const holidayType=getRusticaHolidayType(dateKey);
+      const holidayType=getRusticaHolidayType(dateKey,window.rcadsHolidays?.employeeBranch(emp,byDate[dateKey]||[]));
       if(holidayType==="SPECIAL") specialHoliday++;
       if(holidayType==="REGULAR") regularHoliday++;
     }
@@ -13940,6 +13940,13 @@ function rcadsTimestampForFile(){
   return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
+function rcadsDashboardBackupDownload(){
+  if(typeof hrApproverSelectionUnlocked==='undefined'||!hrApproverSelectionUnlocked){alert('Sign in as HR before exporting a backup.');return;}
+  const name=rcadsExportFullPreserveBackup(false);
+  const status=document.getElementById('rcadsDashboardBackupStatus');
+  if(status)status.textContent=name?'Backup download requested: '+name+' — check your browser Downloads to confirm the file was saved.':'Backup could not be created. Please try again.';
+  return name;
+}
 function rcadsExportFullPreserveBackup(auto=false){
   try{
     const snap=rcadsCollectFullPreserveBackup();
@@ -14665,13 +14672,19 @@ function rcadsRefreshHrDashboard(){
 
     <div class="rcads-hr-main">
 
-<div id="rcadsHrStickyTools">
+<div id="rcadsHrStickyTools"><button type="button" onclick="rcadsDashboardBackupDownload()">BACKUP RCADS DATA</button>
   <button type="button" onclick="rcadsHrGo('rcadsApproverAccessSection')">APPROVERS / GUARDS</button>
   <button type="button" onclick="rcadsHrGo('rcadsHrDashboardTop')">TOP</button>
 </div>
 
       
 <div id="rcadsHrDashboardTop" class="rcads-dashboard-section">
+  <div id="rcadsDashboardBackup" style="padding:16px;margin-bottom:14px;border:2px solid #315f8a;border-radius:12px;background:#eef5fb">
+    <h3 style="margin:0 0 6px;color:#254d72">RCADS DATA BACKUP</h3>
+    <p style="margin:0 0 10px">Download a copy of the RCADS records stored on this HR device, including schedules and DTR data.</p>
+    <button type="button" onclick="rcadsDashboardBackupDownload()" style="padding:12px 18px;border:0;border-radius:8px;background:#254d72;color:white;font-weight:900;max-width:100%">DOWNLOAD FULL RCADS BACKUP</button>
+    <p id="rcadsDashboardBackupStatus" role="status" style="margin:8px 0 0;overflow-wrap:anywhere">The backup downloads as a .json file. Check your browser Downloads after saving.</p>
+  </div>
   <div class="rcads-hr-topbar">
     <div>
       <div class="rcads-hr-kicker">HR OPERATION OFFICER & CHEF CONSULTANT • ALL BRANCH</div>
@@ -33096,5 +33109,62 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 
 // The narrow Laptop layout scrolls the modal, not the inner desktop pane.
 (function(){const previous=window.rcadsHrGo;let pending;window.rcadsHrGo=function(id){const result=previous.apply(this,arguments);clearTimeout(pending);const modal=document.getElementById('simpleHrAdminModal');if(window.innerWidth<=900&&modal&&!modal.classList.contains('r178-m'))pending=setTimeout(()=>{const target=document.getElementById(id);if(!target||!target.getClientRects().length)return;const y=modal.scrollTop+target.getBoundingClientRect().top-modal.getBoundingClientRect().top-58;modal.scrollTo({top:Math.max(0,y),behavior:'auto'})},240);return result}})();
+
+/* HR-maintained holiday classifications; payroll rates remain in payroll. */
+(()=>{
+  const PREFIX='rcads_holiday_event_v1_';
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const branches=()=>Object.values(window.RUSTICA_BRANCHES||{});
+  function authorized(){return typeof hrApproverSelectionUnlocked!=='undefined'&&hrApproverSelectionUnlocked===true&&window.rcadsR182?.role?.()==='HR';}
+  function rows(){
+    const latest=new Map();
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k?.startsWith(PREFIX))continue;try{const r=JSON.parse(localStorage.getItem(k));const id=r.date+'|'+r.branch,old=latest.get(id);if(!old||(r.at+r.id)>(old.at+old.id))latest.set(id,r)}catch(e){}}
+    return [...latest.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.branch.localeCompare(b.branch));
+  }
+  function lookup(date,branch){const all=rows().filter(r=>r.date===date);return all.find(r=>r.branch===branch&&!r.removed)||all.find(r=>r.branch==='ALL'&&!r.removed);}
+  async function save(input){
+    if(!authorized())throw Error('Sign in as HR to change holidays.');
+    const date=String(input.date||''),name=String(input.name||'').trim(),branch=String(input.branch||'ALL'),type=input.type;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date)throw Error('Enter a valid date.');
+    if(!name||name.length>120||!['REGULAR','SPECIAL','SPECIAL_WORKING'].includes(type))throw Error('Enter a holiday name and select its type.');
+    if(branch!=='ALL'&&!branches().some(b=>b.code===branch))throw Error('Select a valid branch.');
+    if(!navigator.onLine||!window.rcadsCloudReady?.())throw Error('Connect to the central database before saving.');
+    const previous=rows().find(r=>r.date===date&&r.branch===branch);
+    const at=new Date(Math.max(Date.now(),previous?Date.parse(previous.at)+1:0)).toISOString();
+    const r={date,name,branch,type,removed:input.removed===true,at,id:crypto.randomUUID(),by:'HR'};
+    const key=PREFIX+r.id,value=JSON.stringify(r);
+    if(await rcadsCloudPushKey(key,value,r.at)!==true)throw Error('Holiday was not confirmed saved. Please retry.');
+    localStorage.setItem(key,value);renderRows();return r;
+  }
+  const legacy=window.getRusticaHolidayType;
+  window.getRusticaHolidayType=function(date,branch){
+    const r=lookup(date,branch);if(r)return r.type==='SPECIAL_WORKING'?'':r.type;
+    // A removed calendar record must not resurrect the older local calendar entry.
+    if(rows().some(r=>r.date===date&&(r.branch==='ALL'||r.branch===branch)))return '';
+    return legacy?legacy(date):'';
+  };
+  function employeeBranch(emp,records){
+    const duty=[...records].reverse().find(r=>r.dutyBranch);if(duty)return duty.dutyBranch;
+    if(emp.branch&&branches().some(b=>b.code===emp.branch))return emp.branch;
+    for(const b of branches())if(window.rusticaManagerLoadBranchEmployeeMaster?.(b.code)?.some(e=>e.code===emp.code))return b.code;
+    return '';
+  }
+  function renderRows(){const el=document.getElementById('holidayRows');if(!el)return;
+    el.innerHTML=rows().filter(r=>!r.removed).map(r=>'<tr><td>'+esc(r.date)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.type==='SPECIAL'?'Special Non-Working':r.type==='REGULAR'?'Regular':'Special Working')+'</td><td>'+esc(r.branch)+'</td><td><button type="button" data-holiday-remove="'+esc(r.id)+'">Remove</button></td></tr>').join('')||'<tr><td colspan="5">No holidays entered yet.</td></tr>';
+  }
+  function mount(){
+    const modal=document.getElementById('simpleHrAdminModal'),main=modal?.querySelector('.rcads-hr-main'),nav=modal?.querySelector('.rcads-hr-nav');if(!main||!nav)return;
+    let sec=document.getElementById('hrHolidayCalendar');if(sec){sec.hidden=!authorized();return;}
+    const btn=document.createElement('button');btn.type='button';btn.textContent='Holiday Calendar';btn.onclick=()=>rcadsHrGo('hrHolidayCalendar');nav.appendChild(btn);
+    sec=document.createElement('section');sec.id='hrHolidayCalendar';sec.className='rcads-dashboard-section';sec.hidden=!authorized();
+    sec.innerHTML='<h2>Holiday Calendar</h2><p>HR-maintained dates for DTR holiday counts. Branch entries take priority over All branches. Special Working days do not add a holiday premium count.</p><form id="holidayForm" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end"><label>Date<br><input name="date" type="date" required></label><label>Holiday name<br><input name="name" maxlength="120" required></label><label>Type<br><select name="type"><option value="REGULAR">Regular Holiday</option><option value="SPECIAL">Special Non-Working Holiday</option><option value="SPECIAL_WORKING">Special Working Holiday</option></select></label><label>Scope<br><select name="branch"><option value="ALL">All branches</option>'+branches().map(b=>'<option value="'+esc(b.code)+'">'+esc(b.name)+'</option>').join('')+'</select></label><button type="submit">Save holiday</button></form><p id="holidayStatus" role="status"></p><div style="overflow:auto"><table style="width:100%"><thead><tr><th>Date</th><th>Holiday</th><th>Type</th><th>Scope</th><th>Action</th></tr></thead><tbody id="holidayRows"></tbody></table></div><p>Save the same date and scope to correct an entry. Changes retain their history and affect recalculated DTR counts. Previously exported files remain unchanged.</p>';
+    main.appendChild(sec);renderRows();
+    const status=sec.querySelector('#holidayStatus');
+    sec.querySelector('form').onsubmit=async e=>{e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;try{await save(Object.fromEntries(new FormData(e.target)));status.textContent='Holiday saved to central database.';}catch(err){status.textContent=err.message}finally{button.disabled=false}};
+    sec.onclick=async e=>{const id=e.target.closest('[data-holiday-remove]')?.dataset.holidayRemove;if(!id)return;const r=rows().find(x=>x.id===id);if(!r||!confirm('Remove '+r.name+' on '+r.date+'?'))return;try{await save({...r,removed:true});status.textContent='Holiday removed; history retained.'}catch(err){status.textContent=err.message}};
+  }
+  window.rcadsHolidays={rows,lookup,save,employeeBranch,mount};
+  setInterval(mount,1200);window.addEventListener('storage',renderRows);mount();
+})();
 </script>
 </body></html>
