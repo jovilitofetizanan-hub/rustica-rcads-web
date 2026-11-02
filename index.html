@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R379 PHONE LAPTOP SCROLL</title>
+<title>Rustica RCADS App — R380 PHONE LAPTOP MENU NAVIGATION</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25447,7 +25447,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R379 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R380 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -33073,5 +33073,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   let polling=false;async function tick(){if(document.hidden||polling)return;polling=true;try{if(current()||window.rcadsTopManagementSession){try{await sync()}catch(_){}refreshDtr();otTick();ownerTick();enforceDocuments();}}catch(e){console.warn('R373',e)}finally{polling=false}}
   setInterval(tick,5000);setTimeout(tick,1200);
 })();
+
+// The narrow Laptop layout scrolls the modal, not the inner desktop pane.
+(function(){const previous=window.rcadsHrGo;let pending;window.rcadsHrGo=function(id){const result=previous.apply(this,arguments);clearTimeout(pending);const modal=document.getElementById('simpleHrAdminModal');if(window.innerWidth<=900&&modal&&!modal.classList.contains('r178-m'))pending=setTimeout(()=>{const target=document.getElementById(id);if(!target||!target.getClientRects().length)return;const y=modal.scrollTop+target.getBoundingClientRect().top-modal.getBoundingClientRect().top-58;modal.scrollTo({top:Math.max(0,y),behavior:'auto'})},240);return result}})();
 </script>
 </body></html>
