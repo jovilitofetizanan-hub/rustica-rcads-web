@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R376 DOCUMENT ROTATION</title>
+<title>Rustica RCADS App — R377 DIRECT ROTATE AND VIEW SWITCH</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25394,7 +25394,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function rustId(c){try{return (window.RCADS_RUSTICA_IDS||{})[U(c)]||''}catch(e){return ''}}
   function admin(){return document.getElementById('simpleHrAdminModal')}
   function adminOpen(){const a=admin();return !!(a&&getComputedStyle(a).display!=='none')}
-  function pref(){try{return localStorage.getItem('r178_hr_view')||''}catch(e){return ''}}
+  function pref(){try{return localStorage.getItem('rcads_r377_device_view')||''}catch(e){return ''}}
   function wantMobile(){const p=pref();if(p==='mobile')return true;if(p==='desktop')return false;return window.innerWidth<=760}
   let tab='home',section='',q='';
   const SECTIONS=[['r335Sec','🛂','HR Time In / Out','Scan any employee'],['r218HrSection','⏱','Overtime','Head 1 • ACS • Management'],['r173HrSection','🗂','201 Files','Requirements • contracts'],['r160HrSection','🔐','Personal PIN & QR','Setup codes • PIN'],['r167HrSection','🪪','Rustica ID','ID cards'],['r159HrSection','📢','Notice / Memo','COD • Core Values'],['hrApprovalAttendanceControl','✓','Attendance Control','Approvals'],['hrDtrExportPanel','▤','DTR / Export','Excel'],['hrScheduleUploadPanel','▦','Schedule Upload','Weekly schedule'],['hrCutoffArchiveMaintenancePanel','◷','Cutoff / Archive','Maintenance'],['rcadsApproverAccessSection','⚙','Approver / Guard Access','Accounts'],['r170HrSection','🚪','Separated','Last pay • 13th'],['centralDbStatus','●','Database','Test connection'],['rcadsCentralHrIdentityCard','👤','HR Identity','Profile'],['rcadsBiometricHrTopBlock','◫','Biometric Import','Deli E3765'],['rcadsR132CameraPanel','🧪','Camera / QR Tools','Tests']];
@@ -25446,6 +25446,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function sync(){
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
+    let switcher=document.getElementById('r377View');
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R377 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
+    switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
     if(!on){section='';const x=document.getElementById('r178App');if(x)x.style.display='none';const b=document.getElementById('r178Back');if(b)b.style.display='none';return}
     const x=app();x.style.display=section?'none':'flex';
@@ -25461,14 +25465,14 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const sc=t.closest('[data-r178-sec]');if(sc){openSection(sc.getAttribute('data-r178-sec'));return}
     if(t.closest('[data-r178-home]')){section='';try{rcadsHrGo('rcadsHrDashboardTop')}catch(_){}sync();render(true);return}
     if(t.closest('[data-r178-preview]')){openSection('r177Preview');return}
-    const vw=t.closest('[data-r178-view]');if(vw){try{localStorage.setItem('r178_hr_view',vw.getAttribute('data-r178-view'))}catch(_){}section='';sync();return}
+    const vw=t.closest('[data-r178-view]');if(vw){try{localStorage.setItem('rcads_r377_device_view',vw.getAttribute('data-r178-view'))}catch(_){}section='';sync();return}
     if(t.closest('[data-r178-hrpin]')){try{rcadsChangeLocalHrPin()}catch(_){}return}
     if(t.closest('[data-r178-close]')){if(confirm('Close the HR dashboard?')){section='';try{closeSimpleHrAdmin()}catch(_){}}return}
     const su=t.closest('[data-r178-setup]');if(su){const [c,b]=su.getAttribute('data-r178-setup').split('|');const e2=staff(b).find(x=>U(x.code)===c);if(!window.rcadsR160||!window.rcadsR160.issueSetup){alert('PIN module unavailable.');return}const acc=lsGet('rcads_r160_emp_access_v1',{})||{};const r=(acc.people||{})[c];if(r&&r.status==='ACTIVE'&&!confirm('RESET: the current PIN will stop working for '+(e2?e2.name:c)+'. Continue?'))return;const code=await window.rcadsR160.issueSetup(c,b,e2?e2.name:'');if(code){alert('SETUP CODE ni '+(e2?e2.name:c)+': '+code+'\nValid 2 days. Give it in person.\nThey will create their own PIN.');render(true)}return}
     const f2=t.closest('[data-r178-201]');if(f2){const c=f2.getAttribute('data-r178-201');openSection('r173HrSection');setTimeout(()=>{const i=document.getElementById('r173Find');if(i){i.value=c;document.getElementById('r173FindBtn')?.click()}},400);return}
   });
   // a "📱 Mobile view" button on the desktop dashboard (only on small screens / or to try it)
-  setInterval(()=>{try{const top=document.querySelector('#r177Top .r177-herobtns');if(top&&!top.querySelector('[data-r178-mobile]')){const b=document.createElement('button');b.type='button';b.className='r177-viewtoggle';b.setAttribute('data-r178-mobile','1');b.textContent='📱 MOBILE VIEW';b.onclick=()=>{try{localStorage.setItem('r178_hr_view','mobile')}catch(_){}sync()};top.appendChild(b)}}catch(e){}},1500);
+  setInterval(()=>{try{const top=document.querySelector('#r177Top .r177-herobtns');if(top&&!top.querySelector('[data-r178-mobile]')){const b=document.createElement('button');b.type='button';b.className='r177-viewtoggle';b.setAttribute('data-r178-mobile','1');b.textContent='📱 MOBILE VIEW';b.onclick=()=>{try{localStorage.setItem('rcads_r377_device_view','mobile')}catch(_){}sync()};top.appendChild(b)}}catch(e){}},1500);
 })();
 </script>
 
@@ -32460,7 +32464,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function tools(host,body,headSel){
     const head=host.querySelector(headSel);if(!head||head.querySelector('.r354-tools'))return;
     const t=document.createElement('div');t.className='r354-tools';
-    t.innerHTML='<button type="button" data-r354="out" aria-label="Zoom out">－</button><span class="r354-pct">100%</span><button type="button" data-r354="in" aria-label="Zoom in">＋</button><button type="button" data-r354="fit">FIT</button><button type="button" data-r354="rot" title="Landscape">⟳</button>';
+    t.innerHTML='<button type="button" data-r354="out" aria-label="Zoom out">－</button><span class="r354-pct">100%</span><button type="button" data-r354="in" aria-label="Zoom in">＋</button><button type="button" data-r354="fit">FIT</button><button type="button" data-r354="rot" title="Rotate document — R377" aria-label="Rotate document" aria-pressed="false">⟳ ROTATE</button>';
     const close=[...head.querySelectorAll('button')].pop();head.insertBefore(t,close||null);
     t.addEventListener('click',e=>{const k=e.target.closest('[data-r354]');if(!k)return;e.preventDefault();e.stopPropagation();const a=k.getAttribute('data-r354');
       if(a==='in')setZ(body,zOf(body)*1.25);else if(a==='out')setZ(body,zOf(body)/1.25);else if(a==='fit')setZ(body,1);else if(a==='rot')rotate(host)});
@@ -32473,21 +32477,14 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     /* ctrl + mouse wheel on the laptop */
     body.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setZ(body,zOf(body)*(e.deltaY<0?1.12:1/1.12),e.clientX,e.clientY)},{passive:false});
   }
-  async function rotate(host){
-    if(host.dataset.rotating==='1')return;
-    if(host.classList.contains('r376-rotated')){host.classList.remove('r376-rotated');return}
-    const so=screen.orientation;host.dataset.rotating='1';
-    try{
-      if(host.dataset.r376Native==='1'){delete host.dataset.r376Native;try{so&&so.unlock()}catch(e){}if(document.fullscreenElement)try{await document.exitFullscreen()}catch(e){}return}
-      try{if(document.documentElement.requestFullscreen&&!document.fullscreenElement)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch(e){}
-      try{if(!so||!so.lock)throw Error('unsupported');await so.lock('landscape');host.dataset.r376Native='1';return}catch(e){}
-      try{so&&so.unlock&&so.unlock()}catch(e){}
-      host.classList.add('r376-rotated');
-    }finally{delete host.dataset.rotating}
+  function rotate(host){
+    host.classList.toggle('r376-rotated');
+    const button=host.querySelector('[data-r354="rot"]');
+    if(button){button.textContent=host.classList.contains('r376-rotated')?'↶ NORMAL':'⟳ ROTATE';button.setAttribute('aria-pressed',String(host.classList.contains('r376-rotated')))}
   }
   /* closing the reader → leave full screen / unlock */
   document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#r159ReaderClose,[data-r328-close]')){try{screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}catch(_){}if(document.fullscreenElement){try{document.exitFullscreen()}catch(_){}}
-    BODIES.forEach(([h,b])=>{const host=document.querySelector(h);if(host){host.classList.remove('r376-rotated');delete host.dataset.r376Native}const x=document.querySelector(b);if(x){x.dataset.r354z='1';x.style.setProperty('--r354z',1);x.classList.remove('r354-zoomed');label(x)}})}},true);
+    BODIES.forEach(([h,b])=>{const host=document.querySelector(h);if(host){host.classList.remove('r376-rotated');const rb=host.querySelector('[data-r354=rot]');if(rb){rb.textContent='⟳ ROTATE';rb.setAttribute('aria-pressed','false')}delete host.dataset.r376Native}const x=document.querySelector(b);if(x){x.dataset.r354z='1';x.style.setProperty('--r354z',1);x.classList.remove('r354-zoomed');label(x)}})}},true);
   /* new document opened → back to 100% */
   const seen=new WeakMap();
   setInterval(()=>{BODIES.forEach(([h,b,hd])=>{const host=document.querySelector(h),body=document.querySelector(b);if(!host||!body)return;tools(host,body,hd);
@@ -32949,6 +32946,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 
 /* Rotate the complete protected reader when native orientation is unavailable. */
 #r159Reader.r376-rotated .r159-reader-box,#r328Pm.r376-rotated .r328-box{position:fixed!important;left:50%!important;top:50%!important;width:100vh!important;width:100dvh!important;height:100vw!important;height:100dvw!important;max-width:none!important;max-height:none!important;margin:0!important;border-radius:0!important;transform:translate(-50%,-50%) rotate(90deg)!important;transform-origin:center!important}
+
+#r377View{position:fixed;right:8px;bottom:70px;z-index:2147480001;display:flex;gap:4px;align-items:center;padding:5px;border-radius:10px;background:#fffaf2;color:#4c2b17;box-shadow:0 2px 10px #0005;font:11px Arial}#r377View button{padding:9px 8px;border:1px solid #b99461;border-radius:7px;background:#fff;color:#4c2b17;font-weight:bold}#r377View button[aria-pressed="true"]{background:#4c2b17;color:white}.r354-tools [data-r354="rot"]{font-size:11px}
 </style>
 <script id="rcadsR373Script">(function(){
   'use strict';
