@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R375 ORGANIZATIONAL CHART SYNC</title>
+<title>Rustica RCADS App — R376 DOCUMENT ROTATION</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -32463,7 +32463,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     t.innerHTML='<button type="button" data-r354="out" aria-label="Zoom out">－</button><span class="r354-pct">100%</span><button type="button" data-r354="in" aria-label="Zoom in">＋</button><button type="button" data-r354="fit">FIT</button><button type="button" data-r354="rot" title="Landscape">⟳</button>';
     const close=[...head.querySelectorAll('button')].pop();head.insertBefore(t,close||null);
     t.addEventListener('click',e=>{const k=e.target.closest('[data-r354]');if(!k)return;e.preventDefault();e.stopPropagation();const a=k.getAttribute('data-r354');
-      if(a==='in')setZ(body,zOf(body)*1.25);else if(a==='out')setZ(body,zOf(body)/1.25);else if(a==='fit')setZ(body,1);else if(a==='rot')rotate()});
+      if(a==='in')setZ(body,zOf(body)*1.25);else if(a==='out')setZ(body,zOf(body)/1.25);else if(a==='fit')setZ(body,1);else if(a==='rot')rotate(host)});
     /* pinch + double tap */
     let p0=null,z0=1,lastTap=0;
     body.addEventListener('touchstart',e=>{if(e.touches.length===2){const[a,b]=e.touches;p0=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);z0=zOf(body);e.preventDefault()}
@@ -32473,18 +32473,21 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     /* ctrl + mouse wheel on the laptop */
     body.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();setZ(body,zOf(body)*(e.deltaY<0?1.12:1/1.12),e.clientX,e.clientY)},{passive:false});
   }
-  async function rotate(){
-    const so=screen.orientation;
+  async function rotate(host){
+    if(host.dataset.rotating==='1')return;
+    if(host.classList.contains('r376-rotated')){host.classList.remove('r376-rotated');return}
+    const so=screen.orientation;host.dataset.rotating='1';
     try{
-      if(document.fullscreenElement&&so&&/landscape/.test(so.type)){try{so.unlock()}catch(e){}await document.exitFullscreen();return}
-      if(document.documentElement.requestFullscreen&&!document.fullscreenElement)await document.documentElement.requestFullscreen({navigationUI:'hide'});
-      if(so&&so.lock){await so.lock('landscape');return}
-      throw new Error('no lock')
-    }catch(e){alert('Turn your phone sideways.\n\niPhone: swipe down from the top-right → turn OFF the 🔒 Rotation Lock, then turn the phone.\nAndroid: turn ON Auto-rotate in the quick settings.')}
+      if(host.dataset.r376Native==='1'){delete host.dataset.r376Native;try{so&&so.unlock()}catch(e){}if(document.fullscreenElement)try{await document.exitFullscreen()}catch(e){}return}
+      try{if(document.documentElement.requestFullscreen&&!document.fullscreenElement)await document.documentElement.requestFullscreen({navigationUI:'hide'})}catch(e){}
+      try{if(!so||!so.lock)throw Error('unsupported');await so.lock('landscape');host.dataset.r376Native='1';return}catch(e){}
+      try{so&&so.unlock&&so.unlock()}catch(e){}
+      host.classList.add('r376-rotated');
+    }finally{delete host.dataset.rotating}
   }
   /* closing the reader → leave full screen / unlock */
   document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#r159ReaderClose,[data-r328-close]')){try{screen.orientation&&screen.orientation.unlock&&screen.orientation.unlock()}catch(_){}if(document.fullscreenElement){try{document.exitFullscreen()}catch(_){}}
-    BODIES.forEach(([h,b])=>{const x=document.querySelector(b);if(x){x.dataset.r354z='1';x.style.setProperty('--r354z',1);x.classList.remove('r354-zoomed');label(x)}})}},true);
+    BODIES.forEach(([h,b])=>{const host=document.querySelector(h);if(host){host.classList.remove('r376-rotated');delete host.dataset.r376Native}const x=document.querySelector(b);if(x){x.dataset.r354z='1';x.style.setProperty('--r354z',1);x.classList.remove('r354-zoomed');label(x)}})}},true);
   /* new document opened → back to 100% */
   const seen=new WeakMap();
   setInterval(()=>{BODIES.forEach(([h,b,hd])=>{const host=document.querySelector(h),body=document.querySelector(b);if(!host||!body)return;tools(host,body,hd);
@@ -32943,6 +32946,9 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 .r373-punches{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.r373-punches>div{padding:8px;background:#eef3e9;border:1px solid #bfd0af;border-radius:8px}.r373-punches small,.r373-punches b{display:block}.r373-punches b{margin-top:5px;font-size:13px}@media(max-width:600px){.r373-punches{grid-template-columns:repeat(2,1fr)}}
 .r373-duty-modal{position:fixed;inset:0;z-index:2147483646;background:#24170ee8;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}.r373-duty-modal>.r373-card{width:100%;max-width:440px;box-sizing:border-box}.r373-duty-modal select{font-size:16px;min-height:44px}
 .r373-hr-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:12px;margin:10px 0 16px;border:2px solid #c9a46a;border-radius:12px;background:#fffaf2}.r373-hr-shortcuts>b{grid-column:1/-1;font-size:14px;color:#4c2b17}.r373-hr-shortcuts button{min-height:48px!important;width:100%;margin:0!important;padding:10px 8px!important;background:#4c2b17!important;color:#fff!important;border:0;border-radius:8px;font-size:13px!important;font-weight:700;white-space:normal;line-height:1.3}.r159-hr-card{scroll-margin-top:16px}@media(max-width:600px){.r373-hr-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Rotate the complete protected reader when native orientation is unavailable. */
+#r159Reader.r376-rotated .r159-reader-box,#r328Pm.r376-rotated .r328-box{position:fixed!important;left:50%!important;top:50%!important;width:100vh!important;width:100dvh!important;height:100vw!important;height:100dvw!important;max-width:none!important;max-height:none!important;margin:0!important;border-radius:0!important;transform:translate(-50%,-50%) rotate(90deg)!important;transform-origin:center!important}
 </style>
 <script id="rcadsR373Script">(function(){
   'use strict';
