@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R380 PHONE LAPTOP MENU NAVIGATION</title>
+<title>Rustica RCADS App — R381 LAPTOP MENU VISIBILITY</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25447,7 +25447,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R380 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R381 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -32417,9 +32417,9 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function apply(){const m=document.getElementById('simpleHrAdminModal');if(!m)return;const sh=m.querySelector('.rcads-hr-shell');const open=m.style.display!=='none'&&getComputedStyle(m).display!=='none'&&!!sh&&getComputedStyle(sh).visibility!=='hidden'&&sh.offsetHeight>50; /* not in 📱 MOBILE VIEW */
     document.body.classList.toggle('r353-navoff',open&&hidden());
     let b=document.getElementById('r353Btn');
-    if(open&&!b){b=document.createElement('button');b.type='button';b.id='r353Btn';b.onclick=()=>{put(hidden()?'on':'off');apply();try{window.scrollTo(0,0)}catch(e){}};document.body.appendChild(b)}
+    if(open&&!b){b=document.createElement('button');b.type='button';b.id='r353Btn';b.onclick=()=>{put(hidden()?'on':'off');apply();if(!hidden()){m.scrollTo({top:0,behavior:'auto'});const sidebar=m.querySelector('.rcads-hr-sidebar');if(sidebar)sidebar.scrollTop=0}try{window.scrollTo(0,0)}catch(e){}};document.body.appendChild(b)}
     if(b){b.style.display=open?'':'none';b.textContent=hidden()?'☰ MENU':'✕ HIDE MENU'}}
-  document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('#simpleHrAdminModal .rcads-hr-nav button');if(t&&small()){setTimeout(()=>{put('off');apply()},150)}},true);
+  document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('#simpleHrAdminModal .rcads-hr-nav button');if(t&&small()&&document.getElementById('simpleHrAdminModal')?.classList.contains('r178-m')){setTimeout(()=>{put('off');apply()},150)}},true);
   setInterval(apply,600);window.addEventListener('resize',apply);
 })();
 </script>
