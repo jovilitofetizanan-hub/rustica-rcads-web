@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R392 DAY OFF HIGHLIGHT</title>
+<title>Rustica RCADS App — R393 TWELVE HOUR DTR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25461,7 +25461,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R392 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R393 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -25570,7 +25570,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   async function hmac(keyHex,msg){const kb=new Uint8Array(keyHex.match(/../g).map(h=>parseInt(h,16)));const k=await crypto.subtle.importKey('raw',kb,{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg))).slice(0,32)}
   function canon(p){return ['RCADS-R181',p.t,p.c,p.b,p.ts,p.g||'',p.gl||'',p.geo||'',p.ph||''].join('|')}
   function qrSvg(data){const QR=window.RCADSQRCode,E=window.RCADSQRErrorCorrectLevel;if(!QR||!E)return '<div>QR encoder unavailable</div>';const q=new QR(-1,E.M);q.addData(data);q.make();const n=q.getModuleCount(),z=4,s=n+z*2;let d='';for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+='M'+(c+z)+' '+(r+z)+'h1v1h-1z';return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+s+' '+s+'"><rect width="100%" height="100%" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>'}
-  function nowStampLocal(){const tn=window.rcadsTrueNow&&window.rcadsTrueNow();if(tn==null)throw Error('Server time is not verified');window.__r301skew=Date.now()-tn;const d=new Date(tn);return {date:d,time:d.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour:'2-digit',minute:'2-digit',second:'2-digit'})}}
+  function nowStampLocal(){const tn=window.rcadsTrueNow&&window.rcadsTrueNow();if(tn==null)throw Error('Server time is not verified');window.__r301skew=Date.now()-tn;const d=new Date(tn);return {date:d,time:d.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour12:true,hour:'2-digit',minute:'2-digit',second:'2-digit'})}}
   function fmtT(iso){const d=new Date(iso);return isNaN(d)?'':d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
 
   /* ---------------- attendance store (same key the DTR uses) ---------------- */
@@ -33170,7 +33170,13 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   }
   function scheduleParts(branch,code,day){const entries=library().filter(x=>U(x.branch)===U(branch)).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));const pick=acs=>{for(const x of entries.filter(x=>isAcs(x)===acs)){const v=scheduleCell(x,code,day);if(v&&(v.text!==''||v.breakHours!==''||v.ot!==''))return v}return null};return {original:pick(false),acs:pick(true)};}
   const hhmm=m=>{m=Math.max(0,Math.round(Number(m)||0));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')};
-  function punchText(r){if(r.time)return r.time;const d=new Date(r.date);return isNaN(d)?'—':d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});}
+  function punchText(r){
+    const raw=String(r.time||'').trim(),m=raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+    if(m){let h=Number(m[1]);const half=(m[4]||'').toUpperCase();if(Number(m[2])<60&&Number(m[3]||0)<60&&h<=(half?12:23)&&(!half||h>=1)){if(half)h=h%12+(half==='PM'?12:0);return String(h%12||12).padStart(2,'0')+':'+m[2]+(m[3]!==undefined?':'+m[3]:'')+' '+(h>=12?'PM':'AM');}}
+    const stamp=String(r.date||r.timestamp||'');const d=new Date(stamp);
+    if(/T.*(?:Z|[+-]\d{2}:?\d{2})$/i.test(stamp)&&!isNaN(d))return d.toLocaleTimeString('en-PH',{timeZone:'Asia/Manila',hour12:true,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    return raw?'FOR REVIEW':'—';
+  }
   function dtrHtml(title,branch,emp,provided,cut){const rs=records(emp);const rows=rs.length?rs:provided||[];const showDuty=dutyTypeEligible(emp)||rows.some(r=>r.dutyType);let from=cut&&cut.from||today(),to=cut&&cut.to||today();const days=[];for(let d=new Date(from+'T00:00:00');dateKey(d)<=to&&days.length<32;d.setDate(d.getDate()+1))days.push(dateKey(d));days.sort();
     const body=days.map(day=>{const p=rows.filter(r=>dateKey(r.date||r.timestamp)===day).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));const br=U((p.find(r=>r.dutyBranch)||{}).dutyBranch||branch);const sp=scheduleParts(br,emp.code,day);let sum=null;try{sum=calculateEmployeeDtrSummary(emp,{from:day,to:day})}catch(_){}const review=sum&&sum.dtrReview||[];
       const times=(type,kind)=>p.filter(r=>!r.errand&&!r.errandReturn&&r.type===type&&(kind==='break'?/break/i.test(r.kind||''):kind==='return'?r.kind==='Return':kind==='start'?r.kind!=='Return':!/break/i.test(r.kind||''))).map(r=>E(punchText(r))).join('<br>');
