@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R389 ERRAND DTR TRACKING</title>
+<title>Rustica RCADS App — R390 ERRAND AND DAY OFF DTR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25461,7 +25461,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R389 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R390 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -32996,6 +32996,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 #simpleHrAdminModal:not(.r178-m) .rcads-hr-layout{display:block!important;height:auto!important;min-height:0!important}
 #simpleHrAdminModal:not(.r178-m) .rcads-hr-main{height:auto!important;max-height:none!important;min-height:0!important;overflow:visible!important}
 }
+
+.r373-scroll tr.r390-dayoff > td{background:#e3effb;color:#183b60}.r373-scroll tr.r390-dayoff > td.r373-date{background:#d5e7f9}.r390-dayoff-label{display:inline-block;margin-top:4px;padding:3px 6px;border-radius:4px;background:#234e78;color:#fff;font-size:10px}
 </style>
 <script id="rcadsR373Script">/* R388: restaurant closing rule effective Nov 2. Preserve raw saved punches. */
 (()=>{
@@ -33136,7 +33138,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       const trips=window.rcadsErrands?window.rcadsErrands.trips(p):[];
       values.push(trips.map(t=>E(t.out?punchText(t.out):'—')).join('<br>'),trips.map(t=>E(t.back?punchText(t.back):'Not recorded')).join('<br>'),trips.map(t=>E(t.elapsed||'Pending')).join('<br>'),trips.map(t=>E(t.review||'Returned')+'<br>'+E(t.out&&t.out.errandBy||'')+' • '+E(t.out&&t.out.errandWhat||'')).join('<hr>'));
       if(showDuty){const types=[...new Set(p.filter(r=>r.type==='IN'&&r.kind!=='Return').map(r=>r.dutyType).filter(Boolean))];values.push(E(types.join(' / ')||'Not specified'));}
-      return '<tr>'+values.map((v,i)=>'<td'+(i===0?' class="r373-date"':'')+'>'+(v||'—')+'</td>').join('')+'</tr>';
+      const effective=String(sp.acs&&sp.acs.text||sp.original&&sp.original.text||'').trim();
+      const dayOff=/^(?:DAY\s*OFF|OFF|REST\s*DAY)$/i.test(effective);
+      if(dayOff)values[0]+='<br><strong class="r390-dayoff-label">DAY OFF</strong>';
+      return '<tr'+(dayOff?' class="r390-dayoff"':'')+'>'+values.map((v,i)=>'<td'+(i===0?' class="r373-date"':'')+'>'+(v||'—')+'</td>').join('')+'</tr>';
     }).join('');
     const nowRows=rows.filter(r=>dateKey(r.date||r.timestamp)===today());const latest=[['TIME-IN',r=>r.type==='IN'&&r.kind!=='Return'],['BREAK-OUT',r=>r.type==='OUT'&&/break/i.test(r.kind||'')],['BREAK-IN',r=>r.type==='IN'&&r.kind==='Return'],['TIME-OUT',r=>r.type==='OUT'&&!/break/i.test(r.kind||'')]].map(([label,pick])=>'<div><small>'+label+'</small><b>'+E(nowRows.filter(r=>!r.errand&&!r.errandReturn).filter(pick).map(punchText).join(' / ')||'Not recorded')+'</b></div>').join('');
     const errandLatest=[['ERRAND OUT',r=>r.type==='OUT'&&r.errand],['ERRAND IN',r=>r.type==='IN'&&r.errandReturn]].map(([label,pick])=>'<div><small>'+label+'</small><b>'+E(nowRows.filter(pick).map(punchText).join(' / ')||'Not recorded')+'</b></div>').join('');
