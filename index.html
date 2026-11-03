@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R393 TWELVE HOUR DTR</title>
+<title>Rustica RCADS App — R394 HR EMPLOYEE DTR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25461,7 +25461,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R393 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R394 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -31575,9 +31575,16 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     const flags=r=>[r.handshake?'✓ '+r.handshake:'',r.geo==='OK'?'GPS ✓':(r.geo?'⚠ GPS '+r.geo:''),r.offline?'📴 saved offline':'',r.clockCorrected?'⏰ phone clock corrected':'',String(r.phone||'').indexOf('BORROWED')===0?'👥 borrowed phone':'',r.dutyBranch&&x&&r.dutyBranch!==x.branch?'⚠ at '+r.dutyBranch:'',r.reason&&r.reason!=='—'?r.reason:''].filter(Boolean).join(' • ');
     const body='<button type="button" class="r334-back" data-r334-back>← ALL EMPLOYEES</button><div class="r334-emp" data-r334-code="'+esc(code)+'"><b>'+esc(e.name)+'</b> • '+esc(code)+'</div>'
       +(Object.keys(days).length?Object.keys(days).sort().map(k=>{const d=new Date(k+'T00:00:00');return '<div class="r334-day" data-r334-dk="'+esc(k)+'"><div class="r334-dh">'+esc(d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}))+'</div>'+days[k].map(r=>'<div class="r334-p"><span class="t">'+esc(r.time||new Date(r.date).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}))+'</span><span class="k">'+label(r)+'</span><span class="b">by '+esc(r.authorizedBy||r.approvedBy||'—')+'</span><small>'+esc(flags(r))+'</small></div>').join('')+'</div>'}).join(''):'<div class="r334-empty">No TIME IN / OUT in this cutoff on this device. Press ↻ / GET THE DATA (cloud) if it was recorded on another phone.</div>');
-    const m=document.querySelector('#r334M .r334-body');if(m)m.innerHTML=body}
+    const m=document.querySelector('#r334M .r334-body');if(m){
+      m.innerHTML=body;
+      if(window.rcadsR373&&x&&x.cutoff){
+        const identity=m.querySelector('[data-r334-code]');
+        const table=window.rcadsR373.dtrHtml((e.name||code)+' • DTR',x.branch,Object.assign({},e,{code}),R,x.cutoff);
+        if(identity)identity.insertAdjacentHTML('afterend',table+'<h3>HR REVIEW / ORIGINAL PUNCH DETAILS</h3>');
+      }
+    }}
   setInterval(()=>{try{const p=document.getElementById('hrDtrExportPanel');if(!p||document.getElementById('r334Btns'))return;const d=document.createElement('div');d.id='r334Btns';d.className='r334-btns';
-    d.innerHTML='<button type="button" data-r334-view>👁 VIEW DTR SUMMARY ON SCREEN</button><button type="button" data-r334-punch>🔎 EMPLOYEE DAILY PUNCHES</button>';const c=document.getElementById('r184Ctx');const host=c&&c.parentElement&&p.contains(c.parentElement)?c.parentElement:null;if(host)host.insertAdjacentElement('afterend',d);else p.insertBefore(d,p.children[2]||null)}catch(e){}},1500);
+    d.innerHTML='<button type="button" data-r334-view>👁 VIEW DTR SUMMARY ON SCREEN</button><button type="button" data-r334-punch>📋 EMPLOYEE DTR &amp; DAILY PUNCHES</button>';const c=document.getElementById('r184Ctx');const host=c&&c.parentElement&&p.contains(c.parentElement)?c.parentElement:null;if(host)host.insertAdjacentElement('afterend',d);else p.insertBefore(d,p.children[2]||null)}catch(e){}},1500);
   document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
     if(t.closest('[data-r334-view]')){viewSummary();return}if(t.closest('[data-r334-punch]')){openPunches();return}
     if(t.closest('[data-r334-x]')){const m=document.getElementById('r334M');if(m)m.classList.remove('show');return}
