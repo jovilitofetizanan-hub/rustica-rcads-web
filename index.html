@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R388 DTR PUNCH CLASSIFICATION</title>
+<title>Rustica RCADS App — R389 ERRAND DTR TRACKING</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25461,7 +25461,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R388 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R389 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -25627,7 +25627,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   async function appendRecord(c,name,rec){
     if(!window.rcadsSyncClock||!(await window.rcadsSyncClock())){alert('NOT RECORDED: Philippine server time could not be verified. Connect and scan again.');return false}
     const verified=nowStampLocal();rec=Object.assign({},rec,{date:verified.date.toISOString(),time:verified.time,timeSource:'official-server',timeZone:'Asia/Manila'});
-    if(rec.type==='OUT'&&rec.kind==='Break'&&storeClosedTime()){rec=Object.assign({},rec,{kind:'End Shift',reason:'Store closed — 9:00 PM onwards',reasonApproved:'N/A'});delete rec.errand;delete rec.errandBy;delete rec.errandWhat}
+    if(rec.type==='OUT'&&rec.kind==='Break'&&!rec.errand&&storeClosedTime()){rec=Object.assign({},rec,{kind:'End Shift',reason:'Store closed — 9:00 PM onwards',reasonApproved:'N/A'});delete rec.errand;delete rec.errandBy;delete rec.errandWhat}
     if(guardSaveBusy)return false;
     guardSaveBusy=true;
     try{
@@ -25868,7 +25868,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       resultBox('r181GuardRes',head+'<b>ON DUTY since '+esc(st.recs[0].time||fmtT(st.recs[0].date))+' • worked '+hmR(wi.worked)+'</b><div class="r181-acts"><button type="button" class="r181-btn" data-r181-out="END">🏁 TIME OUT — END OF SHIFT / STORE CLOSED</button><button type="button" class="r181-btn alt" data-r278-brk>☕ BREAK OUT</button><button type="button" class="r181-btn alt r357-errbtn" data-r357-errand>🛵 ERRAND — ordered by the Head (counted as work)</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button></div>','');
       pendingOut={p,name,base,wi};return;
     }
-    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingOut={p,name,base};resultBox('r181GuardRes',head+'<b>'+(st.last.errand?'🛵 ON ERRAND ('+esc(st.last.errandBy||'Head')+': '+esc(st.last.errandWhat||'')+') since ':'☕ ON BREAK since ')+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b>'+breakNotice(st.last)+'<span>Coming BACK from break → press ✓ BREAK IN. Just going OUT (the break is already recorded) → press CANCEL, nothing to record.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-in>✓ BREAK IN — back from break</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL — just going out</button></div>','');return}
+    if(st.state==='BREAK'){const mins=Math.round((Date.now()-Date.parse(st.last.date))/60000);pendingOut={p,name,base};resultBox('r181GuardRes',head+'<b>'+(st.last.errand?'🛵 ON ERRAND ('+esc(st.last.errandBy||'Head')+': '+esc(st.last.errandWhat||'')+') since ':'☕ ON BREAK since ')+esc(st.last.time||fmtT(st.last.date))+' ('+mins+' min) • BREAK OUT by '+esc(st.last.authorizedBy||'—')+'</b>'+breakNotice(st.last)+'<span>Coming BACK from break → press ✓ BREAK IN. Just going OUT (the break is already recorded) → press CANCEL, nothing to record.</span><div class="r181-acts"><button type="button" class="r181-btn" data-r278-in>'+(st.last.errand?'✓ ERRAND IN — back from work errand':'✓ BREAK IN — back from break')+'</button><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL — just going out</button></div>','');return}
     resultBox('r181GuardRes',head+'<b>SHIFT DONE</b><span>Already has a TIME OUT this shift ('+esc(st.last.time||fmtT(st.last.date))+'). Cannot be done twice.</span>','warn');
   }
   let pendingOut=null;
@@ -33006,8 +33006,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     let previous=null;
     for(const r of rows){const date=day(r.date);if(!date)continue;
       let reason='';const original=r.kind;
-      if(date>='2026-11-02'&&r.type==='OUT'&&r.kind==='Break'&&hour(r.date)>=21){r.kind='End Shift';reason='Store closing rule: OUT at/after 9 PM Philippine time is TIME OUT.';}
-      if(date>='2026-11-03'&&r.type==='IN'&&r.kind==='Return'&&previous&&day(previous.date)<date&&previous.type==='OUT'&&previous.kind==='End Shift'&&hour(previous.date)>=21){
+      if(date>='2026-11-02'&&r.type==='OUT'&&r.kind==='Break'&&!r.errand&&hour(r.date)>=21){r.kind='End Shift';reason='Store closing rule: OUT at/after 9 PM Philippine time is TIME OUT.';}
+      if(date>='2026-11-03'&&r.type==='IN'&&r.kind==='Return'&&!r.errandReturn&&previous&&!previous.errand&&day(previous.date)<date&&previous.type==='OUT'&&previous.kind==='End Shift'&&hour(previous.date)>=21){
         r.kind='Start';reason='First IN after the previous day closing TIME OUT is a new TIME IN.';
       }
       if(reason)r.rcadsClassification={version:'R388',originalKind:original,reason};
@@ -33018,6 +33018,30 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   window.rcadsPunchClassification={day,classify};
   const reader=window.getEmployeeAttendanceRecordsForDtr;
   if(typeof reader==='function')window.getEmployeeAttendanceRecordsForDtr=function(){return classify(reader.apply(this,arguments));};
+})();
+
+(()=>{
+  const day=v=>window.rcadsPunchClassification.day(v);
+  const duration=ms=>{const s=Math.max(0,Math.floor(ms/1000));return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor(s%3600/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+  function trips(rows){
+    const result=[],groups=new Map();
+    for(const r of rows||[]){if(!r||!Number.isFinite(Date.parse(r.date)))continue;const d=day(r.date);if(!groups.has(d))groups.set(d,[]);groups.get(d).push(r)}
+    for(const [date,rs]of groups){let open=[];
+      for(const r of rs.sort((a,b)=>Date.parse(a.date)-Date.parse(b.date))){
+        if(r.type==='OUT'&&r.errand){const trip={date,out:r,back:null,review:'FOR HR REVIEW — no recorded errand return'};result.push(trip);open.push(trip)}
+        else if(r.type==='IN'&&r.errandReturn){if(open.length===1&&Date.parse(r.date)>Date.parse(open[0].out.date)){const t=open[0];t.back=r;t.elapsed=duration(Date.parse(r.date)-Date.parse(t.out.date));t.review='';open=[]}else{result.push({date,out:null,back:r,review:'FOR HR REVIEW — unmatched/ambiguous errand return'});open=[]}}
+        else if((r.type==='IN'&&r.kind!=='Return')||(r.type==='OUT'&&r.kind!=='Break'))open=[];
+      }
+    }return result;
+  }
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function hrReview(){
+    const main=document.querySelector('#simpleHrAdminModal .rcads-hr-main');if(!main||typeof hrApproverSelectionUnlocked==='undefined'||!hrApproverSelectionUnlocked)return;
+    let card=document.getElementById('rcadsErrandReview');if(!card){card=document.createElement('section');card.id='rcadsErrandReview';card.className='rcads-dashboard-section';main.prepend(card)}
+    const pending=[];for(const b of Object.values(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:window.RUSTICA_BRANCHES||{}))for(const e of window.rusticaManagerLoadBranchEmployeeMaster?.(b.code)||[]){const rows=window.getEmployeeAttendanceRecordsForDtr?.(e)||[];for(const t of trips(rows).filter(t=>t.review))pending.push({e,b,t})}
+    const html='<h3>ERRAND — FOR HR REVIEW ('+pending.length+')</h3><p>Missing or unmatched return records. No automatic Time Out is created. Confirm the employee’s status and actual return/end time.</p>'+pending.map(({e,b,t})=>'<p><b>'+esc(e.name)+' • '+esc(e.code)+'</b> • '+esc(b.name)+'<br>'+esc(t.date)+' • OUT: '+esc(t.out?.time||'Not recorded')+' • IN: '+esc(t.back?.time||'Not recorded')+'<br>'+esc(t.review)+'<br>Authorized by: '+esc(t.out?.errandBy||'Not recorded')+' • '+esc(t.out?.errandWhat||'')+'</p>').join('');if(card.innerHTML!==html)card.innerHTML=html;
+  }
+  window.rcadsErrands={trips,duration,hrReview};setInterval(hrReview,10000);
 })();
 
 (function(){
@@ -33107,16 +33131,19 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function punchText(r){if(r.time)return r.time;const d=new Date(r.date);return isNaN(d)?'—':d.toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});}
   function dtrHtml(title,branch,emp,provided,cut){const rs=records(emp);const rows=rs.length?rs:provided||[];const showDuty=dutyTypeEligible(emp)||rows.some(r=>r.dutyType);let from=cut&&cut.from||today(),to=cut&&cut.to||today();const days=[];for(let d=new Date(from+'T00:00:00');dateKey(d)<=to&&days.length<32;d.setDate(d.getDate()+1))days.push(dateKey(d));days.sort();
     const body=days.map(day=>{const p=rows.filter(r=>dateKey(r.date||r.timestamp)===day).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));const br=U((p.find(r=>r.dutyBranch)||{}).dutyBranch||branch);const sp=scheduleParts(br,emp.code,day);let sum=null;try{sum=calculateEmployeeDtrSummary(emp,{from:day,to:day})}catch(_){}const review=sum&&sum.dtrReview||[];
-      const times=(type,kind)=>p.filter(r=>r.type===type&&(kind==='break'?/break/i.test(r.kind||''):kind==='return'?r.kind==='Return':kind==='start'?r.kind!=='Return':!/break/i.test(r.kind||''))).map(r=>E(punchText(r))).join('<br>');
+      const times=(type,kind)=>p.filter(r=>!r.errand&&!r.errandReturn&&r.type===type&&(kind==='break'?/break/i.test(r.kind||''):kind==='return'?r.kind==='Return':kind==='start'?r.kind!=='Return':!/break/i.test(r.kind||''))).map(r=>E(punchText(r))).join('<br>');
       const values=[E(day),E(sp.original&&sp.original.text||'—'),E(sp.acs&&sp.acs.text||'—'),E(sp.acs&&sp.acs.breakHours!==''?sp.acs.breakHours:'—'),E(sp.acs&&sp.acs.ot!==''?sp.acs.ot:'—'),times('IN','start'),times('OUT','break'),times('IN','return'),times('OUT','end'),review.some(r=>r.late)?'FOR REVIEW':sum?hhmm(sum.lateMinutes):'—',review.some(r=>r.ut)?'FOR REVIEW':sum?hhmm(sum.undertimeMinutes):'—',E(bName(br))];
+      const trips=window.rcadsErrands?window.rcadsErrands.trips(p):[];
+      values.push(trips.map(t=>E(t.out?punchText(t.out):'—')).join('<br>'),trips.map(t=>E(t.back?punchText(t.back):'Not recorded')).join('<br>'),trips.map(t=>E(t.elapsed||'Pending')).join('<br>'),trips.map(t=>E(t.review||'Returned')+'<br>'+E(t.out&&t.out.errandBy||'')+' • '+E(t.out&&t.out.errandWhat||'')).join('<hr>'));
       if(showDuty){const types=[...new Set(p.filter(r=>r.type==='IN'&&r.kind!=='Return').map(r=>r.dutyType).filter(Boolean))];values.push(E(types.join(' / ')||'Not specified'));}
       return '<tr>'+values.map((v,i)=>'<td'+(i===0?' class="r373-date"':'')+'>'+(v||'—')+'</td>').join('')+'</tr>';
     }).join('');
-    const nowRows=rows.filter(r=>dateKey(r.date||r.timestamp)===today());const latest=[['TIME-IN',r=>r.type==='IN'&&r.kind!=='Return'],['BREAK-OUT',r=>r.type==='OUT'&&/break/i.test(r.kind||'')],['BREAK-IN',r=>r.type==='IN'&&r.kind==='Return'],['TIME-OUT',r=>r.type==='OUT'&&!/break/i.test(r.kind||'')]].map(([label,pick])=>'<div><small>'+label+'</small><b>'+E(nowRows.filter(pick).map(punchText).join(' / ')||'Not recorded')+'</b></div>').join('');
+    const nowRows=rows.filter(r=>dateKey(r.date||r.timestamp)===today());const latest=[['TIME-IN',r=>r.type==='IN'&&r.kind!=='Return'],['BREAK-OUT',r=>r.type==='OUT'&&/break/i.test(r.kind||'')],['BREAK-IN',r=>r.type==='IN'&&r.kind==='Return'],['TIME-OUT',r=>r.type==='OUT'&&!/break/i.test(r.kind||'')]].map(([label,pick])=>'<div><small>'+label+'</small><b>'+E(nowRows.filter(r=>!r.errand&&!r.errandReturn).filter(pick).map(punchText).join(' / ')||'Not recorded')+'</b></div>').join('');
+    const errandLatest=[['ERRAND OUT',r=>r.type==='OUT'&&r.errand],['ERRAND IN',r=>r.type==='IN'&&r.errandReturn]].map(([label,pick])=>'<div><small>'+label+'</small><b>'+E(nowRows.filter(pick).map(punchText).join(' / ')||'Not recorded')+'</b></div>').join('');
     const corrections=rows.filter(r=>r.rcadsClassification&&dateKey(r.date)>=from&&dateKey(r.date)<=to);
     const correctionNote=corrections.length?'<details><summary>DTR classification corrections ('+corrections.length+') — original saved records retained</summary>'+corrections.map(r=>'<p>'+E(dateKey(r.date))+' '+E(punchText(r))+': '+E(r.rcadsClassification.originalKind)+' → '+E(r.kind)+'. '+E(r.rcadsClassification.reason)+'</p>').join('')+'</details>':'';
     const dutyToday=correctionNote+(showDuty?'<p><b>DUTY TYPE:</b> '+E([...new Set(nowRows.filter(r=>r.type==='IN'&&r.kind!=='Return').map(r=>r.dutyType).filter(Boolean))].join(' / ')||'Not specified')+'</p>':'');
-    return '<section class="r373-dtr"><h3>'+E(title)+'</h3><p>TODAY’S SAVED PUNCHES • '+E(today())+'</p><div class="r373-punches">'+latest+'</div>'+dutyToday+'<p>'+E(from)+' to '+E(to)+' • '+(navigator.onLine?(syncError?'Sync pending — showing saved records.':'Saved attendance • refreshes automatically.'): 'Offline — showing saved records; new Guard punches appear after sync.')+'</p><p>Swipe sideways to see all DTR columns →</p><div class="r373-scroll"><table><thead><tr>'+['DATE','ORIGINAL SCHED.'].map(t=>'<th rowspan="2">'+t+'</th>').join('')+'<th colspan="3">ACS</th>'+['TIME-IN','BREAK-OUT','BREAK-IN','TIME-OUT','LATE','UNDER TIME','BRANCH',...(showDuty?['DUTY TYPE']:[])].map(t=>'<th rowspan="2">'+t+'</th>').join('')+'</tr><tr><th>CHANGE SCHED.</th><th>LONG BREAK (HRS)</th><th>APPROVE O.T.</th></tr></thead><tbody>'+body+'</tbody></table></div><p>Original Schedule and ACS come from uploaded filled schedules. Actual punches are shown only after saving. ACS approved OT remains subject to the existing approval and actual-time checks.</p></section>';
+    return '<section class="r373-dtr"><h3>'+E(title)+'</h3><p>TODAY’S SAVED PUNCHES • '+E(today())+'</p><div class="r373-punches">'+latest+errandLatest+'</div>'+dutyToday+'<p>'+E(from)+' to '+E(to)+' • '+(navigator.onLine?(syncError?'Sync pending — showing saved records.':'Saved attendance • refreshes automatically.'): 'Offline — showing saved records; new Guard punches appear after sync.')+'</p><p>Swipe sideways to see all DTR columns →</p><div class="r373-scroll"><table><thead><tr>'+['DATE','ORIGINAL SCHED.'].map(t=>'<th rowspan="2">'+t+'</th>').join('')+'<th colspan="3">ACS</th>'+['TIME-IN','BREAK-OUT','BREAK-IN','TIME-OUT','LATE','UNDER TIME','BRANCH','ERRAND OUT','ERRAND IN','ERRAND DURATION (HH:MM:SS)','ERRAND STATUS / REASON',...(showDuty?['DUTY TYPE']:[])].map(t=>'<th rowspan="2">'+t+'</th>').join('')+'</tr><tr><th>CHANGE SCHED.</th><th>LONG BREAK (HRS)</th><th>APPROVE O.T.</th></tr></thead><tbody>'+body+'</tbody></table></div><p>Original Schedule and ACS come from uploaded filled schedules. Actual punches are shown only after saving. ACS approved OT remains subject to the existing approval and actual-time checks.</p></section>';
   }
   function refreshDtr(){const e=current();if(!e)return;for(const id of ['rcadsEmployeeOwnDtrOutput','approverReadOnlyOutput','r159ApDtr']){const out=document.getElementById(id);if(!out||!out.querySelector('.r373-dtr,.r159-dtr'))continue;let cut=null;try{cut=getSavedHrCutoffPeriod()}catch(_){}const f=find(e.code),html=dtrHtml(e.name+' • MY DTR',f?f.b:'',e,[],cut);if(out.dataset.r373html!==html){out.dataset.r373html=html;const scroll=out.querySelector('.r373-scroll')?.scrollLeft||0;out.innerHTML=html;out.querySelector('.r373-scroll').scrollLeft=scroll;}}}
   function ownerTick(){const home=document.getElementById('topManagementHomeScreen'),root=home&&home.querySelector('.r100-content');let box=document.getElementById('r373Owner');if(!root||!window.rcadsTopManagementSession||getComputedStyle(home).display==='none'){if(box)box.remove();return}if(!box){box=document.createElement('section');box.id='r373Owner';box.className='r373-card';box.setAttribute('data-r162-tab','home');root.insertBefore(box,root.querySelector(':scope > .r162-nav'));}
