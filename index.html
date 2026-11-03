@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R394 HR EMPLOYEE DTR</title>
+<title>Rustica RCADS App — R395 ERRAND OUT FORM</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25461,7 +25461,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R394 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R395 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -25854,7 +25854,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(guardLabel()!==gl||!guardTokens().includes(p.g)||Date.now()-Number(p.ts)>MAX_AGE){resultBox('r181GuardRes','<b>✗ SCAN AGAIN</b><span>The Guard session or QR expired during the location check.</span>','bad');return}
     const st=shiftState(p.c);const name=v.emp.name||p.c;
     const flags=[p.geo==='OUT'?'⚠ GPS: OUTSIDE THE BRANCH':(p.geo==='OK'?'✓ GPS: at the branch':'GPS: not checked'),String(p.ph||'').indexOf('BORROWED')===0?'👥 BORROWED PHONE ('+esc(p.ph.split(':')[1]||'')+')':'',v.branch&&curBranch()&&v.branch!==curBranch()?'🚨 URGENT DUTY from '+bName(v.branch)+' — goes to their own DTR':'',v.loan?'👥 TEMPORARY TRANSFER from '+bName(v.loan.from)+' until '+(window.rcadsR185?rcadsR185.fmt(v.loan.until):v.loan.until):'',v.loanEnded&&v.loanEnded.to===curBranch()?'⚠ TEMPORARY TRANSFER ENDED ('+(window.rcadsR185?rcadsR185.fmt(rcadsR185.loanEnd(v.loanEnded)):v.loanEnded.until)+') — should be at '+bName(v.loanEnded.from)+' now':''].filter(Boolean);
-    const noBreak=st.state==='WORKING'?'<div class="r181-warn">NO BREAK OUT RECORDED in the latest synced attendance. Ask the employee and the Head/Manager before they leave. Confirm the facts before reporting an unauthorized departure.</div>':'';
+    const noBreak=st.state==='WORKING'?'<div class="r181-warn">Employee is currently on duty. Choose BREAK OUT for a personal break, ERRAND OUT for an authorized work errand, or TIME OUT to end duty.</div>':'';
     const head=noBreak+'<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span><em>'+flags.map(esc).join(' • ').replace(/&amp;/g,'&')+'</em></div>';
     const base={handshake:'MUTUAL QR',guardToken:p.g,geo:p.geo,guardGeo:'OK',guardGeoCheckedAt:guardGeo.at||new Date().toISOString(),phone:p.ph||'OWN',authorizedBy:gl,authorizedDepartment:'Security / Guard',dutyBranch:curBranch()};
     pendingOut={p,name,base,emp:v.emp,head};
@@ -25874,8 +25874,15 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function guardActionMenu(head,st){return head+'<b>CHOOSE THE ACTUAL ATTENDANCE ACTION</b><p>Check with the employee. No punch is recorded until you choose and confirm.</p><div class="r181-acts">'+guardActions.map((a,i)=>(i===0?'<b style="width:100%">IN</b>':i===3?'<b style="width:100%">OUT</b>':'')+'<button type="button" class="r181-btn" data-r391-action="'+a+'" '+(canGuardAction(a,st)?'':'disabled style="opacity:.45"')+'>'+actionLabel(a)+'</button>').join('')+'</div><p>Current status: '+esc(st.state)+(st.last&&st.last.errand?' (ERRAND)':'')+'. Unavailable actions need a matching prior punch or HR review. After 9 PM, use TIME OUT for end of duty.</p><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button>';}
   let guardChoiceBusy=false;
   function choiceFresh(p,base){return pendingOut&&pendingOut.p===p&&guardLabel()===base.authorizedBy&&guardTokens().includes(p.g)&&Date.now()-Number(p.ts)<=MAX_AGE;}
-  async function commitGuardAction(action){
-    if(guardChoiceBusy||!pendingOut||!guardActions.includes(action))return false;
+  function showErrandForm(){
+    if(guardChoiceBusy)return;
+    if(!pendingOut){resultBox('r181GuardRes','<b>SCAN AGAIN</b><span>No active employee scan. Nothing recorded.</span>','warn');return;}
+    resultBox('r181GuardRes',pendingOut.head+'<form id="r395ErrandForm"><h3>ERRAND OUT</h3><p>Enter the approval and errand details, then confirm.</p><label>Authorized by<input name="errandBy" required maxlength="150" autocomplete="off" style="display:block;width:100%;box-sizing:border-box;padding:12px;font-size:16px"></label><label>Purpose / destination<textarea name="errandWhat" required maxlength="500" style="display:block;width:100%;box-sizing:border-box;padding:12px;font-size:16px"></textarea></label><button type="submit" class="r181-btn">CONFIRM ERRAND OUT</button><button type="button" class="r181-btn ghost" data-r395-back>BACK — NOT RECORDED</button><p id="r395ErrandStatus" role="status"></p></form>','');
+  }
+  async function commitGuardAction(action,details){
+    if(guardChoiceBusy||!guardActions.includes(action))return false;
+    if(!pendingOut){resultBox('r181GuardRes','<b>SCAN AGAIN</b><span>No active employee scan. Nothing recorded.</span>','warn');return false;}
+    if(action==='ERRAND_OUT'&&(!details?.by?.trim()||!details?.what?.trim())){showErrandForm();return false;}
     guardChoiceBusy=true;const context=pendingOut,{p,name,base,emp}=context;
     try{
       if(!(await refreshBeforeBreak('r181GuardRes'))||!choiceFresh(p,base)){resultBox('r181GuardRes','<b>SCAN AGAIN</b><span>Session or QR expired. Nothing recorded.</span>','bad');return false;}
@@ -25885,8 +25892,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
         const duty=await window.rcadsR373.chooseDutyType(emp);if(!duty)return false;extra.dutyType=duty;extra.dutyTypeBy=base.authorizedBy;extra.dutyTypeSetAt=nowStampLocal().date.toISOString();
       }
       if(action==='ERRAND_OUT'){
-        const by=prompt('ERRAND OUT — name/role of the person who authorized this work errand:','');if(!by?.trim())return false;
-        const what=prompt('ERRAND OUT — purpose / destination:','');if(!what?.trim())return false;
+        const by=details.by,what=details.what;
         Object.assign(extra,{errand:true,errandBy:by.trim(),errandWhat:what.trim(),reason:'Work errand: '+what.trim(),reasonApproved:'YES'});
       }
       if(action==='ERRAND_IN')Object.assign(extra,{errandReturn:true,errandMinutes:Math.max(0,Math.round((nowStampLocal().date-Date.parse(st.last.date))/60000))});
@@ -25899,7 +25905,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
           extra.reason=reason.trim();extra.reasonApproved='YES';extra.approvedEarlyLeave=true;
         }
       }
-      if(!confirm(actionLabel(action)+' — '+name+' ('+p.c+')\n\nRecord this exact action in the employee DTR?'))return false;
+      if(action!=='ERRAND_OUT'&&!confirm(actionLabel(action)+' — '+name+' ('+p.c+')\n\nRecord this exact action in the employee DTR?'))return false;
       if(!(await refreshBeforeBreak('r181GuardRes'))||!choiceFresh(p,base)||!canGuardAction(action,shiftState(p.c))){resultBox('r181GuardRes','<b>NOT RECORDED</b><span>Status/session changed. Scan again.</span>','bad');return false;}
       const stamp=nowStampLocal();const mapping={TIME_IN:['IN','Start'],BREAK_IN:['IN','Return'],ERRAND_IN:['IN','Return'],BREAK_OUT:['OUT','Break'],ERRAND_OUT:['OUT','Break'],TIME_OUT:['OUT','End Shift']};
       const [type,kind]=mapping[action];const rec=Object.assign({},base,extra,{type,kind,date:stamp.date.toISOString(),time:stamp.time,actionSelectedAt:stamp.date.toISOString()});
@@ -25908,7 +25914,14 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       resultBox('r181GuardRes','<b class="big ok">'+esc(actionLabel(action))+' • '+esc(name)+' • '+esc(stamp.time)+'</b><span>Saved to '+esc(actionLabel(action))+' in the DTR.</span>','ok');pendingOut=null;return true;
     }finally{guardChoiceBusy=false;}
   }
-  document.addEventListener('click',e=>{const button=e.target.closest?.('[data-r391-action]');if(button&&!button.disabled)void commitGuardAction(button.dataset.r391Action).catch(err=>{resultBox('r181GuardRes','<b>NOT RECORDED</b><span>'+esc(err.message)+'</span>','bad')});});
+  const guardActionError=err=>resultBox('r181GuardRes','<b>NOT RECORDED</b><span>'+esc(err.message)+'</span>','bad');
+  document.addEventListener('click',e=>{
+    if(e.target.closest?.('[data-r395-back]')){if(!guardChoiceBusy&&pendingOut)resultBox('r181GuardRes',guardActionMenu(pendingOut.head,shiftState(pendingOut.p.c)),'');return;}
+    const button=e.target.closest?.('[data-r391-action]');if(!button||button.disabled)return;
+    if(button.dataset.r391Action==='ERRAND_OUT'){showErrandForm();return;}
+    if(!guardChoiceBusy){button.textContent='CHECKING…';void commitGuardAction(button.dataset.r391Action).catch(guardActionError).finally(()=>{if(button.isConnected)button.textContent=actionLabel(button.dataset.r391Action)})}
+  });
+  document.addEventListener('submit',e=>{if(e.target.id!=='r395ErrandForm')return;e.preventDefault();if(guardChoiceBusy)return;const form=e.target,by=form.elements.errandBy.value.trim(),what=form.elements.errandWhat.value.trim();const status=form.querySelector('[role="status"]');if(!by||!what){status.textContent='Enter the authorizer and purpose. Nothing recorded.';return;}status.textContent='Checking attendance and saving… Please wait.';const button=form.querySelector('[type="submit"]');button.disabled=true;void commitGuardAction('ERRAND_OUT',{by,what}).catch(guardActionError).finally(()=>{button.disabled=false;if(status.isConnected)status.textContent='Not recorded. Check the message above or scan again.'})});
 
   let pendingOut=null;
   /* ===== R217: 8-HOUR RULE • UNDERTIME only by Head 1 (with reason) • LEFT WITHOUT PERMISSION flag ===== */
