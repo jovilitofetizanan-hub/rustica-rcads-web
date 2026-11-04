@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R411 TRANSFER IN LIST</title>
+<title>Rustica RCADS App — R414 LATE REMINDER</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25474,7 +25474,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R411 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R414 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -27869,6 +27869,14 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function addD(s,n){const d=parseD(s);d.setDate(d.getDate()+n);return ymd(d)}
   function fmt(s){const d=parseD(s);return d?d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}):''}
   function hm(m){m=Math.round(m||0);const h=Math.floor(m/60),r=m%60;return (h?h+'h ':'')+r+'m'}
+  /* R414: Rustica cut-offs 11–25 and 26–10. HR red flags are for the cut-off that just CLOSED (NTE is made after the cut-off). */
+  function cutOf(dk){const d=parseD(dk),y=d.getFullYear(),m=d.getMonth(),day=d.getDate();
+    if(day>=11&&day<=25)return {from:ymd(new Date(y,m,11)),to:ymd(new Date(y,m,25))};
+    if(day>=26)return {from:ymd(new Date(y,m,26)),to:ymd(new Date(y,m+1,10))};
+    return {from:ymd(new Date(y,m-1,26)),to:ymd(new Date(y,m,10))}}
+  function closedCut(){return cutOf(addD(cutOf(today()).from,-1))}
+  function runCut(){return cutOf(today())}
+  function cutTxt(c){const f=parseD(c.from),t=parseD(c.to),M=d=>d.toLocaleDateString('en-US',{month:'short'});return M(f)+' '+f.getDate()+' – '+(f.getMonth()===t.getMonth()?'':M(t)+' ')+t.getDate()+', '+t.getFullYear()}
   function t12(m){if(m==null)return '';m=((m%1440)+1440)%1440;let h=Math.floor(m/60);const mi=m%60,ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(mi)+' '+ap}
   function ord(n){return n+(n%10===1&&n%100!==11?'st':n%10===2&&n%100!==12?'nd':n%10===3&&n%100!==13?'rd':'th')}
   function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
@@ -27903,22 +27911,26 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     return out.sort((a,b)=>a.date<b.date?-1:1);
   }
   function scan(){
-    const c=cutoff();if(!c)return [];const rows=[];
+    const c=closedCut();if(!c)return [];const rows=[];   /* R414: the cut-off that just closed */
     branches().forEach(b=>staff(b.code).forEach(e=>{const code=U(e.code);if(isSep(code)||rows.some(r=>r.code===code))return;
-      const inc=incidents(e,c);if(!inc.length)return;const n={ABSENT:0,LATE:0,UNDERTIME:0};inc.forEach(x=>{n[x.kind]++;x.n=n[x.kind]});
-      const lvl=['red','yellow','green'].find(l=>Object.values(n).some(v=>LV(v)===l))||'';
-      rows.push({code,name:e.name||code,branch:b.code,dept:e.dept||'',inc,n,lvl})}));
+      const all=incidents(e,c);if(!all.length)return;
+      /* R413: what HR already sent a Notice to Explain for is not counted again — the next Late / Undertime starts a new count */
+      const d0=nteOf(code),cov=new Set(((d0&&d0.items)||[]).map(i=>i.id));const old=all.filter(x=>cov.has(x.kind+'_'+x.date)),inc=all.filter(x=>!cov.has(x.kind+'_'+x.date));
+      if(!inc.length)return;const n={ABSENT:0,LATE:0,UNDERTIME:0};inc.forEach(x=>{n[x.kind]++;x.n=n[x.kind]});
+      const lvK=k=>(k==='LATE'||k==='UNDERTIME')&&n[k]>0?'red':LV(n[k]);   /* R412 */
+      const lvl=['red','yellow','green'].find(l=>Object.keys(n).some(k=>lvK(k)===l))||'';
+      rows.push({code,name:e.name||code,branch:b.code,dept:e.dept||'',inc,n,lvl,old:old.length})}));
     const o={red:0,yellow:1,green:2};return rows.sort((a,b)=>o[a.lvl]-o[b.lvl]||String(a.name).localeCompare(String(b.name)));
   }
 
   /* ---------- NTE store ---------- */
   function nteOf(code){return lsGet(NTE_PREFIX+safeKey(code),null)}
   function repOf(code){return lsGet(REP_PREFIX+safeKey(code),{})||{}}
-  function issue(rows){
+  function issue(rows,manual){
     const t=today(),now=new Date().toISOString();let made=0;
     rows.forEach(r=>{const k=NTE_PREFIX+safeKey(r.code),d=nteOf(r.code)||{code:r.code,name:r.name,branch:r.branch,items:[]};let ch=false;
       r.inc.forEach(x=>{const id=x.kind+'_'+x.date;if(d.items.some(i=>i.id===id))return;
-        d.items.push({id,kind:x.kind,date:x.date,mins:x.mins,detail:x.detail,n:x.n,level:LV(x.n),issuedAt:now,due:addD(t,REPLY_DAYS)});ch=true;made++});
+        d.items.push({id,kind:x.kind,date:x.date,mins:x.mins,detail:x.detail,n:x.n,level:(x.kind==='LATE'||x.kind==='UNDERTIME')?'red':LV(x.n),issuedAt:now,due:addD(t,REPLY_DAYS),manual:!!manual,by:manual?'HR':''});ch=true;made++});
       if(ch){d.name=r.name;d.branch=r.branch;d.items=d.items.slice(-60);lsSet(k,d)}});
     return made;
   }
@@ -27934,7 +27946,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   /* ---------- employee app: 📋 NOTICE TO EXPLAIN ---------- */
   function meCode(){try{return currentEmployee&&currentEmployee.code?U(currentEmployee.code):''}catch(e){return ''}}
   function empHtml(code){
-    const d=nteOf(code);if(!d||!d.items.length)return '';const rep=repOf(code);
+    const d0=nteOf(code);const d=d0&&Object.assign({},d0,{items:(d0.items||[]).filter(i=>i.manual)});if(!d||!d.items.length)return '';   /* R413: only what HR sent */const rep=repOf(code);
     const open=d.items.filter(i=>!rep[i.id]&&!i.decision&&(Date.now()-Date.parse(i.issuedAt))<40*864e5),done=d.items.filter(i=>rep[i.id]||i.decision).slice(-6).reverse();
     if(!open.length&&!done.length)return '';const h=lsGet(HRSIG_KEY,{})||{};
     return '<div class="r200-h">📋 NOTICE TO EXPLAIN'+(open.length?' <em>'+open.length+'</em>':'')+'</div>'+
@@ -27951,7 +27963,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none')return shell;return null;
   }
   function renderEmp(force){
-    const h=host();let el=document.getElementById('r200Emp');const c=h?meCode():'',html=c?empHtml(c):'';
+    const h=host();let el=document.getElementById('r200Emp');const c=h?meCode():'',html=(c&&document.getElementById('employeeSimplePanel')===h)?empHtml(c):'';   /* R413: employee app shows only the NTE that HR sent (not in the Head app) */
     if(!html){if(el)el.remove();return}
     if(!el){el=document.createElement('div');el.id='r200Emp';el.className='r200-emp';el.setAttribute('data-r162-tab','home');el.addEventListener('click',empClick)}
     if(el.parentElement!==h){const after=document.getElementById('r192EmpNote')||document.getElementById('r196Emp');h.insertBefore(el,after&&after.parentElement===h?after.nextSibling:h.firstChild)}
@@ -27961,19 +27973,23 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   /* ---------- HR ---------- */
   let ROWS=[],lastScan=0,showAll=false;
   function hrHtml(){
-    const c=cutoff(),D=allNte(),n=k=>ROWS.filter(r=>r.lvl===k).length;
+    const c=closedCut(),D=allNte(),n=k=>ROWS.filter(r=>r.lvl===k).length;   /* R414 */
     const ans=[],noRep=[];D.forEach(d=>d.items.forEach(it=>{const s=itemState(d.code,it);if(s==='ANSWERED')ans.push([d,it]);if(s==='NO_REPLY')noRep.push([d,it])}));
     const rowHtml=r=>'<tr><td><span class="r200-dot '+r.lvl+'"></span></td><td><b>'+esc(r.name)+'</b><br><small>'+esc(r.code)+' • '+esc(bName(r.branch))+'</small></td>'+
-      ['ABSENT','LATE','UNDERTIME'].map(k=>'<td class="c"><span class="r200-n lv-'+LV(r.n[k])+'">'+(r.n[k]||'—')+'</span></td>').join('')+
-      '<td><small>'+r.inc.map(x=>esc(x.kind[0])+' '+esc(x.date.slice(5))+(x.mins?' ('+hm(x.mins)+')':'')).join(' • ')+'</small></td></tr>';
+      ['ABSENT','LATE','UNDERTIME'].map(k=>{const tm=r.inc.filter(x=>x.kind===k).reduce((a,x)=>a+(x.mins||0),0);return '<td class="c"><span class="r200-n lv-'+((k==='LATE'||k==='UNDERTIME')&&r.n[k]?'red':LV(r.n[k]))+'">'+(r.n[k]||'—')+'</span>'+(k!=='ABSENT'&&r.n[k]?'<br><small><b>'+hm(tm)+'</b></small>':'')+'</td>'}).join('')+
+      '<td><small>'+r.inc.map(x=>esc(x.kind[0])+' '+esc(x.date.slice(5))+(x.mins?' ('+hm(x.mins)+')':'')).join(' • ')+'</small>'+(r.old?'<br><small style="color:#2f6b3a">✓ '+r.old+' earlier already in a Notice to Explain</small>':'')+'</td>'
+      +'<td><button type="button" class="r185-save" style="padding:7px 10px;font-size:11.5px;white-space:nowrap" data-r413-nte="'+esc(r.code)+'">📨 SEND NTE</button></td></tr>';
     return '<div class="r185-h">📋 ATTENDANCE SIGNALS &amp; NOTICE TO EXPLAIN</div>'+
-      '<div class="r185-note">Cutoff <b>'+esc(c?fmt(c.from)+' – '+fmt(c.to):'—')+'</b>. Counted from the daily TIME IN / OUT and the uploaded schedule. Each kind counts separately: <b>1st = 🟢, 2nd = 🟡, 3rd or more = 🔴</b>. A <b>Notice to Explain is sent automatically</b> to the employee’s app from the 1st time; he/she answers within '+REPLY_DAYS+' days. Excused when an Approver APPROVED the Late / Undertime / Absent of that day. No schedule = cannot measure.</div>'+
+      '<div class="r185-note">Cutoff <b>'+esc(c?fmt(c.from)+' – '+fmt(c.to):'—')+'</b>. Counted from the daily TIME IN / OUT and the uploaded schedule. Each kind counts separately: <b>1st = 🟢, 2nd = 🟡, 3rd or more = 🔴</b>. <b>This list is the cut-off that just CLOSED</b> (the running cut-off is not flagged yet — employees see their own Late / Undertime under MY DTR). <b>🔴 Every LATE or UNDERTIME is a red flag here for HR.</b> No automatic Notice to Explain: HR presses <b>📨 SEND NTE</b> → it appears in that employee’s RCADS app (5 days to answer). After an NTE is sent, those days are <b>not counted again</b> — the next Late / Undertime starts a new count and a new 🔴. Excused when an Approver APPROVED the Late / Undertime / Absent of that day. No schedule = cannot measure.</div>'+
       '<div class="r192-kpi"><span class="bad">🔴 '+n('red')+'</span><span class="warn">🟡 '+n('yellow')+'</span><span class="ok">🟢 '+n('green')+'</span><span class="none">📨 answers to read: <b>'+ans.length+'</b></span><span class="sus">⏰ no reply after '+REPLY_DAYS+' days: <b>'+noRep.length+'</b></span></div>'+
       '<div class="r196-hsub">📨 ANSWERS TO READ ('+ans.length+')</div>'+(ans.length?ans.map(([d,it])=>{const r=repOf(d.code)[it.id];return '<div class="r196-exh"><b>'+esc(d.name)+'</b> <small>'+esc(d.code)+' • '+esc(bName(d.branch))+'</small><br><span class="r200-n lv-'+it.level+'">'+esc(it.kind)+' • '+esc(fmt(it.date))+' • '+ord(it.n)+'</span> <small>'+esc(it.detail)+'</small><p>'+esc(r.text)+'</p><div><button type="button" data-r200-dec="ACCEPTED|'+esc(d.code)+'|'+esc(it.id)+'">✓ EXPLANATION ACCEPTED</button><button type="button" class="ghost" data-r200-dec="FOR DISCIPLINARY ACTION|'+esc(d.code)+'|'+esc(it.id)+'">⚠ FOR DISCIPLINARY ACTION</button></div></div>'}).join(''):'<div class="r185-empty">No answers to read.</div>')+
       (noRep.length?'<div class="r196-hsub">⏰ NO REPLY AFTER '+REPLY_DAYS+' DAYS ('+noRep.length+')</div>'+noRep.map(([d,it])=>'<div class="r196-exh"><b>'+esc(d.name)+'</b> <small>'+esc(d.code)+'</small> • '+esc(it.kind)+' '+esc(fmt(it.date))+' • due '+esc(fmt(it.due))+'<div><button type="button" class="ghost" data-r200-dec="FOR DISCIPLINARY ACTION (no reply)|'+esc(d.code)+'|'+esc(it.id)+'">⚠ FOR DISCIPLINARY ACTION</button><button type="button" data-r200-dec="CLOSED|'+esc(d.code)+'|'+esc(it.id)+'">CLOSE</button></div></div>').join(''):'')+
-      '<div class="r196-hsub">THIS CUTOFF ('+ROWS.length+' employees)</div>'+(ROWS.length?'<table class="r185-t"><thead><tr><th></th><th>EMPLOYEE</th><th class="c">ABSENT</th><th class="c">LATE</th><th class="c">UNDERTIME</th><th>DAYS (A / L / U)</th></tr></thead><tbody>'+(showAll?ROWS:ROWS.slice(0,60)).map(rowHtml).join('')+'</tbody></table>'+(ROWS.length>60&&!showAll?'<button type="button" class="r185-save" data-r200-all>SHOW ALL '+ROWS.length+'</button>':''):'<div class="r185-empty">No absent, late or undertime this cutoff (or no schedule / attendance yet).</div>');
+      '<div class="r196-hsub">THIS CUTOFF ('+ROWS.length+' employees)</div>'+(ROWS.length?'<table class="r185-t"><thead><tr><th></th><th>EMPLOYEE</th><th class="c">ABSENT</th><th class="c">LATE<br><small>times • total</small></th><th class="c">UNDERTIME<br><small>times • total</small></th><th>DAYS (A / L / U)</th><th></th></tr></thead><tbody>'+(showAll?ROWS:ROWS.slice(0,60)).map(rowHtml).join('')+'</tbody></table>'+(ROWS.length>60&&!showAll?'<button type="button" class="r185-save" data-r200-all>SHOW ALL '+ROWS.length+'</button>':''):'<div class="r185-empty">No absent, late or undertime this cutoff (or no schedule / attendance yet).</div>');
   }
   function hrClick(e){const t=e.target;if(!t.closest)return;if(t.closest('[data-r200-all]')){showAll=true;render(true);return}
+    const sn=t.closest('[data-r413-nte]');if(sn){const r=ROWS.find(x=>x.code===sn.getAttribute('data-r413-nte'));if(!r||!r.inc.length)return;
+      if(!confirm('📨 SEND NOTICE TO EXPLAIN to '+r.name+' ('+r.code+')?\n\n'+r.inc.map(x=>'• '+x.kind+' '+fmt(x.date)+(x.mins?' ('+hm(x.mins)+')':'')).join('\n')+'\n\nIt appears in the employee’s RCADS app; 5 days to answer.\nThese days will not be counted again.'))return;
+      const m=issue([r],true);ROWS=scan();lastScan=Date.now();render(true);alert('✓ Notice to Explain sent ('+m+' item'+(m===1?'':'s')+') to '+r.name+'.');return}
     const b=t.closest('[data-r200-dec]');if(!b)return;const [dec,code,id]=b.dataset.r200Dec.split('|');const d=nteOf(code);if(!d)return;const it=d.items.find(i=>i.id===id);if(!it)return;
     const note=prompt(dec+' — '+d.name+' • '+it.kind+' '+fmt(it.date)+'\n\nNote to the employee (optional):','');if(note==null)return;
     it.decision=dec;it.hrNote=note;it.decidedAt=new Date().toISOString();lsSet(NTE_PREFIX+safeKey(code),d);render(true)}
@@ -27989,8 +28005,13 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   }
   // for the red-flag dots (R199)
   function flags(){
-    const o=[];ROWS.forEach(r=>{const w=r.name+' • '+bName(r.branch);['ABSENT','LATE','UNDERTIME'].forEach(k=>{const l=LV(r.n[k]);if(l)o.push({lvl:l,txt:(k==='LATE'&&r.n[k]>=3?'Tardiness — ':'')+ord(r.n[k])+' '+k.toLowerCase()+' this cutoff (NTE sent)',who:w,go:'r200HrSection'})})});
-    allNte().forEach(d=>d.items.forEach(it=>{const s=itemState(d.code,it);if(s==='ANSWERED')o.push({lvl:'yellow',txt:'NTE answer to read — '+it.kind+' '+fmt(it.date),who:d.name+' • '+bName(d.branch),go:'r200HrSection'});if(s==='NO_REPLY')o.push({lvl:'red',txt:'NTE — no reply after '+REPLY_DAYS+' days ('+it.kind+' '+fmt(it.date)+')',who:d.name+' • '+bName(d.branch),go:'r200HrSection'})}));
+    const o=[],cc=closedCut();ROWS.forEach(r=>{const w=r.name+' • '+bName(r.branch);   /* R414: ONE flag per employee for the closed cut-off — times and total minutes */
+      const tot=k=>r.inc.filter(x=>x.kind===k).reduce((a,x)=>a+(x.mins||0),0);const parts=[];
+      if(r.n.LATE)parts.push('LATE '+r.n.LATE+'× ('+hm(tot('LATE'))+' total)'+(r.n.LATE>=3?' — TARDINESS':''));
+      if(r.n.UNDERTIME)parts.push('UNDERTIME '+r.n.UNDERTIME+'× ('+hm(tot('UNDERTIME'))+' total)');
+      if(r.n.ABSENT)parts.push('ABSENT '+r.n.ABSENT+'×');
+      const l=(r.n.LATE||r.n.UNDERTIME)?'red':LV(r.n.ABSENT);if(l&&parts.length)o.push({lvl:l,txt:parts.join(' • ')+' — cut-off '+cutTxt(cc)+' • make the NTE',who:w,go:'r200HrSection'})});
+    allNte().forEach(d=>d.items.forEach(it=>{const s=itemState(d.code,it);if(s==='ANSWERED')o.push({lvl:'yellow',txt:'NTE answer to read — '+it.kind+' '+fmt(it.date),who:d.name+' • '+bName(d.branch),go:'r200HrSection'});if(s==='NO_REPLY'&&it.manual)o.push({lvl:'red',txt:'NTE — no reply after '+REPLY_DAYS+' days ('+it.kind+' '+fmt(it.date)+')',who:d.name+' • '+bName(d.branch),go:'r200HrSection'})}));   /* R413: no-reply only for NTE that HR sent */
     return o;
   }
 
@@ -28001,7 +28022,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       if(p){let applying=false;try{applying=rcadsCloudApplyingRemote}catch(e){}if(applying){if(localStorage.getItem(HR_FLAG)==='1')return true;const c=meCode();let d='';try{const x=JSON.parse(localStorage.getItem('rustica_r160_mypin_device')||'null');d=x&&x.c?safeKey(x.c):''}catch(e){}const rest=k.slice(p.length);return (c&&rest===safeKey(c))||(d&&rest===d)}}
       return true}})();
 
-  window.rcadsR200={scan,incidents,flags,allNte,issue};
+  window.rcadsR200={scan,incidents,flags,allNte,issue,runCut,closedCut,cutTxt,hm};
   setInterval(()=>{try{
     if(mountHr()){if(Date.now()-lastScan>60000){lastScan=Date.now();ROWS=scan();
       /* R405: NTE only after the DTR Summary Log of the branch + cut-off was sent (late / undertime are final then) */
@@ -28060,11 +28081,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   const LVD={red:'🔴',yellow:'🟡',green:'🟢'};
   function headHtml(h){
     const s=lsGet(SUM_PREFIX+h.branch,null);const rows=(s&&s.rows||[]).filter(r=>side(r)===h.side);if(!rows.length)return '';
-    return '<div class="r201-h">📋 ATTENDANCE SIGNALS — '+esc(h.side.toUpperCase())+' • '+esc(bName(h.branch))+'</div><div class="r201-n">This cutoff • 1st = 🟢 2nd = 🟡 3rd+ = 🔴 • remind them to answer their Notice to Explain'+(s.at?' • updated '+esc(new Date(s.at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})):'')+'</div>'+
+    return '<div class="r201-h">📋 ATTENDANCE SIGNALS — '+esc(h.side.toUpperCase())+' • '+esc(bName(h.branch))+'</div><div class="r201-n">This cutoff • Late / Undertime = 🔴 • HR follows up'+(s.at?' • updated '+esc(new Date(s.at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})):'')+'</div>'+
       rows.map(r=>{const rem=lsGet(REM_PREFIX+safeKey(r.code),null),sent=rem&&rem.at&&rem.at.slice(0,10)===today();
         return '<div class="r201-row"><div><b>'+(LVD[r.lvl]||'')+' '+esc(r.name)+'</b><small>'+esc(r.code)+' • Absent '+(r.n.ABSENT||0)+' • Late '+(r.n.LATE||0)+' • Undertime '+(r.n.UNDERTIME||0)+'</small>'+
-          (r.wait?'<small class="w">NTE not answered: <b>'+r.wait+'</b>'+(r.over?' • <b>'+r.over+' past 5 days</b>':'')+'</small>':'<small class="ok">✓ NTE answered</small>')+'</div>'+
-          (r.wait?(sent?'<span class="r201-sent">🔔 reminded today</span>':'<button type="button" data-r201-rem="'+esc(r.code)+'">🔔 REMIND</button>'):'')+'</div>'}).join('');
+          '</div></div>'}).join('');   /* R412: no NTE status / REMIND in the Head app */
   }
   function renderHead(){
     const app=document.getElementById('rcadsR131ApproverApp');const shell=app&&app.querySelector('.r131-shell');let el=document.getElementById('r201Head');
@@ -34464,6 +34484,44 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     for(const k in cur)if(/^_r\d+$/.test(k))w[k]=cur[k];w._r411=true;window.rusticaManagerLoadBranchEmployeeMaster=w;
   }
   wrap();setInterval(()=>{try{wrap()}catch(e){}},1500);
+})();
+</script>
+<!-- RCADS PATCH: R412 NTE OFF in the employee app • Late / Undertime = red flag for HR -->
+<script id="rcadsR412Script">
+/* R412 — Notice to Explain is not created or shown in the employee / Head app for now.
+   HR sees every LATE and UNDERTIME as a 🔴 red flag (📋 Attendance Signals / NTE and the HR flags). */
+(function(){'use strict';window.rcadsNteAllowed=function(){return false};
+  setInterval(()=>{try{window.rcadsNteAllowed=function(){return false}}catch(x){}},2000);})();   /* R413: HR sends NTE by hand */
+</script>
+<!-- RCADS PATCH: R414 employee: Late / Undertime reminder under MY DTR (running cut-off) • HR: red flags for the closed cut-off -->
+<style id="rcadsR414Css">
+#r414Note{margin:10px 0 2px;padding:10px 12px;border-radius:12px;background:#fff4ec;border:1.5px solid #e2a37f;color:#5b2a12;font-size:12.5px;line-height:1.45}
+#r414Note b.h{display:block;font-size:12px;letter-spacing:.3px;color:#8c1d14;margin-bottom:3px}
+#r414Note.ok{background:#eef7ef;border-color:#9fc7a4;color:#234d2d}#r414Note.ok b.h{color:#2f6b3a}
+#r414Note small{display:block;color:#7a5a3d;margin-top:3px}
+</style>
+<script id="rcadsR414Script">
+/* R414 — under MY DTR: how many times LATE / UNDERTIME this cut-off and the total minutes (a reminder only, no NTE).
+   HR gets the red flag after the cut-off closes (📋 Attendance Signals / NTE), then makes the NTE. */
+(function(){'use strict';
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function cur(){try{return (typeof currentEmployee!=='undefined'&&currentEmployee)||null}catch(e){return null}}
+  let cache={k:'',at:0,html:''};
+  function html(e){const R=window.rcadsR200;if(!R||!R.incidents)return '';const c=R.runCut();const key=e.code+'|'+c.from;
+    if(cache.k===key&&Date.now()-cache.at<30000)return cache.html;
+    let inc=[];try{inc=R.incidents(e,c)||[]}catch(x){inc=[]}
+    const L=inc.filter(x=>x.kind==='LATE'),U=inc.filter(x=>x.kind==='UNDERTIME'),sum=a=>a.reduce((s,x)=>s+(x.mins||0),0);
+    const h=(L.length||U.length)
+      ?'<div id="r414Note"><b class="h">📌 REMINDER • CUT-OFF '+esc(R.cutTxt(c).toUpperCase())+'</b>'+(L.length?'LATE: <b>'+L.length+' time'+(L.length>1?'s':'')+'</b> • total <b>'+R.hm(sum(L))+'</b><br>':'')+(U.length?'UNDERTIME: <b>'+U.length+' time'+(U.length>1?'s':'')+'</b> • total <b>'+R.hm(sum(U))+'</b><br>':'')+'<small>'+[...L,...U].sort((a,b)=>a.date<b.date?-1:1).map(x=>esc(x.date.slice(5).replace('-','/'))+' '+(x.kind==='LATE'?'late':'undertime')+' '+R.hm(x.mins)).join(' • ')+'</small><small>Be on time. HR reviews this after the cut-off.</small></div>'
+      :'<div id="r414Note" class="ok"><b class="h">📌 CUT-OFF '+esc(R.cutTxt(c).toUpperCase())+'</b>No late and no undertime so far. Keep it up!</div>';
+    cache={k:key,at:Date.now(),html:h};return h}
+  setInterval(()=>{try{
+    const p=document.getElementById('employeeSimplePanel'),e=cur();const box=p&&p.querySelector(':scope > .rcads-employee-dtr-box');let el=document.getElementById('r414Note');
+    if(!e||!box||!document.body.classList.contains('employee-simple-mode')){if(el)el.remove();return}
+    const h=html(e);if(!h){if(el)el.remove();return}
+    if(!el||el.parentElement!==box||el.dataset.h!==h){if(el)el.remove();const t=document.createElement('div');t.innerHTML=h;el=t.firstChild;el.dataset.h=h;box.appendChild(el)}
+    else if(box.lastElementChild!==el&&!box.lastElementChild.matches('.r405-wm,#r405DtrLock'))box.appendChild(el);
+  }catch(x){console.warn('R414',x)}},1500);
 })();
 </script>
 </body></html>
