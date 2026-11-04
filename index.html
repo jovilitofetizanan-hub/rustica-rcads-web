@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R410 DUTY BRANCH GPS</title>
+<title>Rustica RCADS App — R411 TRANSFER IN LIST</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25474,7 +25474,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R410 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R411 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -34440,6 +34440,30 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     say('📷 Guard’s QR received — continuing your TIME IN / OUT…');setTimeout(()=>{try{window.rcadsR181GuardScan(p.raw)}catch(e){}},600);
   }
   setInterval(()=>{try{paint(false)}catch(e){console.warn('R409',e)}try{pending()}catch(e){}},1200);
+})();
+</script>
+<!-- RCADS PATCH: R411 PERMANENT TRANSFER → employee list of the new branch (Approver choices, DTR, schedules) -->
+<script id="rcadsR411Script">
+/* R411 — A PERMANENT transfer (HR → 🔁 Transfers) puts the person in the employee list of the NEW branch right away,
+   with the new EMPCODE, so HR can choose him / her in APPROVERS / GUARDS (e.g. Dining Head 1) without waiting for RCPS.
+   Shown from 30 days before the start date. Nothing is deleted from the old branch list. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function soon(){const d=new Date();d.setDate(d.getDate()+30);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function perms(b){let L=[];try{L=(window.rcadsR185&&window.rcadsR185.live())||[]}catch(e){}
+    return L.filter(t=>t&&t.type==='PERM'&&t.status!=='CANCELLED'&&U(t.to)===U(b)&&t.newCode&&String(t.start||'')<=soon())}
+  function wrap(){
+    const cur=window.rusticaManagerLoadBranchEmployeeMaster;if(typeof cur!=='function'||cur._r411)return;
+    const w=function(code){let rows=[];try{rows=cur.apply(this,arguments)||[]}catch(e){rows=[]}
+      const add=perms(code);if(!add.length)return rows;rows=rows.slice();
+      add.forEach(t=>{const nc=U(t.newCode);if(rows.some(x=>x&&U(x.code)===nc))return;
+        rows.push({code:nc,name:String(t.name||'').replace(/\s*\([^)]*\)\s*$/,'').trim(),dept:t.newDept||t.fromDept||'',department:t.newDept||t.fromDept||'',position:t.pos||'',transferIn:true,transferFrom:t.from,transferStart:t.start})});
+      return rows};
+    for(const k in cur)if(/^_r\d+$/.test(k))w[k]=cur[k];w._r411=true;window.rusticaManagerLoadBranchEmployeeMaster=w;
+  }
+  wrap();setInterval(()=>{try{wrap()}catch(e){}},1500);
 })();
 </script>
 </body></html>
