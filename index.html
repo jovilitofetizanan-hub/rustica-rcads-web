@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R408 SCHEDULE AUTO</title>
+<title>Rustica RCADS App — R409 DUTY BRANCH</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -18211,7 +18211,7 @@ body.rcads-r131-approver-tools #rcadsR131BackToApprover{display:block}
   }
 
   function bindOwnBranch(k){
-    const b=assignedBranch(k);
+    const b=(window.rcadsR409Duty&&window.rcadsR409Duty(currentEmployee))||assignedBranch(k);   /* R409 */
     try{if(typeof rusticaGetCurrentBranchCode==='function'&&rusticaGetCurrentBranchCode()!==b&&typeof rusticaSwitchBranch==='function')rusticaSwitchBranch(b)}catch(e){}
     return b;
   }
@@ -20886,8 +20886,16 @@ SCOPE: QR only. Existing R141 Guard display/PIN/access/duty/camera/attendance lo
       const st=document.getElementById('topManagementLoginStatus');
       if(st)st.textContent='HR selected '+String(p.name||'this Owner')+'. Authorized QR recognized. Enter this Owner\'s PIN to prove identity and continue.';
     }else if(p.role==='GUARD'){
+      /* R409: this is the Guard's TIME IN / OUT QR read by the phone camera. On an employee's own phone keep the employee app:
+         remember the QR for 2 minutes, clean the address, and let the employee app use it right after the PIN. */
+      if(p.attendanceToken){
+        try{localStorage.setItem('r409_guard_pending',JSON.stringify({raw:location.href,at:Date.now(),branch:p.branch||''}))}catch(e){}
+        let own=null;try{own=JSON.parse(localStorage.getItem('rustica_r160_mypin_device')||'null')}catch(e){}
+        if(own&&own.c){try{history.replaceState(null,'',location.pathname+location.hash)}catch(e){}return}
+      }
       const key=/02|2$/i.test(String(p.code))?'guard02':'guard01';const sel=document.getElementById('guardLoginAccount');if(sel)sel.value=key;document.getElementById('guardLoginScreen')?.classList.remove('hidden');
       const st=document.getElementById('guardLoginStatus');if(st)st.textContent='Authorized Guard QR recognized. Enter Guard PIN to continue.';
+      if(p.attendanceToken&&st)st.innerHTML='<b style="color:#8c1d14">EMPLOYEE / MANAGER?</b> This is the Guard’s QR. Open <b>YOUR RCADS app</b> (the Rustica icon) and press <b>📷 SCAN THE GUARD’S QR</b> inside the app — do not use the phone camera.<br><br>Guard: enter the Guard PIN to continue.';   /* R409 */
     }else if(p.role==='EMPLOYEE'||p.role==='APPROVER'){
       const sel=document.getElementById('employeeSelect');if(sel){const opt=[...sel.options].find(o=>String(o.textContent||'').toUpperCase().startsWith(String(p.code).toUpperCase()+' ')||String(o.textContent||'').toUpperCase().includes(String(p.code).toUpperCase()));if(opt)sel.value=opt.value}
       const msg=document.getElementById('pinMsg');if(msg)msg.textContent='Authorized '+p.role+' QR recognized. Continue with your existing PIN.';
@@ -25466,7 +25474,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R408 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R409 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -25764,8 +25772,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const f=findEmp(p.c);const R5=window.rcadsR185;const L5=R5&&R5.activeLoan(p.c);const wb5=L5?L5.to:((R5&&R5.branchAt(p.c))||(f?f.branch:p.b));return {ok:true,p,emp:f?f.emp:{code:p.c,name:p.c},branch:wb5,loan:L5||null,loanEnded:(!L5&&R5&&R5.recentLoanEnded(p.c))||null};
   }
   async function geoCheck(code,name){try{if(typeof window.rcadsR159VerifyLocation==='function'){const r=await window.rcadsR159VerifyLocation({id:'EMP_'+code,code,name,role:'EMPLOYEE'});return r&&r.ok===true?'OK':(r&&r.ok===false?'OUT':'NA')}}catch(e){}return 'NA'}
+  window.rcadsR181GuardScan=function(raw){const who=meFromSession();if(!who)return false;onGuardScanned(raw,who);return true};   /* R409 */
   async function onGuardScanned(raw,who){
     const g=parseGuardQr(raw);if(!g.ok){alert(g.msg);return}
+    try{if(g.branch&&window.rcadsR409AutoDuty)window.rcadsR409AutoDuty(who.code,g.branch)}catch(e){}   /* R409: Managers / temporary transfer → duty branch = the Guard's branch */
     const code=who.code;let geo='NA',gr=null;
     try{if(typeof window.rcadsR159VerifyLocation==='function')gr=await window.rcadsR159VerifyLocation({id:'EMP_'+code,code,name:who.name,role:'EMPLOYEE',branch:g.branch||''})}catch(e){}
     if(gr&&gr.ok===true)geo='OK';
@@ -34334,4 +34344,98 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 })();
 </script>
 
+<!-- RCADS PATCH: R409 DUTY BRANCH button for Managers / temporary transfer • Guard QR read by the phone camera keeps the employee app • device-only settings not shared in the cloud -->
+<style id="rcadsR409Css">
+#r409Duty{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #2f6b3a;color:#3d2615}
+#r409Duty .t{font-weight:900;font-size:13.5px;color:#2f6b3a;letter-spacing:.3px}
+#r409Duty .s{font-size:11.5px;color:#6d5845;margin:3px 0 8px}
+#r409Duty .bs{display:flex;flex-wrap:wrap;gap:6px}
+#r409Duty button{flex:1 1 30%;min-width:96px;padding:10px 6px;border-radius:10px;border:2px solid #c9b79f;background:#fff;color:#5b3519;font-weight:900;font-size:12.5px;cursor:pointer}
+#r409Duty button.on{background:linear-gradient(135deg,#2f6b3a,#1f4a28);border-color:#2f6b3a;color:#fff}
+#r409Duty button.home::after{content:' • HOME';font-size:9.5px;opacity:.8}
+#r409Duty .lk{font-size:11px;color:#8c1d14;font-weight:800;margin-top:6px}
+#r409Msg{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:2147483000;max-width:92vw;padding:11px 16px;border-radius:12px;background:#2f6b3a;color:#fff;font-weight:900;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.3);text-align:center}
+</style>
+<script id="rcadsR409Script">
+/* R409 — DUTY BRANCH (Nov 4, 2026)
+   • Managers (Restaurant / Catering) and employees on a TEMPORARY TRANSFER see 📍 DUTY BRANCH TODAY on HOME.
+     They tap the branch where they are now → the phone shows that branch (header, approvals) for today.
+     TIME IN at a branch also switches it automatically (the branch of the Guard they scanned).
+   • A Guard QR opened with the phone CAMERA no longer opens the Guard / HR screen on an employee's phone:
+     RCADS keeps the employee app and uses the QR right after the PIN (valid 2 minutes).
+   • Settings that belong to ONE phone are no longer copied to other phones through the cloud
+     (current branch, PHONE / LAPTOP view, device id, Head device mark). Attendance, schedules, PINs etc. sync as before. */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  const KEY='r409duty';
+  function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function cur(){try{return (typeof currentEmployee!=='undefined'&&currentEmployee)||null}catch(e){return null}}
+  function curBranch(){try{return typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():''}catch(e){return ''}}
+  function staffRole(code){try{const l=JSON.parse(localStorage.getItem('rcads_r175_201staff_v1')||'[]')||[];const r=l.find(x=>U(x.code)===U(code));return r?r.role:''}catch(e){return ''}}
+  function homeBranch(code){const PF={SRF:'SAN_RAFAEL',CAB:'CABANATUAN',SJ:'SAN_JUAN',ANG:'ANGELES',SF:'SAN_FERNANDO'};return PF[String(U(code)).split('-')[0]]||''}
+
+  /* 1) one-phone settings stay on the phone */
+  const LOCAL=['rustica_central_current_branch_v1','rcads_r377_device_view','rcads_r159_device','rcads_r201_head_device'];
+  (function(){const orig=window.rcadsCloudShouldSyncKey;if(typeof orig!=='function')return;
+    window.rcadsCloudShouldSyncKey=function(k){if(LOCAL.includes(String(k||'')))return false;return orig.apply(this,arguments)}})();
+
+  /* 2) who may choose a duty branch, and which branches */
+  function loanOf(code){try{return window.rcadsR185&&window.rcadsR185.activeLoan(code)}catch(e){return null}}
+  function isMgr(e){try{return !!(window.rcadsMgrIsManager&&window.rcadsMgrIsManager(e))||staffRole(e.code)==='MANAGER'}catch(x){return false}}
+  function options(e){if(!e)return [];
+    if(isMgr(e))return branches().map(b=>b.code);
+    const L=loanOf(e.code);if(L){const h=homeBranch(e.code)||L.from;return [h,L.to].filter((x,i,a)=>x&&a.indexOf(x)===i)}
+    return []}
+  function saved(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
+  function chosen(e){const s=saved();return (e&&s&&U(s.c)===U(e.code)&&s.d===today()&&options(e).includes(s.b))?s.b:''}
+  /* the branch for today: TIME IN branch first (Managers), then the button */
+  window.rcadsR409Duty=function(e){e=e||cur();if(!e||!options(e).length)return '';let t='';try{t=window.rcadsMgrDutyBranch?window.rcadsMgrDutyBranch(e):''}catch(x){}return t||chosen(e)};
+  (function(){const o=window.rcadsHeadBranch;window.rcadsHeadBranch=function(x){let r='';try{r=o?o.apply(this,arguments):''}catch(e){}if(r)return r;try{const e=(x&&typeof x==='object')?x:cur();if(e&&(!x||typeof x!=='object'||U(x.code)===U(e.code)))return chosen(e)}catch(e){}return ''}})();
+  function say(t){let m=document.getElementById('r409Msg');if(!m){m=document.createElement('div');m.id='r409Msg';document.body.appendChild(m)}m.textContent=t;clearTimeout(say.t);say.t=setTimeout(()=>m.remove(),3500)}
+  function apply(b){
+    if(!b||curBranch()===b)return;
+    try{if(typeof rusticaSwitchBranch==='function')rusticaSwitchBranch(b);else localStorage.setItem('rustica_central_current_branch_v1',b)}catch(e){}
+    try{const h=document.getElementById('r131Branch');if(h)h.textContent=U(bName(b))+' BRANCH';const h2=document.getElementById('r131CurrentBranch');if(h2)h2.textContent=U(bName(b))+' BRANCH'}catch(e){}
+    try{document.body.dispatchEvent(new Event('click',{bubbles:true}))}catch(e){}   /* headers refresh on click */
+  }
+  function choose(b,auto){const e=cur();if(!e||!options(e).includes(b))return;try{localStorage.setItem(KEY,JSON.stringify({c:U(e.code),b,d:today()}))}catch(x){}apply(b);
+    say((auto?'📍 Guard of ':'📍 On duty at ')+bName(b).toUpperCase()+(auto?' — your phone now shows this branch':' — your phone now shows this branch today'));paint(true)}
+  window.rcadsR409AutoDuty=function(code,b){const e=cur();if(!e||U(e.code)!==U(code)||!options(e).includes(b))return;if(window.rcadsR409Duty(e)===b&&curBranch()===b)return;choose(b,true)};
+
+  /* 3) the 📍 DUTY BRANCH card on HOME */
+  function host(){
+    const ap=document.getElementById('rcadsR131ApproverApp');const sh=ap&&ap.querySelector('.r131-shell');
+    if(sh&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(ap).display!=='none')return {el:sh,after:sh.querySelector(':scope > .r131-head')};
+    const p=document.getElementById('employeeSimplePanel');
+    if(p&&document.body.classList.contains('employee-simple-mode')&&getComputedStyle(p).display!=='none')return {el:p,after:document.getElementById('rcadsR105EmployeeHeader')};
+    return null}
+  function paint(force){
+    const e=cur();let card=document.getElementById('r409Duty');const h=host();const opts=options(e);
+    if(!e||!h||!opts.length){if(card)card.remove();return}
+    const duty=window.rcadsR409Duty(e)||'',timedIn=(()=>{try{return window.rcadsMgrDutyBranch?window.rcadsMgrDutyBranch(e):''}catch(x){return ''}})();
+    if(duty&&curBranch()!==duty)apply(duty);
+    const L=loanOf(e.code),home=homeBranch(e.code);
+    const html='<div class="t">📍 DUTY BRANCH TODAY'+(duty?' • '+esc(U(bName(duty))):'')+'</div><div class="s">'+(L&&!isMgr(e)?'Temporary transfer to <b>'+esc(bName(L.to))+'</b>. ':'')+'Tap the branch where you are now. Your phone shows that branch today'+(isMgr(e)?' (header, approvals)':'')+'. Then scan the Guard’s QR of that branch with <b>📷 SCAN THE GUARD’S QR</b>.</div>'
+      +'<div class="bs">'+opts.map(b=>'<button type="button" data-r409b="'+esc(b)+'" class="'+(b===duty?'on ':'')+(b===home?'home':'')+'"'+(timedIn&&b!==timedIn?' disabled style="opacity:.45"':'')+'>'+esc(bName(b))+'</button>').join('')+'</div>'
+      +(timedIn?'<div class="lk">✓ TIMED IN at '+esc(bName(timedIn))+' — the branch changes after your TIME OUT.</div>':'');
+    if(!card){card=document.createElement('div');card.id='r409Duty';card.setAttribute('data-r162-tab','home');card.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('[data-r409b]');if(b&&!b.disabled)choose(b.getAttribute('data-r409b'),false)})}
+    if(h.after&&h.after.parentElement===h.el){if(h.after.nextElementSibling!==card)h.after.insertAdjacentElement('afterend',card)}else if(card.parentElement!==h.el)h.el.insertBefore(card,h.el.firstChild);
+    if(force||card.dataset.h!==html){card.dataset.h=html;card.innerHTML=html}
+  }
+
+  /* 4) a Guard QR opened with the phone camera → used right after the PIN */
+  function pending(){
+    let p=null;try{p=JSON.parse(localStorage.getItem('r409_guard_pending')||'null')}catch(e){}if(!p)return;
+    if(Date.now()-p.at>120000){try{localStorage.removeItem('r409_guard_pending')}catch(e){}if(cur())say('The Guard’s QR expired — press 📷 SCAN THE GUARD’S QR and scan it again.');return}
+    if(!cur()||typeof window.rcadsR181GuardScan!=='function')return;
+    try{localStorage.removeItem('r409_guard_pending')}catch(e){}
+    say('📷 Guard’s QR received — continuing your TIME IN / OUT…');setTimeout(()=>{try{window.rcadsR181GuardScan(p.raw)}catch(e){}},600);
+  }
+  setInterval(()=>{try{paint(false)}catch(e){console.warn('R409',e)}try{pending()}catch(e){}},1200);
+})();
+</script>
 </body></html>
