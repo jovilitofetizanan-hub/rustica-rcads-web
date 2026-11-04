@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R398 LONG DUTY TIME OUT</title>
+<title>Rustica RCADS App — R399 GET LATEST FROM RCPS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25461,7 +25461,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R398 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R399 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -33419,4 +33419,570 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   window.addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});
 })();
 </script>
+
+<!-- RCADS PATCH: R399 GET LATEST FROM RCPS + fill Schedule / ACS in RCADS + legal size for every Excel -->
+<style id="rcadsR399Css">
+.r399-box{margin:0 0 14px;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #2f6b3a;color:#3d2615;text-align:left}
+.r399-h{font-weight:900;font-size:15px;color:#24452a}.r399-sub{font-size:11.5px;font-weight:800;color:#6d5845;margin:2px 0 8px}
+.r399-n{font-size:11.5px;color:#6d5845;margin:4px 0 8px;line-height:1.45}
+.r399-big{display:block;width:100%;padding:14px;border:0;border-radius:11px;background:linear-gradient(135deg,#2f6b3a,#1f4a28);color:#fff;font-weight:900;font-size:15px;letter-spacing:.3px;cursor:pointer}
+.r399-big:disabled{opacity:.55;cursor:wait}
+.r399-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.r399-btn{width:auto!important;padding:8px 11px!important;border-radius:9px!important;border:0!important;background:#4c2b17!important;color:#fff!important;font-size:11.5px!important;font-weight:800!important;margin:0!important;cursor:pointer;display:inline-block}
+.r399-btn.l{background:#fff!important;color:#4c2b17!important;border:1px solid #c8a46a!important}.r399-btn.ok{background:#2f6b3a!important}.r399-btn:disabled{opacity:.5}
+.r399-msg{margin-top:8px;font-size:12px;font-weight:800;color:#2d6a36;white-space:pre-line}.r399-msg.err{color:#a1281f}
+.r399-t{width:100%;border-collapse:collapse;margin:6px 0;font-size:11.5px}.r399-t th,.r399-t td{border:1px solid #eadbc6;padding:5px 6px;text-align:left;vertical-align:top}
+.r399-t th{background:#f6ead8;color:#4c2b17;font-size:10.5px}.r399-ok{color:#2d6a36;font-weight:800}.r399-no{color:#a1281f;font-weight:800}
+.r399-sec{font-weight:900;font-size:12px;color:#5b3519;margin:12px 0 4px;border-top:1px solid #eadbc6;padding-top:8px}
+.r399-card{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #2f6b3a;color:#3d2615;text-align:left;font-size:12.5px}
+.r399-card select{display:block;width:100%;box-sizing:border-box;margin:4px 0;padding:9px;border:1px solid #d8bfa1;border-radius:9px;background:#fff;font-size:13px}
+.r399-item{background:#fff;border:1px solid #eadbc6;border-radius:10px;padding:8px 10px;margin:6px 0}.r399-item b{display:block;font-size:12.5px;color:#3a2210}
+.r399-item small{display:block;color:#7a6250;font-size:10.5px;margin:2px 0 6px}
+#r399Ed{position:fixed;inset:0;z-index:2147483000;background:rgba(30,18,8,.55);display:flex;align-items:stretch;justify-content:center}
+#r399Ed .ed{background:#fffaf2;width:100%;max-width:760px;display:flex;flex-direction:column;max-height:100%}
+#r399Ed .ed-h{padding:12px 14px;background:#3a2210;color:#fff}#r399Ed .ed-h b{display:block;font-size:15px}#r399Ed .ed-h small{display:block;font-size:11px;opacity:.85;margin-top:2px}
+#r399Ed .ed-b{flex:1;overflow:auto;padding:10px 12px;-webkit-overflow-scrolling:touch}
+#r399Ed .ed-f{padding:10px 12px;border-top:2px solid #c8a46a;background:#fff;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#r399Ed .emp{background:#fff;border:1px solid #e3cfb2;border-radius:12px;margin:8px 0;overflow:hidden}
+#r399Ed .emp-h{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;background:#f6ead8;cursor:pointer}
+#r399Ed .emp-h b{font-size:13px;color:#3a2210}#r399Ed .emp-h small{display:block;font-size:10.5px;color:#7a6250}
+#r399Ed .emp-h .st{font-size:10.5px;font-weight:900;white-space:nowrap}#r399Ed .emp-h .st.ok{color:#2d6a36}#r399Ed .emp-h .st.no{color:#a1281f}
+#r399Ed .emp-b{padding:6px 8px}#r399Ed .emp.closed .emp-b{display:none}
+#r399Ed .day{display:grid;grid-template-columns:74px 92px 1fr;gap:6px;align-items:center;padding:5px 0;border-top:1px dashed #eadbc6}
+#r399Ed .day:first-child{border-top:0}#r399Ed .day .dl{font-size:11px;font-weight:900;color:#5b3519;line-height:1.2}#r399Ed .day .dl small{display:block;font-weight:700;color:#8c7a68}
+#r399Ed .day select,#r399Ed .day input{width:100%;box-sizing:border-box;padding:7px 5px;border:1px solid #d8bfa1;border-radius:8px;font-size:13px;background:#fff;margin:0}
+#r399Ed .day .tm{display:flex;gap:4px;align-items:center}#r399Ed .day .tm span{font-size:11px;color:#8c7a68}
+#r399Ed .day .tm.off{visibility:hidden}#r399Ed .day .ot{display:flex;gap:4px;align-items:center;margin-top:4px;grid-column:2/4}
+#r399Ed .day .ot label{font-size:10.5px;font-weight:900;color:#5b3519;white-space:nowrap}#r399Ed .day .ot select{max-width:110px}
+#r399Ed .tools{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px}
+#r399Ed .warn{font-size:11.5px;color:#a1281f;font-weight:800;flex-basis:100%}
+@media(max-width:420px){#r399Ed .day{grid-template-columns:60px 84px 1fr}#r399Ed .day select,#r399Ed .day input{font-size:12px;padding:6px 3px}}
+</style>
+<script id="rcadsR399Script">
+/* R399 — RCPS ⇄ RCADS SYNC FOLDER + FILL THE SCHEDULE / ACS INSIDE RCADS + LEGAL SIZE FOR EVERY EXCEL
+   Folder on the HR laptop:  RUSTICA RCPS-RCADS SYNC
+       RCPS to RCADS  — RCPS writes here (📤 SEND LATEST TO RCADS), RCADS reads here (📥 GET LATEST FROM RCPS)
+       RCADS to RCPS  — RCADS writes here (📤 SEND TO RCPS), RCPS reads here
+       (each has an Old folder: used files are moved there, never deleted)
+   • HR → 📥 GET LATEST FROM RCPS: reads the newest RCPS files (employee list, Schedule + ACS of each branch, DTR Summary Log)
+     and publishes the forms to the server (needs RCADS_R399_SCHEDULE_FORMS_SUPABASE.sql once).
+   • Kitchen Head 1 / Dining Head 1 (☰ MORE) and the HR Assistant (ADMIN): 📝 FILL the Schedule / ACS in RCADS → SUBMIT TO HR.
+     RCADS writes ONLY the time cells into the ORIGINAL RCPS Excel (layout, styles, legal size, print area untouched),
+     saves it for attendance (same as their upload) and sends the Excel file to HR. ⬇ DOWNLOAD for the bulletin board.
+   • Every Excel RCADS saves with the Excel library now keeps Legal • Landscape • Fit to 1 page wide (it was dropped before). */
+(function(){
+  'use strict';
+  const VER='R399';
+  const U=s=>String(s??'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  const RCPS_KEY={SRF:'SAN_RAFAEL',CAB:'CABANATUAN',SJ:'SAN_JUAN',ANG:'ANGELES',SF:'SAN_FERNANDO'};
+  const SYNC_NAME='RUSTICA RCPS-RCADS SYNC',IN_NAME='RCPS to RCADS',OUT_NAME='RCADS to RCPS',OLD='Old';
+  const pad=n=>String(n).padStart(2,'0');
+  const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const addD=(iso,n)=>{const [y,m,d]=iso.split('-').map(Number);return ymd(new Date(y,m-1,d+n))};
+  const monday=iso=>{const [y,m,d]=iso.split('-').map(Number);const dt=new Date(y,m-1,d);dt.setDate(dt.getDate()-((dt.getDay()+6)%7));return ymd(dt)};
+  const fmtD=iso=>{const [y,m,d]=String(iso).slice(0,10).split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric'})};
+  const fmtWk=mon=>fmtD(mon)+' – '+fmtD(addD(mon,6))+', '+addD(mon,6).slice(0,4);
+  const fmtAt=t=>{try{return new Date(t).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}catch(e){return ''}};
+  const today=()=>ymd(new Date());
+
+  /* ================= base64 / server ================= */
+  function b64(u8){u8=u8 instanceof Uint8Array?u8:new Uint8Array(u8);let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)}
+  function unb64(s){const b=atob(String(s||''));const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
+  function R(){return window.rcadsR182||null}
+  function myKey(){try{return (R()&&R().key&&R().key())||''}catch(e){return ''}}
+  function isHrDevice(){try{return !!(R()&&R().role&&R().role()==='HR'&&R().key())}catch(e){return false}}
+  async function rpc(name,body){let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}if(!url||!anon)throw new Error('No Supabase settings on this device.');
+    let r;try{r=await fetch(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('No internet connection.')}
+    let d=null;try{d=await r.json()}catch(e){}
+    if(!r.ok){const m=(d&&(d.message||d.hint))||('Server error '+r.status);if(r.status===404||/Could not find the function|PGRST202/i.test(m))throw new Error('The server is not ready for R399 yet. HR: run RCADS_R399_SCHEDULE_FORMS_SUPABASE.sql once in Supabase → SQL Editor.');throw new Error(m)}
+    if(!d||d.ok===false)throw new Error((d&&d.error)||'Server error');return d}
+
+  /* ================= Excel package (zip) helpers — only the XML we touch changes ================= */
+  const TD=new TextDecoder('utf-8'),TE=new TextEncoder();
+  function zRead(u8){return XLSX.CFB.read(u8 instanceof Uint8Array?u8:new Uint8Array(u8),{type:'array'})}
+  function zIdx(z,p){p=String(p).replace(/^\/+/,'');return z.FullPaths.findIndex(x=>x.replace(/^Root Entry\//,'')===p)}
+  function zGet(z,p){const i=zIdx(z,p);if(i<0)return null;const c=z.FileIndex[i].content;return TD.decode(c instanceof Uint8Array?c:new Uint8Array(c))}
+  function zSet(z,p,txt){const i=zIdx(z,p);const data=TE.encode(txt);if(i<0){XLSX.CFB.utils.cfb_add(z,p,data);return}z.FileIndex[i].content=data;z.FileIndex[i].size=data.length}
+  function zDel(z,p){const i=zIdx(z,p);if(i<0)return;try{XLSX.CFB.utils.cfb_del(z,z.FullPaths[i])}catch(e){z.FileIndex[i].content=new Uint8Array(0)}}
+  function zWrite(z){const o=XLSX.CFB.write(z,{fileType:'zip',type:'array'});return o instanceof Uint8Array?o:new Uint8Array(o)}
+  function xAttr(tag,a){const m=new RegExp('\\s'+a+'="([^"]*)"').exec(tag);return m?m[1]:''}
+  const xesc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  function sheetsOf(z){
+    const wbx=zGet(z,'xl/workbook.xml')||'',rels=zGet(z,'xl/_rels/workbook.xml.rels')||'';const rm={};
+    (rels.match(/<Relationship\b[^>]*>/g)||[]).forEach(t=>{rm[xAttr(t,'Id')]=xAttr(t,'Target')});
+    return (wbx.match(/<sheet\b[^>]*\/?>/g)||[]).map((t,i)=>{let tg=rm[xAttr(t,'r:id')]||'';tg=tg.replace(/^\/?xl\//,'').replace(/^\//,'');
+      return {i,tag:t,name:xAttr(t,'name').replace(/&amp;/g,'&').replace(/&apos;/g,"'"),rid:xAttr(t,'r:id'),path:'xl/'+tg}});
+  }
+  const colN=c=>{let n=0;for(const ch of c)n=n*26+ch.charCodeAt(0)-64;return n};
+  const colL=n=>{let s='';while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s};
+  /* set ONE cell, keep its style (s=) and everything else in the sheet */
+  function setCell(xml,ref,val){
+    const isNum=typeof val==='number'&&isFinite(val);const empty=val===''||val==null;
+    const body=empty?'':isNum?'><v>'+val+'</v></c>':' t="inlineStr"><is><t xml:space="preserve">'+xesc(val)+'</t></is></c>';
+    const re=new RegExp('<c r="'+ref+'"((?:\\s+[a-zA-Z:]+="[^"]*")*)\\s*(?:/>|>[\\s\\S]*?</c>)');
+    const m=re.exec(xml);
+    if(m){const attrs=m[1].replace(/\s+t="[^"]*"/,'');return xml.slice(0,m.index)+'<c r="'+ref+'"'+attrs+(empty?'/>':body)+xml.slice(m.index+m[0].length)}
+    if(empty)return xml;
+    const col=ref.replace(/\d+/g,''),row=ref.replace(/[A-Z]+/g,'');
+    const rr=new RegExp('<row r="'+row+'"[^>]*?(?:/>|>([\\s\\S]*?)</row>)').exec(xml);
+    const full=isNum?'<c r="'+ref+'"><v>'+val+'</v></c>':'<c r="'+ref+'" t="inlineStr"><is><t xml:space="preserve">'+xesc(val)+'</t></is></c>';
+    if(rr){
+      if(rr[0].endsWith('/>')){const open=rr[0].slice(0,-2)+'>';return xml.slice(0,rr.index)+open+full+'</row>'+xml.slice(rr.index+rr[0].length)}
+      const inner=rr[1]||'';const cells=[...inner.matchAll(/<c r="([A-Z]+)\d+"/g)];let pos=inner.length;
+      for(const c of cells){if(colN(c[1])>colN(col)){pos=c.index;break}}
+      const start=rr.index+rr[0].indexOf('>')+1;return xml.slice(0,start+pos)+full+xml.slice(start+pos);
+    }
+    // no row yet: put a new row in order
+    const rows=[...xml.matchAll(/<row r="(\d+)"/g)];let at=xml.indexOf('</sheetData>');
+    for(const r of rows){if(+r[1]>+row){at=r.index;break}}
+    if(xml.indexOf('<sheetData/>')>=0)return xml.replace('<sheetData/>','<sheetData><row r="'+row+'">'+full+'</row></sheetData>');
+    return xml.slice(0,at)+'<row r="'+row+'">'+full+'</row>'+xml.slice(at);
+  }
+  /* keep only one sheet (other departments are not shared) */
+  function keepOnly(z,keepName){
+    const S=sheetsOf(z);const k=S.find(s=>U(s.name)===U(keepName));if(!k)throw new Error('Sheet '+keepName+' not found.');
+    let wbx=zGet(z,'xl/workbook.xml'),rels=zGet(z,'xl/_rels/workbook.xml.rels'),ct=zGet(z,'[Content_Types].xml')||'';
+    S.forEach(s=>{if(s===k)return;wbx=wbx.replace(s.tag,'');rels=rels.replace(new RegExp('<Relationship\\b[^>]*\\sId="'+s.rid+'"[^>]*/>'),'');
+      ct=ct.replace(new RegExp('<Override\\b[^>]*PartName="/'+s.path.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'"[^>]*/>'),'');zDel(z,s.path)});
+    wbx=wbx.replace(/<definedName\b[^>]*>[\s\S]*?<\/definedName>/g,t=>{const l=xAttr(t,'localSheetId');if(l==='')return t.indexOf('!')>=0&&t.indexOf(keepName)<0?'':t;return +l===k.i?t.replace(/localSheetId="\d+"/,'localSheetId="0"'):''});
+    wbx=wbx.replace(/<definedNames>\s*<\/definedNames>/,'');
+    wbx=wbx.replace(/<workbookView\b([^>]*?)\/>/,(t,a)=>'<workbookView'+a.replace(/\s(activeTab|firstSheet)="\d+"/g,'')+' activeTab="0"/>');
+    zSet(z,'xl/workbook.xml',wbx);zSet(z,'xl/_rels/workbook.xml.rels',rels);if(ct)zSet(z,'[Content_Types].xml',ct);
+    let sx=zGet(z,k.path);if(sx&&!/tabSelected="1"/.test(sx))sx=sx.replace(/<sheetView\b/,'<sheetView tabSelected="1"');if(sx)zSet(z,k.path,sx);
+    // docProps/app.xml lists sheet names — drop it with its references so Excel never asks to repair
+    if(zIdx(z,'docProps/app.xml')>=0){zDel(z,'docProps/app.xml');let r0=zGet(z,'_rels/.rels');if(r0){r0=r0.replace(/<Relationship\b[^>]*Target="\/?docProps\/app\.xml"[^>]*\/>/,'');zSet(z,'_rels/.rels',r0)}
+      let c2=zGet(z,'[Content_Types].xml');if(c2){c2=c2.replace(/<Override\b[^>]*PartName="\/docProps\/app\.xml"[^>]*\/>/,'');zSet(z,'[Content_Types].xml',c2)}}
+    return k;
+  }
+
+  /* ================= LEGAL SIZE for every Excel saved with the Excel library ================= */
+  const LEGAL={orientation:'landscape',paperSize:5,fitToWidth:1,fitToHeight:0};
+  function legalize(u8,wb){
+    const z=zRead(u8);const S=sheetsOf(z);let changed=false;
+    S.forEach(s=>{let x=zGet(z,s.path);if(!x||/<pageSetup\b/.test(x))return;
+      const ws=wb&&wb.Sheets&&wb.Sheets[s.name];const p=Object.assign({},LEGAL,(ws&&ws['!pageSetup'])||{});
+      const fitH=p.fitToHeight==null?0:p.fitToHeight,fitW=p.fitToWidth==null?1:p.fitToWidth;
+      const ps='<pageSetup paperSize="'+(+p.paperSize||5)+'" orientation="'+(p.orientation==='portrait'?'portrait':'landscape')+'" fitToWidth="'+fitW+'" fitToHeight="'+fitH+'"/>';
+      if(/<sheetPr\b[^>]*\/>/.test(x))x=x.replace(/<sheetPr\b([^>]*)\/>/,'<sheetPr$1><pageSetUpPr fitToPage="1"/></sheetPr>');
+      else if(/<sheetPr\b[^>]*>/.test(x)){if(!/<pageSetUpPr\b/.test(x))x=x.replace(/<\/sheetPr>/,'<pageSetUpPr fitToPage="1"/></sheetPr>')}
+      else x=x.replace(/(<worksheet\b[^>]*>)/,'$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+      if(/<pageMargins\b[^>]*\/>/.test(x))x=x.replace(/(<pageMargins\b[^>]*\/>)/,'$1'+ps);
+      else{const marg='<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>';
+        const m=/<(headerFooter|rowBreaks|colBreaks|customProperties|cellWatches|ignoredErrors|smartTags|drawing|legacyDrawing|legacyDrawingHF|picture|oleObjects|controls|webPublishItems|tableParts|extLst)\b/.exec(x);
+        x=m?x.slice(0,m.index)+marg+ps+x.slice(m.index):x.replace(/<\/worksheet>/,marg+ps+'</worksheet>')}
+      zSet(z,s.path,x);changed=true});
+    return changed?zWrite(z):u8;
+  }
+  function wrapExcelLib(){
+    if(typeof XLSX==='undefined'||!XLSX.CFB||XLSX.__r399)return false;
+    const oWrite=XLSX.write,oWriteFile=XLSX.writeFile;XLSX.__r399=true;
+    const isXlsx=o=>!o||!o.bookType||/^xlsx$|^xlsm$/i.test(o.bookType);
+    XLSX.write=function(wb,opts){
+      const o=opts||{};if(!isXlsx(o)||!/^(array|base64|binary)$/.test(o.type||''))return oWrite.apply(this,arguments);
+      const raw=oWrite.call(this,wb,Object.assign({},o,{type:'array',bookType:o.bookType||'xlsx'}));
+      let u8;try{u8=legalize(new Uint8Array(raw),wb)}catch(e){console.warn('R399 legal',e);return oWrite.apply(this,arguments)}
+      if(o.type==='array')return u8.buffer.byteLength===u8.length?u8.buffer:u8.slice().buffer;
+      if(o.type==='base64')return b64(u8);
+      let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return s;
+    };
+    XLSX.writeFile=function(wb,name,opts){
+      const o=opts||{};if(!/\.xlsx$/i.test(String(name||''))||!isXlsx(o))return oWriteFile.apply(this,arguments);
+      let ab;try{ab=XLSX.write(wb,Object.assign({},o,{bookType:'xlsx',type:'array'}))}catch(e){return oWriteFile.apply(this,arguments)}
+      const blob=new Blob([ab],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);return undefined;
+    };
+    return true;
+  }
+  if(!wrapExcelLib()){const iv=setInterval(()=>{if(wrapExcelLib())clearInterval(iv)},700);setTimeout(()=>clearInterval(iv),60000)}
+
+  /* ================= the sync folder (HR laptop, Edge / Chrome) ================= */
+  function idb(){return new Promise(res=>{try{const q=indexedDB.open('rcads-r399-sync',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)}catch(e){res(null)}})}
+  let DIRMEM=null;   /* the chosen folder, kept in memory for this session too */
+  async function dirGet(){if(DIRMEM)return DIRMEM;const d=await idb();if(!d)return null;return new Promise(res=>{try{const r=d.transaction('kv').objectStore('kv').get('dir');r.onsuccess=()=>res(r.result||null);r.onerror=()=>res(null)}catch(e){res(null)}})}
+  async function dirPut(h){DIRMEM=h;const d=await idb();if(!d)return;return new Promise(res=>{try{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(h,'dir');t.oncomplete=()=>res();t.onerror=()=>res()}catch(e){res()}})}
+  const folderOK=()=>typeof window.showDirectoryPicker==='function';
+  async function chooseFolder(){
+    let h;try{h=await window.showDirectoryPicker({id:'rustica-sync',mode:'readwrite',startIn:'documents'})}catch(e){if(e&&e.name==='AbortError')return null;throw e}
+    if(h.name===IN_NAME||h.name===OUT_NAME||h.name===OLD){alert('Please choose the MAIN folder "'+SYNC_NAME+'" — not the "'+h.name+'" folder inside it.');return null}
+    if(h.name!==SYNC_NAME&&!confirm('The folder you chose is "'+h.name+'".\n\nThe agreed folder name is "'+SYNC_NAME+'". Use "'+h.name+'" anyway?'))return null;
+    await dirPut(h);return h;
+  }
+  /* returns a usable folder handle; must be called from a click (the browser asks 1 permission) */
+  async function syncDir(ask){
+    if(!folderOK())return null;let h=await dirGet();
+    if(h){try{let p=await h.queryPermission({mode:'readwrite'});if(p!=='granted'&&ask)p=await h.requestPermission({mode:'readwrite'});if(p==='granted')return h}catch(e){}if(!ask)return null}
+    if(!ask)return null;return await chooseFolder();
+  }
+  async function sub(dir,name){return await dir.getDirectoryHandle(name,{create:true})}
+  async function moveOld(dirH,fileH){
+    const old=await sub(dirH,OLD);let name=fileH.name;
+    try{await old.getFileHandle(name);const dot=name.lastIndexOf('.');name=(dot>0?name.slice(0,dot):name)+'_'+Date.now()+(dot>0?name.slice(dot):'')}catch(e){}
+    if(typeof fileH.move==='function'){try{await fileH.move(old,name);return}catch(e){}}
+    const f=await fileH.getFile();const nh=await old.getFileHandle(name,{create:true});const w=await nh.createWritable();await w.write(await f.arrayBuffer());await w.close();
+    await dirH.removeEntry(fileH.name);
+  }
+  async function listFiles(dirH){const out=[];for await (const [n,h] of dirH.entries()){if(h.kind==='file'&&!/^~\$|^\./.test(n))out.push(h)}return out}
+
+  /* ================= HR: 📥 GET LATEST FROM RCPS ================= */
+  function branchFromRcps(key,name){
+    if(key&&RCPS_KEY[U(key)])return RCPS_KEY[U(key)];
+    const n=U(name).replace(/[^A-Z]/g,'');if(!n)return '';
+    const b=branches().find(x=>U(x.name).replace(/[^A-Z]/g,'')===n||U(x.code).replace(/[^A-Z]/g,'')===n);return b?b.code:'';
+  }
+  const MON3={JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12};
+  function schedWeek(wb){
+    for(const n of wb.SheetNames){const ws=wb.Sheets[n];const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:''}).slice(0,8);
+      for(const r of aoa)for(const c of r){const m=/DATE\s*:\s*([A-Z]{3})[A-Z]*\.?\s*(\d{1,2})[^0-9]+(?:[A-Z]{3}[A-Z]*\.?\s*)?(\d{1,2})\s*,\s*(20\d{2})/i.exec(String(c));
+        if(m){const mo=MON3[U(m[1])];if(!mo)continue;let y=+m[4];const d=new Date(y,mo-1,+m[2]);if(mo===12&&+m[3]<+m[2])d.setFullYear(y-1);const mon=monday(ymd(d));return {from:mon,to:addD(mon,6)}}}}
+    return null;
+  }
+  function classify(name,wb,man){
+    const N=wb.SheetNames.map(U);const e=(man&&man.files||[]).find(x=>x.file===name);
+    if(N.includes('RCADS POSITIONS'))return {kind:'POSITIONS'};
+    if(N.some(n=>/ORIG\.SCHED|^ACS[ .]/.test(n))){
+      let b=e?branchFromRcps(e.branch,e.branchName):'';if(!b){const m=/_([A-Z]{2,4})_SCHEDULE_/.exec(U(name));b=branchFromRcps(m&&m[1],'')}
+      if(!b){for(const n of wb.SheetNames){const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:''}).slice(0,4);for(const r of a){const m=/BRANCH\s*:\s*(.+)/i.exec(String(r[0]||''));if(m){b=branchFromRcps('',m[1]);break}}if(b)break}}
+      const w=(e&&e.from)?{from:monday(e.from),to:addD(monday(e.from),6)}:schedWeek(wb);
+      return {kind:'SCHEDULE',branch:b,from:w&&w.from,to:w&&w.to};
+    }
+    if(N.some(n=>/^DTR LOG \(/.test(n))){
+      let b=e?branchFromRcps(e.branch,e.branchName):'';let from=e&&e.from,to=e&&e.to;
+      const m=/DTR_TEMPLATE_([A-Z]+)_(\d{4}-\d{2}-\d{2})_TO_(\d{4}-\d{2}-\d{2})/.exec(U(name));
+      if(m){if(!b)b=branchFromRcps('',m[1]);from=from||m[2];to=to||m[3]}
+      if(!b){const a=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});const r=a.find(r=>U(r[0])==='BRANCH:');if(r)b=branchFromRcps('',r[1])}
+      return {kind:'DTR',branch:b,from,to};
+    }
+    return {kind:'OTHER'};
+  }
+  function feedPositions(file){
+    const inp=document.getElementById('r190File');if(!inp)return false;
+    try{const dt=new DataTransfer();dt.items.add(file);inp.files=dt.files;inp.dispatchEvent(new Event('change',{bubbles:true}));return true}catch(e){return false}
+  }
+  const GL={busy:false,msg:'',err:false,res:null,folder:'',filled:null,filledMsg:''};
+  async function processFiles(items,report){
+    // items: [{name,u8,done:async()=>{}}]; manifest first
+    let man=null;const mi=items.find(x=>/\.json$/i.test(x.name));if(mi){try{man=JSON.parse(TD.decode(mi.u8))}catch(e){}}
+    const key=myKey();const res=[];let posFile=null;
+    for(const it of items){
+      if(/\.json$/i.test(it.name)){res.push({it,ok:true,skip:true});continue}
+      if(!/\.xlsx$/i.test(it.name)){res.push({it,ok:false,why:'not an Excel file — left in the folder'});continue}
+      let wb;try{wb=XLSX.read(it.u8,{type:'array'})}catch(e){res.push({it,ok:false,why:'could not read the Excel file'});continue}
+      const c=classify(it.name,wb,man);
+      try{
+        if(c.kind==='POSITIONS'){posFile=new File([it.u8],it.name,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});res.push({it,ok:true,line:'👤 Employee list (positions) — review below, then press ✓ APPLY'});continue}
+        if(c.kind==='SCHEDULE'||c.kind==='DTR'){
+          if(!c.branch)throw new Error('branch not recognized');if(!c.from||!c.to)throw new Error('dates not recognized');
+          report&&report('Publishing '+it.name+' …');
+          await rpc('rustica_rcps_form_put',{p_key:key,p_branch:c.branch,p_kind:c.kind,p_from:c.from,p_to:c.to,p_file_name:it.name,p_data_b64:b64(it.u8)});
+          res.push({it,ok:true,line:(c.kind==='SCHEDULE'?'📅 Schedule + ACS':'🧾 DTR Summary Log')+' • '+bName(c.branch)+' • '+(c.kind==='SCHEDULE'?fmtWk(c.from):fmtD(c.from)+' – '+fmtD(c.to)+', '+String(c.to).slice(0,4))});continue}
+        res.push({it,ok:false,why:'not an RCPS form — left in the folder'});
+      }catch(e){res.push({it,ok:false,why:e.message})}
+    }
+    if(posFile){const okFeed=feedPositions(posFile);const r=res.find(x=>x.it.name===posFile.name);if(r&&!okFeed){r.ok=false;r.why='open 👤 the employee list import below and choose this file'}}
+    for(const r of res){if(r.ok&&r.it.done){try{await r.it.done()}catch(e){r.line=(r.line||r.it.name)+' (could not move it to Old: '+e.message+')'}}}
+    return res;
+  }
+  async function getLatest(){
+    if(GL.busy)return;if(!isHrDevice()){GL.msg='Only on the HR device (with its HR key).';GL.err=true;drawHr();return}
+    if(typeof XLSX==='undefined'||!XLSX.CFB){GL.msg='The Excel library did not load. Connect to the internet and open RCADS again.';GL.err=true;drawHr();return}
+    if(!folderOK()){document.getElementById('r399Pick').click();return}
+    let dir=null;try{dir=await syncDir(true)}catch(e){GL.msg='Could not open the folder: '+e.message;GL.err=true;drawHr();return}
+    if(!dir){GL.msg='No folder chosen.';GL.err=true;drawHr();return}
+    GL.busy=true;GL.err=false;GL.msg='Reading '+dir.name+' / '+IN_NAME+' …';GL.folder=dir.name;drawHr();
+    try{
+      const inbox=await sub(dir,IN_NAME);await sub(dir,OUT_NAME);
+      const fhs=await listFiles(inbox);
+      if(!fhs.length){GL.msg='No new files from RCPS in "'+IN_NAME+'".\nIn RCPS press 📤 SEND LATEST TO RCADS first, then press 📥 GET LATEST FROM RCPS again.';GL.err=true;GL.res=null;return}
+      const items=[];for(const h of fhs){const f=await h.getFile();items.push({name:h.name,u8:new Uint8Array(await f.arrayBuffer()),done:()=>moveOld(inbox,h)})}
+      GL.res=await processFiles(items,m=>{GL.msg=m;drawHr()});
+      const ok=GL.res.filter(r=>r.ok&&!r.skip).length,bad=GL.res.filter(r=>!r.ok).length;
+      GL.msg='✓ '+ok+' file(s) from RCPS done'+(bad?' • ⚠ '+bad+' not used':'')+'. Used files were moved to "'+IN_NAME+' / '+OLD+'".';GL.err=!!bad&&!ok;
+      FL.at=0;loadFilled();
+    }catch(e){GL.msg=e.message;GL.err=true}
+    finally{GL.busy=false;drawHr()}
+  }
+  async function fromPickedFiles(list){
+    if(!list||!list.length)return;GL.busy=true;GL.err=false;GL.msg='Reading the chosen files …';drawHr();
+    try{const items=[];for(const f of list)items.push({name:f.name,u8:new Uint8Array(await f.arrayBuffer())});GL.res=await processFiles(items,m=>{GL.msg=m;drawHr()});
+      const ok=GL.res.filter(r=>r.ok&&!r.skip).length,bad=GL.res.filter(r=>!r.ok).length;GL.msg='✓ '+ok+' file(s) done'+(bad?' • ⚠ '+bad+' not used':'');FL.at=0;loadFilled()}
+    catch(e){GL.msg=e.message;GL.err=true}finally{GL.busy=false;drawHr()}
+  }
+  /* HR: what the branches filled in RCADS */
+  const FL={rows:null,at:0,busy:false,msg:''};
+  async function loadFilled(){if(FL.busy||!isHrDevice())return;FL.busy=true;
+    try{const d=await rpc('rustica_sched_filled_list',{p_key:myKey(),p_since:addD(monday(today()),-7)});FL.rows=d.rows||[];FL.msg=''}catch(e){FL.msg=e.message}
+    FL.at=Date.now();FL.busy=false;drawHr()}
+  function filledHtml(){
+    if(FL.msg)return '<div class="r399-msg err">'+esc(FL.msg)+'</div>';
+    if(!FL.rows)return '<div class="r399-n">Loading…</div>';
+    const thisMon=monday(today()),nextMon=addD(thisMon,7);
+    const want=[[nextMon,'ORIG','SCHEDULE • next week'],[thisMon,'ACS','ACS • this week']];
+    const depts=['KITCHEN','DINING','ADMIN'];
+    let h='<table class="r399-t"><thead><tr><th>BRANCH</th>'+want.map(w=>'<th>'+esc(w[2])+'<br><small>'+esc(fmtWk(w[0]))+'</small></th>').join('')+'</tr></thead><tbody>';
+    branches().forEach(b=>{h+='<tr><td><b>'+esc(b.name)+'</b></td>'+want.map(w=>'<td>'+depts.map(d=>{const r=FL.rows.find(x=>x.branch===b.code&&x.dept===d&&x.kind===w[1]&&String(x.week).slice(0,10)===w[0]);
+      if(!r)return d==='ADMIN'?'':'<div class="r399-no">🔴 '+d+'</div>';return '<div class="r399-ok">✅ '+d+' <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇</button><br><small>'+esc(fmtAt(r.at))+(r.by?' • '+esc(r.by):'')+'</small></div>'}).join('')+'</td>').join('')+'</tr>'});
+    h+='</tbody></table>';
+    const others=FL.rows.filter(x=>!want.some(w=>String(x.week).slice(0,10)===w[0]&&x.kind===w[1]));
+    if(others.length)h+='<div class="r399-n"><b>Other forms filled:</b> '+others.map(r=>esc(bName(r.branch))+' '+r.dept+' '+(r.kind==='ACS'?'ACS':'SCHEDULE')+' '+esc(fmtD(r.week))+' <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇</button>').join(' • ')+'</div>';
+    return h;
+  }
+  async function hrDownload(id){try{const d=await rpc('rustica_sched_filled_get',{p_key:myKey(),p_id:+id});saveU8(unb64(d.data_b64),d.file_name)}catch(e){alert(e.message)}}
+  function saveU8(u8,name){const blob=new Blob([u8],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    // R399: on the HR laptop with the sync folder, SEND TO RCPS files go to "RCADS to RCPS" (see below); this is a normal download
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+  function hrHtml(){
+    const res=GL.res?'<table class="r399-t"><tbody>'+GL.res.filter(r=>!r.skip).map(r=>'<tr><td>'+(r.ok?'<span class="r399-ok">✓</span>':'<span class="r399-no">⚠</span>')+'</td><td><b>'+esc(r.it.name)+'</b><br><small>'+esc(r.ok?r.line||'':r.why||'')+'</small></td></tr>').join('')+'</tbody></table>':'';
+    return '<div class="r399-h">📥 GET LATEST FROM RCPS</div><div class="r399-sub">Original Schedule • ACS • DTR Summary Log • Employee List</div>'+
+      '<button type="button" class="r399-big" id="r399Get"'+(GL.busy?' disabled':'')+'>'+(GL.busy?'⏳ WORKING…':'📥 GET LATEST FROM RCPS')+'</button>'+
+      '<div class="r399-n">Reads the newest files that RCPS saved with <b>📤 SEND LATEST TO RCADS</b> in <b>'+esc(SYNC_NAME)+' / '+esc(IN_NAME)+'</b>. The Schedule / ACS and DTR Summary Log go straight to the Kitchen Head 1, Dining Head 1 and HR Assistant (☰ MORE → 📝 FILL). The employee list is shown below for you to check and ✓ APPLY.'+
+      (folderOK()?' <br>Folder: <b>'+esc(GL.folder||'(chosen on the first press)')+'</b> • <a href="#" id="r399Change">change folder</a> • <a href="#" id="r399PickL">or choose the files</a>':' <br>This browser cannot open a folder — you will choose the files.')+'</div>'+
+      '<input type="file" id="r399Pick" accept=".xlsx,.json" multiple hidden>'+
+      (GL.msg?'<div class="r399-msg'+(GL.err?' err':'')+'">'+esc(GL.msg)+'</div>':'')+res+
+      '<div class="r399-sec">📥 SCHEDULE / ACS FILLED IN RCADS BY THE BRANCHES <button type="button" class="r399-btn l" id="r399Ref">↻</button></div>'+filledHtml();
+  }
+  function drawHr(){const el=document.getElementById('r399HrBox');if(!el)return;const h=hrHtml();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
+  function mountHr(){
+    const sec=document.getElementById('r190HrSection');const nav=document.getElementById('r190HrNavBtn');
+    if(nav&&nav.textContent!=='📥 GET LATEST FROM RCPS')nav.textContent='📥 GET LATEST FROM RCPS';
+    if(!sec)return;
+    const h=sec.querySelector('.r185-h');if(h&&h.textContent!=='👤 EMPLOYEE LIST FROM RCPS')h.textContent='👤 EMPLOYEE LIST FROM RCPS';
+    const note=sec.querySelector('.r185-note');if(note&&!note.dataset.r399){note.dataset.r399='1';note.innerHTML='The employee list comes with <b>📥 GET LATEST FROM RCPS</b> above (or choose the RCPS file here). It has <b>no salary</b>, only EMPCODE, name, department and position. RCADS shows what will change before anything is saved. Only positions are updated and new employees are added; nobody is removed (use <b>Separated</b> for that). Changes sync to all devices.'}
+    const pk=document.getElementById('r190Pick');if(pk&&pk.textContent!=='📎 CHOOSE THE RCPS FILE (.xlsx)')pk.textContent='📎 CHOOSE THE RCPS FILE (.xlsx)';
+    let box=document.getElementById('r399HrBox');
+    if(!box){box=document.createElement('div');box.id='r399HrBox';box.className='r399-box';sec.insertBefore(box,sec.firstChild);
+      box.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+        if(t.closest('#r399Get')){getLatest();return}
+        if(t.closest('#r399Change')){e.preventDefault();chooseFolder().then(h=>{if(h){GL.folder=h.name;GL.msg='Folder: '+h.name;GL.err=false;drawHr()}}).catch(err=>alert(err.message));return}
+        if(t.closest('#r399PickL')){e.preventDefault();document.getElementById('r399Pick').click();return}
+        if(t.closest('#r399Ref')){FL.at=0;loadFilled();return}
+        const g=t.closest('[data-r399-get]');if(g){hrDownload(g.getAttribute('data-r399-get'))}});
+      box.addEventListener('change',e=>{if(e.target.id==='r399Pick'){const fs=[...(e.target.files||[])];e.target.value='';fromPickedFiles(fs)}});
+      dirGet().then(h=>{if(h){GL.folder=h.name;drawHr()}});
+    }
+    if(box.parentElement===sec&&sec.firstChild!==box)sec.insertBefore(box,sec.firstChild);
+    if(isHrDevice()&&Date.now()-FL.at>120000&&sec.getClientRects().length)loadFilled();
+    drawHr();
+  }
+
+  /* ================= HR: 📤 SEND TO RCPS → the "RCADS to RCPS" folder ================= */
+  let OUTCAP=null;
+  const oClick=HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click=function(){
+    try{if(OUTCAP&&Date.now()<OUTCAP.until&&this.download&&/\.xlsx$/i.test(this.download)&&/^blob:/.test(this.href)){
+      const cap=OUTCAP,name=this.download,href=this.href;cap.n++;
+      const bp=fetch(href).then(r=>r.blob());   /* read the file NOW — the page frees the link a moment later */
+      cap.p=cap.p.then(()=>bp).then(async b=>{const fh=await cap.dir.getFileHandle(name,{create:true});const w=await fh.createWritable();await w.write(b);await w.close();cap.names.push(name)})
+        .catch(err=>{cap.err=err.message;return bp.then(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);oClick.call(a);setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}).catch(()=>{})});
+      clearTimeout(cap.t);cap.t=setTimeout(()=>finishOut(cap),2500);return}}catch(e){}
+    return oClick.apply(this,arguments)};
+  async function finishOut(cap){await cap.p;if(OUTCAP===cap)OUTCAP=null;
+    const msg=cap.names.length?'✓ Saved for RCPS in "'+cap.root+' / '+OUT_NAME+'":\n• '+cap.names.join('\n• ')+'\n\nIn RCPS: DTR Log Form → Import from RCADS → open that folder and select the files.':'';
+    if(msg){const m=document.getElementById('r258Msg');if(m)m.textContent='✓ '+cap.names.length+' file(s) saved in '+OUT_NAME;alert(msg)}else if(cap.err)alert('Could not save in the folder ('+cap.err+'). The files were downloaded instead.')}
+  function wrapSend(){
+    const cur=window.exportEditableDTRLog;if(typeof cur!=='function'||cur._r399)return;
+    const w=function(){const self=this,args=arguments;
+      if(!folderOK()||!isHrDevice())return cur.apply(self,args);
+      return (async()=>{let dir=null;try{dir=await syncDir(false);if(!dir){const h=await dirGet();if(h){const p=await h.requestPermission({mode:'readwrite'});if(p==='granted')dir=h}}}catch(e){dir=null}
+        if(!dir)return cur.apply(self,args);
+        try{const out=await sub(dir,OUT_NAME);for(const fh of await listFiles(out)){try{await moveOld(out,fh)}catch(e){}}
+          OUTCAP={dir:out,root:dir.name,until:Date.now()+30000,n:0,names:[],p:Promise.resolve(),err:'',t:0};}catch(e){OUTCAP=null}
+        return cur.apply(self,args)})();
+    };
+    for(const k in cur)w[k]=cur[k];w._r399=true;window.exportEditableDTRLog=w;
+  }
+
+  /* ================= Heads / HR Assistant: 📝 FILL THE SCHEDULE / ACS IN RCADS ================= */
+  const SHEET={ORIG:{KITCHEN:'KIT.ORIG.SCHED',DINING:'DIN.ORIG.SCHED',ADMIN:'ADM.ORIG.SCHED'},ACS:{KITCHEN:'ACS KITCHEN',DINING:'ACS DINING',ADMIN:'ACS.ADMIN'}};
+  const DTRSHEET={MANAGEMENT:'Mgmt',KITCHEN:'Kitc',DINING:'Dini',EXTRA:'Extra'};
+  function who(){try{const w=window.rcadsR264&&window.rcadsR264.who&&window.rcadsR264.who();if(!w||(w.kind!=='HEAD'&&w.kind!=='HRA'))return null;return w}catch(e){return null}}
+  const HD={b:'',forms:{},filled:{},at:{},busy:false,msg:'',err:false};
+  function fmtTime(hhmm){if(!hhmm)return '';let [h,m]=hhmm.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(m)+' '+ap}
+  function toHHMM(v){if(v==null||v==='')return '';if(typeof v==='number'){const t=Math.round((v%1)*1440);return pad(Math.floor(t/60)%24)+':'+pad(t%60)}
+    const s=String(v).trim();const m=/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]\.?M\.?)?$/i.exec(s);if(!m)return '';let h=+m[1];const ap=(m[3]||'').toUpperCase().replace(/\./g,'');if(ap==='PM'&&h<12)h+=12;if(ap==='AM'&&h===12)h=0;return pad(h)+':'+m[2]}
+  function sheetOf(wb,kind,dept){const want=SHEET[kind][dept];let n=wb.SheetNames.find(x=>U(x)===U(want));if(n)return n;
+    return wb.SheetNames.find(x=>{const a=XLSX.utils.sheet_to_json(wb.Sheets[x],{header:1,defval:''}).slice(0,6).map(r=>U(r[0])).join('|');return a.indexOf('DEPT: '+(dept==='ADMIN'?'ADM':dept.slice(0,3)))>=0&&((kind==='ACS')===/APPROVED OVER TIME|CHANGE OF SCHEDULE/.test(a))})||''}
+  /* reads the sheet layout: employees, day columns, existing values */
+  function layout(wb,sheetName,kind){
+    const ws=wb.Sheets[sheetName];const ref=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
+    const val=(r,c)=>{const x=ws[XLSX.utils.encode_cell({r,c})];return x?(x.v!==undefined?x.v:''):''};
+    const txt=(r,c)=>{const x=ws[XLSX.utils.encode_cell({r,c})];return x?String(x.w!==undefined?x.w:x.v):''};
+    let h=-1;for(let r=0;r<=Math.min(ref.e.r,15);r++){if(U(txt(r,0))==='EMPCODE'){h=r;break}}if(h<0)throw new Error('No EMPCODE header in '+sheetName);
+    const DAYS=['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];const days=[];
+    for(let c=1;c<=ref.e.c;c++){const t=U(txt(h,c));const i=DAYS.indexOf(t);if(i>=0)days.push({i,c,name:t.slice(0,3),date:U(txt(h+1,c))})}
+    if(days.length<7)throw new Error('The 7 days were not found in '+sheetName);
+    let start=h+1;while(start<=ref.e.r&&!/^[A-Z]{2,6}-[A-Z0-9]/.test(U(txt(start,0))))start++;
+    const emps=[];let prep='';
+    for(let r=start;r<=ref.e.r;r++){const code=U(txt(r,0));if(/^[A-Z]{2,6}-[A-Z0-9]/.test(code)){
+        const e={r,code,name:txt(r,1),pos:txt(r,2),days:[]};
+        days.forEach(d=>{if(kind==='ORIG'){const a=val(r,d.c),b=val(r,d.c+1);const st=typeof a==='string'&&a.trim()&&!toHHMM(a)?a.trim():'';e.days.push({st,in:st?'':toHHMM(a),out:st?'':toHHMM(b)})}
+          else{const a=val(r,d.c),ot=val(r,d.c+2);let st='',tin='',tout='';const s=String(a??'').trim();
+            if(s){const p=s.split(/\s*[-–—]\s*/);if(p.length>=2&&toHHMM(p[0])&&toHHMM(p[1])){tin=toHHMM(p[0]);tout=toHHMM(p[1])}else if(typeof a==='number'){tin=toHHMM(a)}else st=s}
+            e.days.push({st,in:tin,out:tout,ot:ot===''?'':String(ot)})}});
+        emps.push(e)}
+      else if(/^PREPARED BY/.test(U(txt(r,0))))prep=XLSX.utils.encode_cell({r,c:0})}
+    return {sheetName,h,days,emps,prep,kind};
+  }
+  function dayStatus(d,kind){if(d.st)return 'ST';if(d.in&&d.out)return 'TIME';if(kind==='ACS'&&(d.ot!==''&&d.ot!=null))return 'OTONLY';return ''}
+  function empDone(e,kind){if(kind==='ACS')return true;return e.days.every(d=>dayStatus(d,kind)==='ST'||dayStatus(d,kind)==='TIME')}
+  /* writes the values into the ORIGINAL file (only the time cells + PREPARED BY) and keeps only this department's sheet */
+  function buildFilled(u8,L,kind,byName){
+    const z=zRead(u8);const s=sheetsOf(z).find(x=>U(x.name)===U(L.sheetName));if(!s)throw new Error('Sheet missing.');
+    let x=zGet(z,s.path);
+    L.emps.forEach(e=>{e.days.forEach((d,i)=>{const c=L.days[i].c;const r=e.r+1;
+      if(kind==='ORIG'){const a=colL(c+1)+r,b=colL(c+2)+r;
+        if(d.st){x=setCell(x,a,d.st);x=setCell(x,b,'')}else if(d.in&&d.out){x=setCell(x,a,fmtTime(d.in));x=setCell(x,b,fmtTime(d.out))}else{x=setCell(x,a,'');x=setCell(x,b,'')}}
+      else{const a=colL(c+1)+r,o=colL(c+3)+r;
+        if(d.st)x=setCell(x,a,d.st);else if(d.in&&d.out)x=setCell(x,a,String(+d.in.slice(0,2))+d.in.slice(2)+'-'+String(+d.out.slice(0,2))+d.out.slice(2));else x=setCell(x,a,'');   /* ACS: 24-hour '8:30-17:30' fits the narrow New Sched column */
+        const ot=String(d.ot??'').trim();x=setCell(x,o,ot&&+ot>0?Math.floor(+ot):'')}})});
+    if(L.prep&&byName)x=setCell(x,L.prep,'PREPARED BY: '+byName+'   ('+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+')');
+    zSet(z,s.path,x);keepOnly(z,L.sheetName);return zWrite(z);
+  }
+  function deptSheetOnly(u8,sheetName){const z=zRead(u8);keepOnly(z,sheetName);return zWrite(z)}
+  function fileNameFor(b,dept,kind,mon){const sun=addD(mon,6);const M=iso=>new Date(iso+'T00:00').toLocaleDateString('en-US',{month:'short'}).toUpperCase()+Number(iso.slice(8));
+    return U(bName(b)).replace(/[^A-Z]+/g,'_')+'_'+dept+'_'+(kind==='ACS'?'ACS':'SCHEDULE')+'_'+M(mon)+'-'+M(sun)+'_'+sun.slice(0,4)+'.xlsx'}
+
+  async function loadHead(b,force){
+    if(HD.busy)return;if(!force&&HD.at[b]&&Date.now()-HD.at[b]<300000)return;
+    const key=myKey();if(!key){HD.msg='This phone has no RCADS key. Ask HR for a new personal QR.';HD.err=true;drawHead();return}
+    HD.busy=true;drawHead();
+    try{const d=await rpc('rustica_rcps_form_latest',{p_key:key,p_branch:b});HD.forms[b]=d.rows||[];
+      const weeks=[...new Set(HD.forms[b].filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)))];const filled={};
+      for(const w of weeks){try{const f=await rpc('rustica_sched_filled_mine',{p_key:key,p_branch:b,p_week:w});(f.rows||[]).forEach(r=>{filled[w+'|'+r.dept+'|'+r.kind]=r})}catch(e){}}
+      HD.filled[b]=filled;HD.at[b]=Date.now();HD.msg='';HD.err=false}
+    catch(e){HD.msg=e.message;HD.err=true;HD.at[b]=Date.now()-240000}
+    HD.busy=false;drawHead();
+  }
+  function headRows(w,b){
+    const forms=(HD.forms[b]||[]);const thisMon=monday(today()),nextMon=addD(thisMon,7);
+    const sched=w0=>forms.find(x=>x.kind==='SCHEDULE'&&String(x.from).slice(0,10)===w0);
+    const rows=[];const depts=w.forms;
+    depts.forEach(dept=>{
+      const fN=sched(nextMon),fT=sched(thisMon);
+      const add=(f,mon,kind,label,always)=>{if(!f)return;const done=(HD.filled[b]||{})[mon+'|'+dept+'|'+kind];if(!always&&done)return;rows.push({f,mon,kind,dept,label,done})};
+      add(fN,nextMon,'ORIG','SCHEDULE • NEXT WEEK',true);
+      add(fT,thisMon,'ACS','ACS • THIS WEEK',true);
+      add(fT,thisMon,'ORIG','SCHEDULE • THIS WEEK',false);
+      if(!fN&&!fT)rows.push({none:true,dept});
+    });
+    return rows;
+  }
+  function headHtml(w){
+    const b=HD.b;const bsel=w.branches.length>1?'<select id="r399B">'+w.branches.map(c=>'<option value="'+c+'"'+(c===b?' selected':'')+'>'+esc(bName(c))+'</option>').join('')+'</select>':'';
+    let h='<div class="r399-h">📝 FILL SCHEDULE / ACS IN RCADS</div><div class="r399-sub">'+esc(w.label)+' • '+esc(bName(b))+'</div>'+bsel;
+    if(!HD.forms[b]){h+='<div class="r399-n">'+(HD.busy?'Loading the forms from HR…':'')+'</div>'}
+    else{const rows=headRows(w,b);
+      rows.forEach(x=>{if(x.none){h+='<div class="r399-item"><b>'+esc(x.dept)+'</b><small>No form from HR yet for this week or next week. HR: RCPS → 📤 SEND LATEST TO RCADS, then RCADS → 📥 GET LATEST FROM RCPS.</small></div>';return}
+        const id=x.f.id+'|'+x.mon+'|'+x.kind+'|'+x.dept;
+        h+='<div class="r399-item"><b>'+esc(x.label)+(w.forms.length>1||x.dept==='ADMIN'?' • '+esc(x.dept):'')+'</b><small>'+esc(fmtWk(x.mon))+' • '+(x.done?'<span class="r399-ok">✅ SENT TO HR '+esc(fmtAt(x.done.at))+'</span>':'<span class="r399-no">🔴 not sent yet'+(x.kind==='ORIG'&&x.mon!==monday(today())?' (due Sunday)':x.kind==='ACS'?' (Saturday / cut-off)':'')+'</span>')+'</small>'+
+          '<div class="r399-row"><button type="button" class="r399-btn ok" data-r399-fill="'+id+'">📝 '+(x.done?'EDIT':'FILL')+' '+(x.kind==='ACS'?'ACS':'SCHEDULE')+'</button><button type="button" class="r399-btn l" data-r399-dl="'+id+'">⬇ DOWNLOAD'+(x.done?'':' (blank)')+'</button></div></div>'});
+      const dtr=(HD.forms[b]||[]).find(x=>x.kind==='DTR');
+      if(dtr&&w.kind==='HEAD')h+='<div class="r399-item"><b>DTR SUMMARY LOG • '+esc(w.forms[0])+'</b><small>'+esc(fmtD(dtr.from)+' – '+fmtD(dtr.to)+', '+String(dtr.to).slice(0,4))+' • editable during the pilot — check it; send corrections to HR</small><div class="r399-row"><button type="button" class="r399-btn l" data-r399-dtr="'+dtr.id+'">⬇ DOWNLOAD DTR SUMMARY LOG</button></div></div>';
+    }
+    h+='<div class="r399-row"><button type="button" class="r399-btn l" id="r399HRef"'+(HD.busy?' disabled':'')+'>↻ REFRESH</button></div>';
+    if(HD.msg)h+='<div class="r399-msg'+(HD.err?' err':'')+'">'+esc(HD.msg)+'</div>';
+    return h;
+  }
+  function drawHead(){const el=document.getElementById('r399Card');const w=who();if(!el||!w)return;const h=headHtml(w);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
+  function formById(b,id){return (HD.forms[b]||[]).find(x=>String(x.id)===String(id))}
+  function sourceU8(b,id,mon,kind,dept){const done=(HD.filled[b]||{})[mon+'|'+dept+'|'+kind];if(done&&done.data_b64)return {u8:unb64(done.data_b64),filled:true};const f=formById(b,id);if(!f)throw new Error('Form not found. Press ↻ REFRESH.');return {u8:unb64(f.data_b64),filled:false}}
+  async function headDownload(spec){const [id,mon,kind,dept]=spec.split('|');const b=HD.b;
+    try{const src=sourceU8(b,id,mon,kind,dept);let u8=src.u8;if(!src.filled){const wb=XLSX.read(u8,{type:'array'});const sn=sheetOf(wb,kind,dept);if(!sn)throw new Error('No '+dept+' sheet in this form.');u8=deptSheetOnly(u8,sn)}
+      saveU8(u8,fileNameFor(b,dept,kind,mon))}catch(e){alert('Could not download: '+e.message)}}
+  async function dtrDownload(id,w){const b=HD.b;const f=formById(b,id);if(!f)return;
+    try{const u8=unb64(f.data_b64);const wb=XLSX.read(u8,{type:'array'});const tag=DTRSHEET[w.forms[0]]||'';const sn=wb.SheetNames.find(n=>new RegExp('\\('+tag,'i').test(n));
+      saveU8(sn?deptSheetOnly(u8,sn):u8,'DTR_'+U(bName(b)).replace(/[^A-Z]+/g,'_')+'_'+w.forms[0]+'_'+String(f.from).slice(0,10)+'_to_'+String(f.to).slice(0,10)+'.xlsx')}catch(e){alert('Could not download: '+e.message)}}
+
+  /* ---------- the editor ---------- */
+  let ED=null;
+  const draftKey=()=>'r399draft_'+ED.b+'_'+ED.dept+'_'+ED.kind+'_'+ED.mon;   /* not rcads_/rustica_: stays on this phone */
+  function openEditor(spec){
+    const [id,mon,kind,dept]=spec.split('|');const b=HD.b;const w=who();if(!w)return;
+    let src;try{src=sourceU8(b,id,mon,kind,dept)}catch(e){alert(e.message);return}
+    const base=unb64(formById(b,id).data_b64);
+    let L;try{const wbS=XLSX.read(src.u8,{type:'array'});const sn=sheetOf(wbS,kind,dept);if(!sn)throw new Error('No '+dept+' '+(kind==='ACS'?'ACS':'schedule')+' sheet in this form.');L=layout(wbS,sn,kind);
+      if(src.filled){const wbB=XLSX.read(base,{type:'array'});const snB=sheetOf(wbB,kind,dept);const LB=layout(wbB,snB,kind);LB.emps.forEach(e=>{const f=L.emps.find(x=>x.code===e.code);if(f)e.days=f.days});L=LB}}
+    catch(e){alert('Could not open the form: '+e.message);return}
+    if(!L.emps.length){alert('There are no '+dept+' employees in this form. Ask HR to update it in RCPS.');return}
+    ED={b,id,mon,kind,dept,base,L,w,open:{}};
+    try{const d=JSON.parse(localStorage.getItem(draftKey())||'null');if(d&&d.emps&&confirm('You have an unsent draft from '+fmtAt(d.at)+'. Continue it?'))d.emps.forEach(x=>{const e=L.emps.find(y=>y.code===x.code);if(e&&Array.isArray(x.days)&&x.days.length===7)e.days=x.days})}catch(e){}
+    let el=document.getElementById('r399Ed');if(!el){el=document.createElement('div');el.id='r399Ed';document.body.appendChild(el);
+      el.addEventListener('change',edChange);el.addEventListener('input',edChange);el.addEventListener('click',edClick)}
+    edDraw();
+  }
+  const STATUS=['DAY OFF','LEAVE','ABSENT W/ PERMISSION','SUSPENDED','RESIGNED','TERMINATED','AWOL'];
+  function dayHtml(e,ei,d,di){
+    const L=ED.L,dd=L.days[di];const st=dayStatus(d,ED.kind);const sel=d.st?d.st:(d.in||d.out?'TIME':'');
+    const opts=(ED.kind==='ACS'?'<option value="">no change</option>':'<option value="">—</option>')+'<option value="TIME"'+(sel==='TIME'?' selected':'')+'>TIME</option>'+STATUS.map(s=>'<option'+(U(sel)===s?' selected':'')+'>'+s+'</option>').join('')+(d.st&&!STATUS.includes(U(d.st))?'<option selected>'+esc(d.st)+'</option>':'');
+    let h='<div class="day"><div class="dl">'+dd.name+'<small>'+esc(dd.date)+'</small></div><select data-e="'+ei+'" data-d="'+di+'" data-f="st">'+opts+'</select>'+
+      '<div class="tm'+(sel==='TIME'?'':' off')+'"><input type="time" step="1800" data-e="'+ei+'" data-d="'+di+'" data-f="in" value="'+esc(d.in||'')+'"><span>to</span><input type="time" step="1800" data-e="'+ei+'" data-d="'+di+'" data-f="out" value="'+esc(d.out||'')+'"></div>';
+    if(ED.kind==='ACS')h+='<div class="ot"><label>APPROVED O.T.</label><select data-e="'+ei+'" data-d="'+di+'" data-f="ot">'+['','1','2','3','4','5','6','7','8'].map(v=>'<option value="'+v+'"'+(String(d.ot||'')===v?' selected':'')+'>'+(v?v+' hr'+(v==='1'?'':'s'):'none')+'</option>').join('')+'</select></div>';
+    return h+'</div>';
+  }
+  function empHtml(e,ei){const ok=empDone(e,ED.kind);const changed=ED.kind==='ACS'?e.days.filter(d=>dayStatus(d,'ACS')).length:0;
+    return '<div class="emp'+(ED.open[ei]?'':' closed')+'"><div class="emp-h" data-tog="'+ei+'"><div><b>'+esc(e.name)+'</b><small>'+esc(e.code)+' • '+esc(e.pos)+'</small></div><span class="st '+(ED.kind==='ACS'?(changed?'ok':''):(ok?'ok':'no'))+'">'+(ED.kind==='ACS'?(changed?changed+' change(s)':'no change'):(ok?'✓ complete':'incomplete'))+' ▾</span></div>'+
+      '<div class="emp-b">'+(ED.kind==='ORIG'?'<div class="tools"><button type="button" class="r399-btn l" data-copy="'+ei+'">COPY MONDAY TO THE OTHER DAYS</button></div>':'')+e.days.map((d,di)=>dayHtml(e,ei,d,di)).join('')+'</div></div>'}
+  function edDraw(){const el=document.getElementById('r399Ed');if(!el||!ED)return;const L=ED.L;const sc=el.querySelector('.ed-b');const top=sc?sc.scrollTop:0;
+    const inc=ED.kind==='ORIG'?L.emps.filter(e=>!empDone(e,'ORIG')).length:0;
+    el.innerHTML='<div class="ed"><div class="ed-h"><b>📝 '+(ED.kind==='ACS'?'ACS — APPROVED O.T. & CHANGE OF SCHEDULE':'WEEKLY SCHEDULE (ORIGINAL)')+'</b><small>'+esc(bName(ED.b))+' • '+esc(ED.dept)+' • '+esc(fmtWk(ED.mon))+' • '+L.emps.length+' employees</small></div>'+
+      '<div class="ed-b"><div class="r399-n">'+(ED.kind==='ACS'?'Fill ONLY the changed days (new TIME, or DAY OFF / LEAVE) and the APPROVED O.T. in whole hours. Leave "no change" for the rest.':'Choose TIME and put the time IN and OUT for every day, or DAY OFF / LEAVE. Tap a name to open it.')+'</div>'+L.emps.map((e,i)=>empHtml(e,i)).join('')+'</div>'+
+      '<div class="ed-f">'+(inc?'<div class="warn">⚠ '+inc+' employee(s) still incomplete.</div>':'')+'<button type="button" class="r399-btn ok" data-act="submit">📤 SUBMIT TO HR</button><button type="button" class="r399-btn l" data-act="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-act="close">✕ CLOSE</button></div></div>';
+    const nb=el.querySelector('.ed-b');if(nb)nb.scrollTop=top}
+  function edChange(e){const t=e.target;if(!ED||!t.dataset||t.dataset.e===undefined)return;const em=ED.L.emps[+t.dataset.e],d=em.days[+t.dataset.d],f=t.dataset.f;
+    if(f==='st'){if(t.value==='TIME'){d.st='';if(!d.in&&!d.out){const prev=em.days.slice(0,+t.dataset.d).reverse().find(x=>x.in&&x.out);if(prev){d.in=prev.in;d.out=prev.out}}if(!d.in)d.in='08:00';if(!d.out)d.out='17:00'}else if(t.value===''){d.st='';d.in='';d.out=''}else{d.st=t.value;d.in='';d.out=''}if(e.type==='change')edDraw()}
+    else if(f==='in'||f==='out'){d[f]=t.value;d.st=''}
+    else if(f==='ot'){d.ot=t.value;if(e.type==='change')edDraw()}}
+  function edClick(e){const t=e.target;if(!t.closest||!ED)return;
+    const tg=t.closest('[data-tog]');if(tg){const i=+tg.dataset.tog;ED.open[i]=!ED.open[i];edDraw();return}
+    const cp=t.closest('[data-copy]');if(cp){const em=ED.L.emps[+cp.dataset.copy];const m=em.days[0];if(!dayStatus(m,'ORIG')){alert('Fill MONDAY first.');return}em.days=em.days.map((d,i)=>i===0?d:{st:m.st,in:m.in,out:m.out});edDraw();return}
+    const a=t.closest('[data-act]');if(!a)return;const act=a.dataset.act;
+    if(act==='close'){if(confirm('Close? Press 💾 SAVE DRAFT first if you want to continue later.')){document.getElementById('r399Ed').remove();ED=null}return}
+    if(act==='draft'){try{localStorage.setItem(draftKey(),JSON.stringify({at:new Date().toISOString(),emps:ED.L.emps.map(x=>({code:x.code,days:x.days}))}));alert('✓ Draft saved on this phone.')}catch(err){alert(err.message)}return}
+    if(act==='submit')submitEd();
+  }
+  async function submitEd(){
+    const L=ED.L,kind=ED.kind;
+    const bad=[];L.emps.forEach(e=>e.days.forEach((d,i)=>{if((d.in&&!d.out)||(!d.in&&d.out))bad.push(e.name+' '+L.days[i].name)}));
+    if(bad.length){alert('Put BOTH the time IN and OUT:\n• '+bad.slice(0,8).join('\n• ')+(bad.length>8?'\n…':''));return}
+    if(kind==='ORIG'){const inc=L.emps.filter(e=>!empDone(e,'ORIG'));if(inc.length&&!confirm(inc.length+' employee(s) still have empty days:\n• '+inc.slice(0,6).map(e=>e.name).join('\n• ')+'\n\nSubmit anyway?'))return}
+    else if(!L.emps.some(e=>e.days.some(d=>dayStatus(d,'ACS')))&&!confirm('No change was filled. Submit an EMPTY ACS (no change this week)?'))return;
+    const w=ED.w;const by=(w.e&&(w.e.name||w.e.code)||'')+' • '+w.label;
+    const btn=document.querySelector('#r399Ed [data-act="submit"]');if(btn){btn.disabled=true;btn.textContent='⏳ SENDING…'}
+    try{
+      const u8=buildFilled(ED.base,L,kind,(w.e&&w.e.name)||w.label);
+      const name=fileNameFor(ED.b,ED.dept,kind,ED.mon);
+      await rpc('rustica_sched_filled_put',{p_key:myKey(),p_branch:ED.b,p_dept:ED.dept,p_kind:kind,p_week:ED.mon,p_form_id:+ED.id,p_file_name:name,p_data_b64:b64(u8),p_name:by});
+      // same as the Head's upload: RCADS uses it for late / undertime / overtime right away
+      let libMsg='';await new Promise(res=>{try{if(window.rcadsR215&&window.rcadsR215.upload)window.rcadsR215.upload(new File([u8],name,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),ED.b,ED.dept,kind==='ACS'?'ACS':'ORIGINAL',by,(ok,m)=>{libMsg=ok?'':'\n⚠ Attendance copy: '+m;res()});else res()}catch(e){libMsg='\n⚠ '+e.message;res()}setTimeout(res,15000)});
+      try{localStorage.removeItem(draftKey())}catch(e){}
+      const keep={b:ED.b,mon:ED.mon,kind,dept:ED.dept,u8,name};document.getElementById('r399Ed').remove();ED=null;
+      HD.at[keep.b]=0;await loadHead(keep.b,true);
+      if(confirm('✓ SENT TO HR: '+(kind==='ACS'?'ACS':'SCHEDULE')+' • '+keep.dept+' • '+fmtWk(keep.mon)+libMsg+'\n\nDownload it now for the bulletin board?'))saveU8(keep.u8,keep.name);
+    }catch(e){alert('Not sent: '+e.message);if(btn){btn.disabled=false;btn.textContent='📤 SUBMIT TO HR'}}
+  }
+  function tickHead(){
+    const w=who();let el=document.getElementById('r399Card');
+    if(!w){if(el)el.remove();return}
+    if(!HD.b||!w.branches.includes(HD.b))HD.b=w.branches[0];
+    if(!el){el=document.createElement('div');el.id='r399Card';el.className='r399-card';
+      el.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;const ww=who();if(!ww)return;
+        if(t.closest('#r399HRef')){loadHead(HD.b,true);return}
+        const f=t.closest('[data-r399-fill]');if(f){openEditor(f.getAttribute('data-r399-fill'));return}
+        const d=t.closest('[data-r399-dl]');if(d){headDownload(d.getAttribute('data-r399-dl'));return}
+        const x=t.closest('[data-r399-dtr]');if(x){dtrDownload(x.getAttribute('data-r399-dtr'),ww)}});
+      el.addEventListener('change',e=>{if(e.target.id==='r399B'){HD.b=e.target.value;HD.msg='';drawHead();loadHead(HD.b,false)}});
+    }
+    const r215=document.getElementById('r215Card');
+    if(r215&&r215.parentElement===w.host){el.setAttribute('data-r162-tab','more');if(r215.nextElementSibling!==el)r215.insertAdjacentElement('afterend',el)}
+    else{el.removeAttribute('data-r162-tab');if(el.parentElement!==w.host){const nav=w.host.querySelector(':scope > .r162-nav');w.host.insertBefore(el,nav||null)}}
+    drawHead();if(el.getClientRects().length)loadHead(HD.b,false);
+  }
+
+  setInterval(()=>{try{mountHr()}catch(e){console.warn('R399 hr',e)}try{tickHead()}catch(e){console.warn('R399 head',e)}try{wrapSend()}catch(e){}},1500);
+  window.rcadsR399={legalize,setCell,keepOnly,layout,buildFilled,deptSheetOnly,sheetOf,classify,processFiles,zRead,zWrite,zGet,sheetsOf,fileNameFor,schedWeek,openEditor,getLatest,useFolder:h=>{DIRMEM=h},HD,GL,FL,ver:VER};
+})();
+</script>
+
 </body></html>
