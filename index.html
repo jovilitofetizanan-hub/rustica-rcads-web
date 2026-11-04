@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R404 HOLIDAY REMINDER</title>
+<title>Rustica RCADS App — R406 DTR 1 MIN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -5055,9 +5055,14 @@ function parseHeaderDate(header, fallbackYear){
 }
 
 function parseScheduleRange(cell){
-  const raw=String(cell??"").trim();
+  let raw=String(cell??"").trim();
   if(!raw) return {type:"EMPTY"};
+  // R405: "DAY-OFF", "DAY -OFF", "DAYOFF", "D/O" written by the Heads = DAY OFF
+  if(/^DAY\s*-?\s*OFF\b|^DAYOFF\b|^D\s*\/\s*O$/i.test(raw)) raw="DAY OFF";
   const upper=raw.toUpperCase();
+  // R405: CATERING (worked outside, from the ACS) and separated staff are statuses, never times
+  if(/^CATERING\b/.test(upper)) return {type:"STATUS",status:"CATERING"};
+  if(/^(RESIGNED|TERMINATED|AWOL)\b/.test(upper)) return {type:"STATUS",status:upper.split(/\s+/)[0]};
 
   const statusWords=[
     "DAY OFF","OFF","REST DAY","SUSPEND","SUSPENDED",
@@ -5974,7 +5979,7 @@ function dtrPunchMinutes(r){
   if(half)h=h%12+(half==='PM'?12:0);return h*60+min;
 }
 function dtrIsDayOffStatus(s){
-  return /^(DAY OFF|OFF|REST DAY)/i.test(String(s||"").trim());
+  return /^(DAY\s*-?\s*OFF|DAYOFF|OFF|REST DAY)/i.test(String(s||"").trim());   // R405: DAY-OFF too
 }
 function dtrIsNonWorkingStatus(s){
   return /^(DAY OFF|OFF|REST DAY|LEAVE|VL|SL|SUSPEND|SUSPENDED)/i.test(String(s||"").trim());
@@ -25461,7 +25466,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R404 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R406 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -25632,7 +25637,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       if(!expected||rec.type!==expected[0]||rec.kind!==expected[1]||!!rec.errand!==(rec.attendanceAction==='ERRAND_OUT')||!!rec.errandReturn!==(rec.attendanceAction==='ERRAND_IN')||!canGuardAction(rec.attendanceAction,shiftState(c))){alert('NOT RECORDED: action/status changed. Scan again and choose the actual action.');return false}
       rec.actionSelectedAt=rec.date;if(rec.dutyType)rec.dutyTypeSetAt=rec.date;
     }
-    if(!rec.attendanceAction&&rec.type==='OUT'&&rec.kind==='Break'&&!rec.errand&&storeClosedTime()){rec=Object.assign({},rec,{kind:'End Shift',reason:'Store closed — 9:00 PM onwards',reasonApproved:'N/A'});delete rec.errand;delete rec.errandBy;delete rec.errandWhat}
+    if(!rec.attendanceAction&&rec.type==='OUT'&&rec.kind==='Break'&&!rec.errand&&storeClosedTime()){rec=Object.assign({},rec,{kind:'End Shift',reason:'TIME OUT / CLOSING',reasonApproved:'N/A'});delete rec.errand;delete rec.errandBy;delete rec.errandWhat}
     if(guardSaveBusy)return false;
     guardSaveBusy=true;
     try{
@@ -25881,7 +25886,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(!pendingOut){resultBox('r181GuardRes','<b>SCAN AGAIN</b><span>No active scan. Nothing recorded.</span>','warn');return;}
     resultBox('r181GuardRes',pendingOut.head+'<form id="r396OutForm"><h3>TIME OUT</h3><p>Early TIME OUT is allowed with verbal Head/Manager authorization. Actual time is recorded; undertime remains subject to HR review.</p><label>Reason<select name="reason" required style="display:block;width:100%;padding:12px;font-size:16px"><option value="">Choose reason</option>'+guardOutReasons.map(r=>'<option>'+esc(r)+'</option>').join('')+'</select></label><label>Head / Manager who authorized<input name="approvedBy" maxlength="150" autocomplete="off" style="display:block;width:100%;box-sizing:border-box;padding:12px;font-size:16px"></label><label><input type="checkbox" name="verbal"> I confirm the Head / Manager verbally authorized this TIME OUT.</label><label>Notes (required for Other or a missing Break/Errand In)<textarea name="note" maxlength="500" style="display:block;width:100%;box-sizing:border-box;padding:12px;font-size:16px"></textarea></label><button type="submit" class="r181-btn">CONFIRM TIME OUT</button><button type="button" class="r181-btn ghost" data-r395-back>BACK — NOT RECORDED</button><p role="status"></p></form>','');
   }
-  const guardBreakReasons=['Meal break','Rest break','Personal break','Other'];
+  const guardBreakReasons=['1st BREAK — Coffee','2nd BREAK — Lunch','Other'];   /* R405 */
   function showBreakForm(){
     if(guardChoiceBusy||!pendingOut)return;
     resultBox('r181GuardRes',pendingOut.head+'<form id="r397BreakForm"><h3>BREAK OUT</h3><label>Reason<select name="reason" required><option value="">Choose reason</option>'+guardBreakReasons.map(r=>'<option>'+esc(r)+'</option>').join('')+'</select></label><label>Details (required for Other)<input name="note" maxlength="500"></label><button type="submit" class="r181-btn">CONFIRM BREAK OUT</button><button type="button" class="r181-btn ghost" data-r395-back>BACK — NOT RECORDED</button><p role="status"></p></form>','');
@@ -25914,7 +25919,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       if(action==='ERRAND_IN')Object.assign(extra,{errandReturn:true,errandMinutes:Math.max(0,Math.round((nowStampLocal().date-Date.parse(st.last.date))/60000))});
       if(action==='TIME_OUT'){
         if(storeClosedTime()){
-          Object.assign(extra,{reason:'Store closing — 9 PM onwards',reasonApproved:'N/A',automaticClosingTimeOut:true,requiresHrReview:st.state==='BREAK'});
+          Object.assign(extra,{reason:'TIME OUT / CLOSING',reasonApproved:'N/A',automaticClosingTimeOut:true,requiresHrReview:st.state==='BREAK'});
         }else{
         details=details||{};
         const early=!storeClosedTime(),by=String(details.approvedBy||'').trim(),note=String(details.note||'').trim();
@@ -26000,7 +26005,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   });
   document.addEventListener('change',e=>{if(e.target&&e.target.id==='r217Reason'){const o=document.getElementById('r217Other');if(o)o.hidden=!/^Other/.test(e.target.value)}});
   async function doOut(kind){
-    if(!pendingOut)return;const {p,name,base}=pendingOut;let reason=storeClosedTime()?'Store closed — 9:00 PM onwards':'End of shift',appr='N/A';if(storeClosedTime())kind='End Shift';
+    if(!pendingOut)return;const {p,name,base}=pendingOut;let reason=storeClosedTime()?'TIME OUT / CLOSING':'End of shift',appr='N/A';if(storeClosedTime())kind='End Shift';
     if(kind==='Early Leave'){reason=prompt('EARLY LEAVE — reason (e.g. Sick, Emergency, Approved by Manager):','');if(reason===null)return;reason=String(reason).trim()||'Not stated';appr=confirm('Was the early leave APPROVED by the Head/Manager?\nOK = YES • Cancel = NO')?'YES':'NO';if(appr!=='YES'){alert('Obtain Head/Manager approval first. No TIME OUT recorded.');return}}
     const st=shiftState(p.c);if(st.state!=='WORKING'){alert('The status changed. Scan again.');pendingOut=null;return}
     const s=nowStampLocal();if(!(await appendRecord(p.c,name,Object.assign({type:'OUT',kind,date:s.date.toISOString(),time:s.time,reason,reasonApproved:appr},base)))){return};
@@ -27984,7 +27989,9 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 
   window.rcadsR200={scan,incidents,flags,allNte,issue};
   setInterval(()=>{try{
-    if(mountHr()){if(Date.now()-lastScan>60000){lastScan=Date.now();ROWS=scan();issue(ROWS)}render(false)}
+    if(mountHr()){if(Date.now()-lastScan>60000){lastScan=Date.now();ROWS=scan();
+      /* R405: NTE only after the DTR Summary Log of the branch + cut-off was sent (late / undertime are final then) */
+      issue(ROWS.map(r=>Object.assign({},r,{inc:r.inc.filter(x=>{try{return window.rcadsNteAllowed?window.rcadsNteAllowed(r.branch,x.date):false}catch(e){return false}})})).filter(r=>r.inc.length))}render(false)}
     renderEmp(false);
   }catch(e){console.warn('R200',e)}},2000);
 })();
@@ -28639,7 +28646,9 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     if(Array.isArray(x.rowData)&&x.rowData.length){const m=x.rowData.find(r=>U(r['EMPLOYEE ID'])===code&&excelDateToISO(r['DATE'])===dk);
       if(m){const tin=excelTimeToHHMM(m['TIME IN']),tout=excelTimeToHHMM(m['TIME OUT']);if(tin&&tout)return {type:'TIME',in:tin,out:tout,status:''};const p=parseScheduleRange(m['TIME IN']);if(p.type==='STATUS')return {type:'STATUS',status:p.status};return {type:'EMPTY',status:''}}}
     for(const w of (x.weeklyBlocks||[])){const col=(w.dateCols||[]).find(c=>c.date===dk);if(!col)continue;const row=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===code);if(!row)continue;
-      const rawIn=row[col.idx],rawOut=col.outIdx!==undefined?row[col.outIdx]:'';const tin=excelTimeToHHMM(rawIn),tout=excelTimeToHHMM(rawOut);
+      /* R405: in the RCPS ACS form the cell after "New Sched" is LONG BREAK — never read it as the TIME OUT */
+      const acsLay=acsCols(w,col);
+      const rawIn=row[col.idx],rawOut=(!acsLay&&col.outIdx!==undefined)?row[col.outIdx]:'';const tin=excelTimeToHHMM(rawIn),tout=excelTimeToHHMM(rawOut);
       if(tin&&tout){const p=normalizeSchedulePair(tin,tout);return {type:'TIME',in:p.tin,out:p.tout,status:''}}
       const p=parseScheduleRange(rawIn);if(p.type==='STATUS')return {type:'STATUS',status:p.status};if(p.type==='TIME')return {type:'TIME',in:p.in,out:p.out,status:''};return {type:'EMPTY',status:''}}
     return null;
@@ -28667,10 +28676,21 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     for(const x of mine.filter(x=>!isAcs(x))){const r=fromEntry(x,code,dk);if(r)return r}return null}
   const origB=window.rcadsBranchScheduleEntryForEmployeeDate;
   if(typeof origB==='function')window.rcadsBranchScheduleEntryForEmployeeDate=function(br,emp,dk){try{const r=lookup(br,U(emp&&emp.code),dk);if(r)return r}catch(e){}return origB.apply(this,arguments)};
+  /* R405: the label row of an ACS block ("New Sched / Long Break / Aprvd O.T." or "IN / OUT / APRVD OT") */
+  function acsSub(w){for(let k=1;k<=3;k++){const r=(w.matrix&&w.matrix[w.headerRow+k])||[];const t=r.map(v=>U(v).replace(/\s+/g,' '));if(t.some(v=>/LONG|APRVD|O\.\s*T|\bOT\b|NEW SCHED/.test(v)))return t}return null}
+  function acsCols(w,col){const t=acsSub(w);if(!t)return null;const lb=t[col.idx+1]||'',ot=t[col.idx+2]||'';if(/LONG/.test(lb))return {lb:col.idx+1,ot:/O\.?\s*T/.test(ot)?col.idx+2:-1};return null}
+  function lbMinutes(v){if(v===null||v===undefined||v==='')return null;if(typeof v==='number'){if(v<=0)return null;return Math.round(v<1?v*1440:v*60)}
+    const t=String(v).trim().toUpperCase();if(!t)return null;let m=t.match(/^(\d{1,2}):(\d{2})/);if(m)return +m[1]*60+(+m[2]);m=t.match(/^(\d+(?:\.\d+)?)\s*(H|HR|HRS|HOUR|HOURS)?\b/);if(m)return Math.round(+m[1]*60);m=t.match(/^(\d+)\s*(M|MIN|MINS|MINUTES)\b/);return m?+m[1]:null}
+  /* R405: LONG BREAK written in the ACS for that day (minutes) — null when the Head left it blank */
+  function acsLongBreakMinutes(code,dk){const br=branchOfCode(code)||(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'');
+    const L=lib().filter(x=>x&&String(x.branch||'').toUpperCase()===U(br)&&isAcs(x)).sort((a,c)=>String(c.savedAt||'').localeCompare(String(a.savedAt||'')));
+    for(const x of L)for(const w of (x.weeklyBlocks||[])){const col=(w.dateCols||[]).find(c=>c.date===dk);if(!col)continue;const cc=acsCols(w,col);if(!cc)continue;
+      const row=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===U(code));if(!row)continue;const v=lbMinutes(row[cc.lb]);if(v!=null)return v}
+    return null}
   function otHours(v){if(v===null||v===undefined||v==='')return 0;if(typeof v==='number')return v<1&&v>0?v*24:v;const t=String(v).trim();let m=t.match(/^(\d{1,2}):(\d{2})$/);if(m)return +m[1]+(+m[2])/60;m=t.match(/^(\d+(?:\.\d+)?)/);return m?+m[1]:0}
   function acsOtMinutes(code,dk){const br=branchOfCode(code)||(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'');
     const L=lib().filter(x=>x&&String(x.branch||'').toUpperCase()===U(br)&&isAcs(x)).sort((a,c)=>String(c.savedAt||'').localeCompare(String(a.savedAt||'')));
-    for(const x of L)for(const w of (x.weeklyBlocks||[])){const col=(w.dateCols||[]).find(c=>c.date===dk);if(!col)continue;const sub=(w.matrix[w.headerRow+1]||[]).map(v=>U(v));if(!/OT/.test(sub[col.idx+2]||''))continue;
+    for(const x of L)for(const w of (x.weeklyBlocks||[])){const col=(w.dateCols||[]).find(c=>c.date===dk);if(!col)continue;const sub=acsSub(w)||(w.matrix[w.headerRow+1]||[]).map(v=>U(v));if(!/O\.?\s*T/.test(sub[col.idx+2]||''))continue;   /* R405: "Aprvd .O.T." of the RCPS form */
       const row=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===U(code));if(!row)continue;const h=Math.floor(otHours(row[col.idx+2]));if(h>0)return h*60}
     return 0}
   const origOt=window.getApprovedOtMinutesForDate;
@@ -28758,7 +28778,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
       if(d===0&&!s.next)o.push({lvl:'yellow',txt:'ORIGINAL schedule for next week due today (Sunday)',who,go:'hrScheduleUploadPanel'});
       if(s.acsDue)o.push({lvl:'green',txt:'ACS due today ('+(s.cutDay?'cut-off':'Saturday')+')',who,go:'hrScheduleUploadPanel'});
     }));return o}
-  window.rcadsR215={status,flags,template,acsOtMinutes,upload};
+  window.rcadsR215={status,flags,template,acsOtMinutes,acsLongBreakMinutes,upload};
   setInterval(()=>{try{tick()}catch(e){console.warn('R215',e)}},2500);
 })();
 </script>
@@ -28783,7 +28803,9 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
   function overBreakDay(emp,dk,punches){
     let s=null;try{s=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!s||s.type!=='TIME')return 0;
-    let a=dtrMinutesFromHHMM(s.in),b=dtrMinutesFromHHMM(s.out);if(a==null||b==null)return 0;if(b<=a)b+=1440;const allowed=Math.max(0,(b-a)-NEED);
+    let a=dtrMinutesFromHHMM(s.in),b=dtrMinutesFromHHMM(s.out);if(a==null||b==null)return 0;if(b<=a)b+=1440;let allowed=Math.max(0,(b-a)-NEED);
+    /* R405: the LONG BREAK written in the ACS is the allowed total of the 1st + 2nd break */
+    try{const lb=window.rcadsR215&&window.rcadsR215.acsLongBreakMinutes?window.rcadsR215.acsLongBreakMinutes(emp.code,dk):null;if(lb!=null)allowed=lb}catch(e){}
     const ps=punches.slice().sort((x,y)=>(Date.parse(x.date)||0)-(Date.parse(y.date)||0));let brk=0,at=null;
     ps.filter(r=>!r.errand&&!r.errandReturn).forEach(r=>{if(r.type==='OUT'&&r.kind==='Break')at=Date.parse(r.date);else if(r.type==='IN'&&at!=null){brk+=(Date.parse(r.date)-at)/60000;at=null}});
     return Math.max(0,Math.round(brk-allowed));
@@ -31181,7 +31203,8 @@ body.r328-open{overflow:hidden}
 </script>
 <style id="rcadsR330Css">
 .r330-hide{display:none!important}
-body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go="home"]):not([data-r162-go="notices"]){display:none!important}
+body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go="home"]):not([data-r162-go="id"]){display:none!important}
+body.r330-locked #employeeSimplePanel .r162-unread{display:none!important}
 #r330Lock{margin:10px 0;padding:14px;border-radius:14px;background:#3d2412;color:#fff;text-align:center;border:2px solid #c8862a}
 #r330Lock>b{display:block;font-size:15px;color:#ffd38a;margin-bottom:6px}#r330Lock span b{color:#ffd38a}#r330Lock>span{display:block;font-size:12.5px;line-height:1.45;margin-top:4px}
 #r330Soon{margin:8px 0;padding:9px 12px;border-radius:12px;background:#fff4d6;border:1px solid #e0b64a;color:#6b4a00;font-size:12px;font-weight:700;text-align:center}
@@ -31316,7 +31339,7 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     if(s.state==='ENDED'){const out=Date.parse(s.last&&s.last.date);if(out&&t-out<AFTER_OUT)return {open:true,closesAt:out+AFTER_OUT}}
     if(g&&Date.now()-g<SCAN_GRACE)return {open:true,grace:true};
     return {open:false,out:s.state==='ENDED'?Date.parse(s.last&&s.last.date):0}}
-  const KEEP=el=>el.matches('.r162-nav,.r162-status,#r181Pass,.rcads-employee-simple-grid,#r159EmpBoard,#r330Lock,#r330Soon')||el.id==='rcadsR105EmployeeHeader';
+  const KEEP=el=>el.matches('.r162-nav,.r162-status,#r181Pass,.rcads-employee-simple-grid,#r330Lock,#r330Soon,#r167EmpId,#r405Tom')||el.id==='rcadsR105EmployeeHeader';   /* R405: schedule + MY ID only (no notices) */
   function lockTick(){
     const panel=document.getElementById('employeeSimplePanel');const e=emp();
     const on=!!(panel&&e&&document.body.classList.contains('employee-simple-mode')&&getComputedStyle(panel).display!=='none');
@@ -31330,9 +31353,9 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
     let L=document.getElementById('r330Lock');
     if(locked){if(!L){L=document.createElement('div');L.id='r330Lock';L.setAttribute('data-r162-tab','any')}
       const st2=panel.querySelector(':scope > .r162-status');if(st2&&st2.parentElement===panel){if(st2.nextElementSibling!==L)st2.insertAdjacentElement('afterend',L)}else if(L.parentElement!==panel)panel.insertBefore(L,panel.firstChild);
-      const h='<b>🔒 RCADS IS CLOSED — OFF DUTY</b><span>'+(st.out?'You timed out at '+esc(fmtT(st.out))+'. RCADS closes 1 hour after TIME OUT.':'Day off, absent, on leave, or not yet timed in today.')+'</span><span>It opens again when you <b>TIME IN with the Guard</b> (scan the Guard’s QR). You can still read <b>📢 NOTICES</b>.</span>';
+      const h='<b>🔒 RCADS IS CLOSED — OFF DUTY</b><span>'+(st.out?'You timed out at '+esc(fmtT(st.out))+'. RCADS closes 1 hour after TIME OUT.':'Day off, absent, on leave, or not yet timed in today.')+'</span><span>It opens again when you <b>TIME IN with the Guard</b> (scan the Guard’s QR). You can see your <b>SCHEDULE</b> below and <b>🪪 MY ID</b>.</span>';
       if(L.dataset.h!==h){L.dataset.h=h;L.innerHTML=h}
-      const act=panel.getAttribute('data-r162-active');if(act&&act!=='home'&&act!=='notices'&&window.rcadsR162Tab)window.rcadsR162Tab('home');
+      const act=panel.getAttribute('data-r162-active');if(act&&act!=='home'&&act!=='id'&&window.rcadsR162Tab)window.rcadsR162Tab('home');
     }else if(L)L.remove();
     let S=document.getElementById('r330Soon');
     if(on&&!exempt&&st.open&&st.closesAt){if(!S){S=document.createElement('div');S.id='r330Soon';S.setAttribute('data-r162-tab','home');const st2=panel.querySelector(':scope > .r162-status');if(st2)st2.insertAdjacentElement('afterend',S);else panel.insertBefore(S,panel.firstChild)}const h='⏰ You are timed out. RCADS closes at <b>'+esc(fmtT(st.closesAt))+'</b> (1 hour after TIME OUT).';if(S.dataset.h!==h){S.dataset.h=h;S.innerHTML=h}}else if(S)S.remove();
@@ -34024,7 +34047,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       el.addEventListener('change',edChange);el.addEventListener('input',edChange);el.addEventListener('click',edClick)}
     edDraw();
   }
-  const STATUS=['DAY OFF','LEAVE','ABSENT W/ PERMISSION','SUSPENDED','RESIGNED','TERMINATED','AWOL'];
+  const STATUS=['DAY OFF','LEAVE','CATERING','ABSENT W/ PERMISSION','SUSPENDED','RESIGNED','TERMINATED','AWOL'];
   function dayHtml(e,ei,d,di){
     const L=ED.L,dd=L.days[di];const st=dayStatus(d,ED.kind);const sel=d.st?d.st:(d.in||d.out?'TIME':'');
     const opts=(ED.kind==='ACS'?'<option value="">no change</option>':'<option value="">—</option>')+'<option value="TIME"'+(sel==='TIME'?' selected':'')+'>TIME</option>'+STATUS.map(s=>'<option'+(U(sel)===s?' selected':'')+'>'+s+'</option>').join('')+(d.st&&!STATUS.includes(U(d.st))?'<option selected>'+esc(d.st)+'</option>':'');
@@ -34097,6 +34120,151 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 
   setInterval(()=>{try{mountHr()}catch(e){console.warn('R399 hr',e)}try{tickHead()}catch(e){console.warn('R399 head',e)}try{wrapSend()}catch(e){}},1500);
   window.rcadsR399={legalize,setCell,keepOnly,layout,buildFilled,deptSheetOnly,sheetOf,classify,processFiles,zRead,zWrite,zGet,sheetsOf,fileNameFor,schedWeek,openEditor,getLatest,useFolder:h=>{DIRMEM=h},checkInbox,NEWF,HD,GL,FL,ver:'R404'};
+})();
+</script>
+
+
+<!-- RCADS PATCH: R405 DTR RULES — Head 1 / Managers 11 AM • CATERING • NTE after the DTR Summary Log • employee DTR 1 minute • closed app = schedule + ID -->
+<style id="rcadsR405Css">
+.rcads-employee-dtr-box.r405-dtr{position:relative}
+.rcads-employee-dtr-box.r405-off>*:not(#r405DtrLock){visibility:hidden!important}
+#r405DtrLock{position:absolute;inset:0;z-index:5;display:flex;align-items:flex-start;justify-content:center;padding:18px 12px;background:#fffaf2;border-radius:12px;text-align:center}
+#r405DtrLock>div{max-width:340px;font-size:12.5px;color:#5b3519;line-height:1.5}#r405DtrLock .r405-lt{display:block;font-size:15px;font-weight:900;color:#7a1e16;margin-bottom:6px}
+.rcads-employee-dtr-box.r405-on,.rcads-employee-dtr-box.r405-off{overflow:hidden}.rcads-employee-dtr-box.r405-off{min-height:170px}
+.rcads-employee-dtr-box.r405-on>*:not(.r405-wm):not(.r405-bar){-webkit-user-select:none;user-select:none}
+.r405-wm{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:hidden;opacity:.16;font:900 13px Arial,sans-serif;color:#7a1e16;line-height:46px;white-space:nowrap;transform:rotate(-18deg) scale(1.3);transform-origin:center}
+.r405-bar{position:sticky;top:0;z-index:6;margin:0 0 6px;padding:7px 10px;border-radius:10px;background:#5b3519;color:#ffd38a;font:900 11.5px Arial,sans-serif;text-align:center}
+#r405Tom{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #2f6b3a;color:#3d2615;text-align:center}
+#r405Tom b{display:block;font-size:12px;color:#2f6b3a;letter-spacing:.4px}#r405Tom .t{display:block;font-size:20px;font-weight:900;margin:4px 0 2px;color:#3a2210}#r405Tom small{display:block;font-size:11.5px;color:#6d5845}
+#r405Tom .d{border-top:1px dashed #d8bfa1;margin-top:8px;padding-top:8px}
+</style>
+<script id="rcadsR405Script">
+/* R405 — DTR COMPUTATION RULES (Nov 4, 2026)
+   RANK-AND-FILE
+   • LATE = TIME IN after the schedule (ACS first, then the Original Schedule).
+   • OVER BREAK = LATE: the 1st BREAK (Coffee) + 2nd BREAK (Lunch) together are compared with the LONG BREAK in the ACS
+     (e.g. ACS 3 → 3 hours in total). Blank Long Break → scheduled hours − 8 hours (as before).
+   • ERRAND OUT → ERRAND IN = working time (no late, no undertime).
+   • 9 PM onwards = "TIME OUT / CLOSING" — no reason asked. Early TIME OUT keeps its reasons.
+   • OT counts ONLY when approved (Head 1 approval = ACS Aprvd O.T.). Otherwise 8 hours a day.
+   • MY DTR is shown only for 1 MINUTE after the employee's TIME IN / TIME OUT — clear, with a light watermark (R406).
+   • 1 hour after TIME OUT the app shows only the SCHEDULE and MY ID.
+   • No automatic Notice to Explain until the DTR Summary Log of that cut-off is sent (📤 SEND TO RCPS).
+   MANAGEMENT
+   • Late = TIME IN after the schedule. DEPT. HEAD 1 (Kitchen / Dining) and the 2 MANAGERS: their schedule is flexible —
+     they are LATE only after 11:00 AM (counted from 11:00 AM; a schedule after 11:00 AM is used as it is).
+   • CATERING in the ACS (Managers and the waiters with them): a CATERING day without a TIME IN counts as a worked day.
+     With a TIME IN at the Guard, the punches are used.
+   • 15 paid days a cut-off, 1 day off a week, extra day off = absent (R246 / R248, unchanged). */
+(function(){
+  'use strict';
+  const U=s=>String(s??'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  const pad=n=>String(n).padStart(2,'0');
+  const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  function now(){try{const t=window.rcadsTrueNow&&window.rcadsTrueNow();if(t)return t}catch(e){}return Date.now()}
+  function lsGet(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+
+  /* ---------- 1) DEPT. HEAD 1 + 2 MANAGERS: late only after 11:00 AM ---------- */
+  function isHead1(emp){const c=U(emp&&emp.code);if(!c)return false;
+    try{const m=lsGet('rcads_r231_branch_heads_v1',{})||{};if(Object.values(m).some(x=>x&&(U(x.kitchenHead1)===c||U(x.diningHead1)===c)))return true}catch(e){}
+    try{const disp=U(emp.code+' - '+emp.name);return ['kitchenHead1','diningHead1'].some(k=>{const a=simpleHrAccounts&&simpleHrAccounts[k];return a&&a.active!==false&&U(a.identity)===disp})}catch(e){}return false}
+  function isMgr(emp){try{return !!(window.rcadsMgrIsManager&&window.rcadsMgrIsManager(emp))}catch(e){return false}}
+  window.rcadsR405FlexLate=emp=>isHead1(emp)||isMgr(emp);
+  function wrapThreshold(){const cur=window.getEmployeeLateThresholdMinutes;if(typeof cur!=='function'||cur.__r405)return;
+    const w=function(emp,schedIn){
+      try{if(emp&&window.rcadsR405FlexLate(emp)){const m=dtrMinutesFromHHMM(schedIn);return Math.max(m==null||isNaN(m)?0:m,11*60)}}catch(e){}
+      return cur.apply(this,arguments)};
+    w.__r405=1;w.__r348=1;window.getEmployeeLateThresholdMinutes=w}
+  wrapThreshold();
+
+  /* ---------- 2) CATERING days (ACS) ---------- */
+  function cateringDays(emp,from,to){const out=[];let keys=[];try{keys=dtrDateRangeKeys(from,to)}catch(e){return out}
+    const ins=new Set();try{(getEmployeeAttendanceRecordsForDtr(emp)||[]).forEach(r=>{if(r&&r.type==='IN'){const k=dtrDateKey(r.date);if(k)ins.add(k)}})}catch(e){}
+    keys.forEach(k=>{let s=null;try{s=getScheduleEntryForEmployeeDate(emp,k)}catch(e){}if(s&&s.type==='STATUS'&&/^CATERING/i.test(String(s.status||''))&&!ins.has(k))out.push(k)});return out}
+  window.rcadsCateringDays=cateringDays;
+  (function(){const cur=window.rcadsMgmtPay;if(typeof cur!=='function'||cur.__r405)return;
+    const w=function(emp,s){const p=cur.apply(this,arguments);
+      try{const cd=cateringDays(emp,s.cutoff.from,s.cutoff.to).filter(k=>!p.partial||!p.firstIn||k>=p.firstIn);if(cd.length){
+        p.absent=Math.max(0,p.absent-cd.length);p.paidDays=p.partial?p.paidDays+cd.length:Math.max(0,15-p.absent);p.cateringDays=cd}}catch(e){}
+      return p};w.__r405=1;window.rcadsMgmtPay=w})();
+  (function(){const cur=window.calculateEmployeeDtrSummary;if(typeof cur!=='function'||cur.__r405)return;
+    const w=function(emp,cutoff){const s=cur.apply(this,arguments);
+      try{if(!s||!s.cutoff||!emp)return s;const cd=cateringDays(emp,s.cutoff.from,s.cutoff.to);if(!cd.length)return s;
+        s.workedDays=(Number(s.workedDays)||0)+cd.length;s.cateringDays=cd;
+        cd.forEach(k=>{let h='';try{h=getRusticaHolidayType(k)}catch(e){}if(h==='SPECIAL'&&!s.isMgmtPay)s.specialHoliday=(Number(s.specialHoliday)||0)+1;if(h==='REGULAR'&&!s.isMgmtPay)s.regularHoliday=(Number(s.regularHoliday)||0)+1});
+        if(s.isMgmtPay){const p=window.rcadsMgmtPay(emp,s);s.absent=p.absent;s.paidDays=p.paidDays}
+        const note='CATERING (ACS): '+cd.map(k=>new Date(k+'T00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(', ');
+        s.r348Note=s.r348Note?s.r348Note+' • '+note:note}catch(e){console.warn('R405 catering',e)}
+      return s};w.__r405=1;window.calculateEmployeeDtrSummary=w})();
+  /* REMARKS of the DTR Summary Log: list the CATERING days */
+  (function(){const cur=window.buildEditableDTRWorkbook;if(typeof cur!=='function'||cur.__r405)return;
+    const w=function(){const wb=cur.apply(this,arguments);
+      try{if(!wb||typeof XLSX==='undefined')return wb;let c=null;try{c=rcadsR158DtrExportContext().cutoff}catch(e){}if(!c)return wb;
+        wb.SheetNames.forEach(n=>{const ws=wb.Sheets[n];const a=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});const hi=a.findIndex(r=>r&&U(r[0])==='EMPCODE');if(hi<0)return;
+          const cR=a[hi].map(U).indexOf('REMARKS');if(cR<0)return;
+          for(let i=hi+1;i<a.length;i++){const code=U(a[i][0]);if(!/^[A-Z0-9]+-/.test(code))continue;const cd=cateringDays({code},c.from,c.to);if(!cd.length)continue;
+            const ref=XLSX.utils.encode_cell({r:i,c:cR});const old=ws[ref]&&ws[ref].v?String(ws[ref].v):'';const t='CATERING: '+cd.map(k=>k.slice(5)).join(', ');
+            if(old.indexOf('CATERING:')<0)ws[ref]={t:'s',v:old?old+' • '+t:t}}});
+      }catch(e){console.warn('R405 export',e)}return wb};w.__r405=1;window.buildEditableDTRWorkbook=w})();
+
+  /* ---------- 3) NTE only after the DTR Summary Log of the cut-off was sent ---------- */
+  const SENT_KEY='rcads_r405_dtr_sent_v1';   /* rcads_ key: syncs to every HR device */
+  function cutOf(iso){const [y,m,d]=String(iso).slice(0,10).split('-').map(Number);const P=(Y,M,D)=>ymd(new Date(Y,M-1,D));
+    if(d>=11&&d<=25)return {from:P(y,m,11),to:P(y,m,25)};if(d>=26)return {from:P(y,m,26),to:P(y,m+1,10)};return {from:P(y,m-1,26),to:P(y,m,10)}}
+  window.rcadsNteAllowed=function(branch,date){if(!date)return false;const c=cutOf(date);const S=lsGet(SENT_KEY,{})||{};return !!(S[U(branch)+'|'+c.from+'|'+c.to]||S['ALL|'+c.from+'|'+c.to])};
+  function markSent(){try{const x=rcadsR158DtrExportContext();if(!x||!x.cutoff||!x.cutoff.from)return;const S=lsGet(SENT_KEY,{})||{};
+      S[U(x.branch||'')+'|'+x.cutoff.from+'|'+x.cutoff.to]={at:new Date().toISOString()};
+      const keys=Object.keys(S).sort((a,b)=>String(S[b].at).localeCompare(String(S[a].at))).slice(0,80);const T={};keys.forEach(k=>T[k]=S[k]);
+      localStorage.setItem(SENT_KEY,JSON.stringify(T));try{rcadsCloudFlushQueue()}catch(e){}}catch(e){}}
+  function wrapSent(){const cur=window.exportEditableDTRLog;if(typeof cur!=='function'||cur.__r405)return;
+    const w=function(){markSent();return cur.apply(this,arguments)};for(const k in cur)w[k]=cur[k];w.__r405=1;window.exportEditableDTRLog=w}
+
+  /* ---------- 4) employee app: MY DTR 1 minute after TIME IN / TIME OUT • closed app: schedule ---------- */
+  const SHOW_MS=60000;
+  function emp(){try{return (typeof currentEmployee!=='undefined'&&currentEmployee)||null}catch(e){return null}}
+  function staffRole(code){const l=lsGet('rcads_r175_201staff_v1',[])||[];const r=l.find(x=>U(x.code)===U(code));return r?r.role:''}
+  function exempt(e){try{return ['HRA','DH1','MANAGER'].includes(staffRole(e.code))||!!(window.rcadsR373&&window.rcadsR373.management(e))||window.rcadsR405FlexLate(e)}catch(x){return false}}
+  function lastInOut(code){let rows=[];try{rows=getStoredEmployeeAttendanceForStaffDtr(code)||[]}catch(e){}
+    let t=0;rows.forEach(r=>{const T=String(r.type||'').toUpperCase();if(T==='IN'||T==='OUT'){const d=Date.parse(r.date||r.timestamp);if(d>t)t=d}});return t} /* R406: any log in / log out (time, break, errand) */
+  document.addEventListener('contextmenu',e=>{if(e.target.closest&&e.target.closest('.rcads-employee-dtr-box.r405-on'))e.preventDefault()},true);
+  function dtrTick(){
+    const panel=document.getElementById('employeeSimplePanel');const e=emp();
+    const box=panel&&panel.querySelector(':scope > .rcads-employee-dtr-box');
+    const on=!!(box&&e&&document.body.classList.contains('employee-simple-mode')&&getComputedStyle(panel).display!=='none');
+    if(!box)return;
+    if(!on||exempt(e)){box.classList.remove('r405-dtr','r405-on','r405-off','r405-reveal');box.querySelectorAll(':scope > #r405DtrLock,:scope > .r405-wm,:scope > .r405-bar').forEach(x=>x.remove());return}
+    box.classList.add('r405-dtr');
+    const last=lastInOut(e.code),left=last?last+SHOW_MS-now():-1;
+    if(left>0){box.classList.remove('r405-off');box.classList.add('r405-on');const L=box.querySelector(':scope > #r405DtrLock');if(L)L.remove();
+      let bar=box.querySelector(':scope > .r405-bar');if(!bar){bar=document.createElement('div');bar.className='r405-bar';box.insertBefore(bar,box.firstChild)}
+      const s=Math.ceil(left/1000),t='📋 MY DTR • closes in '+Math.floor(s/60)+':'+pad(s%60);if(bar.textContent!==t)bar.textContent=t;
+      let wm=box.querySelector(':scope > .r405-wm');const stamp=esc((e.name||'')+' • '+e.code+' • '+new Date(now()).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}));
+      if(!wm||wm.dataset.s!==stamp){if(!wm){wm=document.createElement('div');wm.className='r405-wm';box.appendChild(wm)}wm.dataset.s=stamp;wm.innerHTML=Array(40).fill('<div>'+Array(4).fill(stamp).join(' &nbsp; ')+'</div>').join('')}
+    }else{box.classList.remove('r405-on','r405-reveal');box.classList.add('r405-off');box.querySelectorAll(':scope > .r405-wm,:scope > .r405-bar').forEach(x=>x.remove());
+      let L=box.querySelector(':scope > #r405DtrLock');if(!L){L=document.createElement('div');L.id='r405DtrLock';box.appendChild(L)}
+      const h='<div><span class="r405-lt">🔒 MY DTR IS CLOSED</span>You can see your DTR only for <b>1 minute</b> after every <b>LOG IN</b> or <b>LOG OUT</b> with the Guard (time, break or errand).<br>Questions about your DTR: ask your Head 1 or HR.</div>';if(L.dataset.h!==h){L.dataset.h=h;L.innerHTML=h}}
+  }
+  function schedText(e,k){let s=null;try{s=getScheduleEntryForEmployeeDate(e,k)}catch(x){}
+    if(!s||s.type==='EMPTY'||!s.type)return {t:'No schedule yet',sub:'Ask your Head 1.'};
+    if(s.type==='STATUS')return {t:U(s.status),sub:''};
+    const f=v=>{if(!v)return '';let [h,m]=v.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(m)+' '+ap};
+    return {t:f(s.in)+' – '+f(s.out),sub:s.acs?'changed in the ACS':''}}
+  function tomTick(){
+    const panel=document.getElementById('employeeSimplePanel');const e=emp();let T=document.getElementById('r405Tom');
+    const locked=document.body.classList.contains('r330-locked')&&panel&&e;
+    if(!locked){if(T)T.remove();return}
+    if(!T){T=document.createElement('div');T.id='r405Tom';T.setAttribute('data-r162-tab','home')}
+    const L=document.getElementById('r330Lock');if(L&&L.parentElement===panel){if(L.nextElementSibling!==T)L.insertAdjacentElement('afterend',T)}else if(T.parentElement!==panel)panel.insertBefore(T,panel.firstChild);
+    const d0=new Date(now());const today=ymd(d0);const d1=new Date(d0);d1.setDate(d1.getDate()+1);const tom=ymd(d1);
+    let doneToday=false;try{const st=window.rcadsR181&&window.rcadsR181.shiftState(e.code);doneToday=!!st&&st.state==='ENDED'}catch(x){}
+    const lbl=k=>new Date(k+'T00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+    const a=schedText(e,tom),b=schedText(e,today);
+    const h='<b>📅 MY SCHEDULE — TOMORROW, '+esc(lbl(tom)).toUpperCase()+'</b><span class="t">'+esc(a.t)+'</span>'+(a.sub?'<small>'+esc(a.sub)+'</small>':'')+(doneToday?'':'<div class="d"><b>TODAY, '+esc(lbl(today)).toUpperCase()+'</b><span class="t" style="font-size:16px">'+esc(b.t)+'</span></div>');
+    if(T.dataset.h!==h){T.dataset.h=h;T.innerHTML=h}
+  }
+  setInterval(()=>{try{wrapThreshold();wrapSent()}catch(e){}try{dtrTick()}catch(e){console.warn('R405 dtr',e)}try{tomTick()}catch(e){console.warn('R405 tom',e)}},500);
+  window.rcadsR405={isHead1,cateringDays,cutOf,markSent,lastInOut};
 })();
 </script>
 
