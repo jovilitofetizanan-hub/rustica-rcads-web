@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R423 ID HR EDIT</title>
+<title>Rustica RCADS App — R424 QR PHOTO</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25500,7 +25500,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R423 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R424 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -25698,17 +25698,30 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       s.onerror=()=>finish(new Error('Backup QR reader did not load. Check internet and reopen the scanner.'));document.head.appendChild(s);
     }).finally(()=>{qrLoading=null});return qrLoading;
   }
+  /* R424: read a QR from a photo (whole picture, then centre parts) */
+  async function r424ReadPhoto(file,jq){
+    const url=URL.createObjectURL(file);try{const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('The photo could not be opened.'));i.src=url});
+      const W=img.naturalWidth,H=img.naturalHeight,cv=document.createElement('canvas'),g=cv.getContext('2d',{willReadFrequently:true});
+      const tryArea=(sx,sy,sw,sh,max)=>{const sc=Math.min(1,max/Math.max(sw,sh));cv.width=Math.max(1,Math.round(sw*sc));cv.height=Math.max(1,Math.round(sh*sc));g.drawImage(img,sx,sy,sw,sh,0,0,cv.width,cv.height);const d=g.getImageData(0,0,cv.width,cv.height);const r=jq(d.data,cv.width,cv.height,{inversionAttempts:'attemptBoth'});return r&&r.data?String(r.data).trim():''};
+      if('BarcodeDetector' in window){try{const det=new BarcodeDetector({formats:['qr_code']});const c=await det.detect(img);if(c&&c.length)return String(c[0].rawValue||'').trim()}catch(_){}}
+      for(const [f,max] of [[1,1600],[1,1100],[0.7,1400],[0.5,1200]]){const sw=Math.round(W*f),sh=Math.round(H*f);const t=tryArea(Math.round((W-sw)/2),Math.round((H-sh)/2),sw,sh,max);if(t)return t}
+      return ''}finally{URL.revokeObjectURL(url)}
+  }
   let scanStop=null;
   async function openScanner(title,onText){
     closeScanner();
-    const o=document.createElement('div');o.id='r181Scan';o.innerHTML='<div class="r181-sbox"><div class="r181-sh"><b>'+esc(title)+'</b><button type="button" id="r181ScanClose">✕</button></div><video id="r181Video" playsinline muted></video><div class="r181-frame"></div><div class="r181-smsg" id="r181ScanMsg">Opening the camera…</div></div>';
+    const o=document.createElement('div');o.id='r181Scan';o.innerHTML='<div class="r181-sbox"><div class="r181-sh"><b>'+esc(title)+'</b><button type="button" id="r181ScanClose">✕</button></div><video id="r181Video" playsinline muted></video><div class="r181-frame"></div><div class="r181-smsg" id="r181ScanMsg">Opening the camera…</div><label class="r424-photo">📸 CANNOT SCAN? TAKE A PHOTO OF THE QR<input type="file" accept="image/*" capture="environment" id="r424Photo" hidden></label></div>';
     document.documentElement.appendChild(o);o.querySelector('#r181ScanClose').onclick=closeScanner;
+    /* R424: phones whose browser has no built-in QR reader — a sharp PHOTO of the QR is read instead of the live video */
+    o.querySelector('#r424Photo').onchange=async ev=>{const f=ev.target.files&&ev.target.files[0];if(!f)return;msg('Reading the photo…');
+      try{const fn=await loadJsQR();const txt=await r424ReadPhoto(f,fn);if(txt&&!stopped){closeScanner();onText(txt);return}msg('No QR found in the photo. Take it again: the WHOLE QR, close and sharp, no glare.')}catch(e){msg(e.message||'Could not read the photo.')}ev.target.value=''};
     let stream=null,timer=null,stopped=false,misses=0,det=null,jq=null,fallbackError='';
     const stop=()=>{stopped=true;clearTimeout(timer);try{stream&&stream.getTracks().forEach(t=>t.stop())}catch(e){}};
     scanStop=stop;
     const msg=t=>{if(!stopped){const m=o.querySelector('#r181ScanMsg');if(m)m.textContent=t}};
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){msg('No camera access in this browser. Open RCADS in Chrome/Safari using the HTTPS link.');return}
-    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})}catch(e){msg(e&&e.name==='NotAllowedError'?'Camera not allowed. Allow it in the browser settings.':'Cannot open the camera. Close other camera apps and reopen the scanner.');return}
+    try{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false})}catch(e1){if(e1&&e1.name==='NotAllowedError')throw e1;stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})}   /* R424: higher resolution */
+      try{const tr=stream.getVideoTracks()[0],cap=tr.getCapabilities?tr.getCapabilities():{};if(cap.focusMode&&cap.focusMode.includes('continuous'))await tr.applyConstraints({advanced:[{focusMode:'continuous'}]})}catch(_){}}catch(e){msg(e&&e.name==='NotAllowedError'?'Camera not allowed. Allow it in the browser settings.':'Cannot open the camera. Close other camera apps and reopen the scanner.');return}
     if(stopped){stop();return}
     const v=o.querySelector('#r181Video');v.srcObject=stream;try{await v.play()}catch(e){msg('Camera preview could not start. Close and reopen the scanner.');return}
     if(stopped)return;
@@ -25724,7 +25737,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
           catch(e){det=null;enableBackup()}finally{clearTimeout(deadline)}}
         if(stopped)return;
         if(!txt){misses++;if(misses>=6)enableBackup();
-          if(jq&&g){try{const w=v.videoWidth,h=v.videoHeight;if(w&&h){const sc=Math.min(1,960/Math.max(w,h));cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);g.drawImage(v,0,0,cv.width,cv.height);const d=g.getImageData(0,0,cv.width,cv.height);const r=jq(d.data,cv.width,cv.height,{inversionAttempts:'attemptBoth'});if(r)txt=String(r.data||'')}}catch(e){msg('QR image could not be read. Hold the QR steady or reopen the scanner.')}}
+          if(jq&&g){try{const w=v.videoWidth,h=v.videoHeight;if(w&&h){
+              if(misses%2===0){const sz=Math.round(Math.min(w,h)*0.75),sx=Math.round((w-sz)/2),sy=Math.round((h-sz)/2),out=Math.min(sz,1000);cv.width=out;cv.height=out;g.drawImage(v,sx,sy,sz,sz,0,0,out,out)}   /* R424: centre crop, sharp */
+              else{const sc=Math.min(1,1280/Math.max(w,h));cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);g.drawImage(v,0,0,cv.width,cv.height)}
+              const d=g.getImageData(0,0,cv.width,cv.height);const r=jq(d.data,cv.width,cv.height,{inversionAttempts:'attemptBoth'});if(r)txt=String(r.data||'')}}catch(e){msg('QR image could not be read. Hold the QR steady or reopen the scanner.')}}
         }
         if(txt.trim()&&!stopped){closeScanner();onText(txt.trim());return}
       }
@@ -34679,4 +34695,5 @@ body.r373-doclocked #employeeSimplePanel [data-r159-doc],body.r373-doclocked #em
    Added to #rcadsR167Css so the printed ID uses it too (the print window copies only that style). */
 (function(){var t="/* R421 */\n.r255 .r313-head{top:1mm!important;height:19mm!important;left:2.2mm!important;gap:2mm!important}\n.r255 .r313-logo{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;border-radius:50%!important}\n.r255 .r313-txt b{font-size:6.6mm!important}\n.r255 .r313-txt span{font-weight:900!important;color:#2b1a0e!important;font-size:2.6mm!important;letter-spacing:.45mm!important}\n.r255 .r255-pos{font-weight:900!important;color:#000!important;-webkit-text-stroke:.06mm #000}\n.r255 .r255-grid{left:3.5mm!important;right:3.5mm!important;top:62.6mm!important;grid-template-columns:20mm 1fr!important;row-gap:1.1mm!important;font-size:2.6mm!important}\n.r255 .r255-grid span{font-weight:700;color:#2b1a0e}\n/* employee signature: inside its own box above the line */\n.r255 .r320-sig{margin-top:1.4mm!important}\n.r255 .r320-img{height:7mm!important;overflow:hidden!important}\n.r255 .r320-img img{bottom:0!important;max-height:7mm!important;width:auto!important;max-width:32mm!important}\n/* HR signature: inside its own box, does not cover the note */\n.r255 .r255-note{margin-bottom:.6mm!important}\n.r255 .r255-hrsig{height:7mm!important;margin-top:.4mm!important;overflow:hidden!important}\n.r255 .r255-hrsig img{bottom:0!important;max-height:7mm!important;width:auto!important;max-width:32mm!important}\n";
 function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent.indexOf('/* R421 */')<0){e.textContent+='\n'+t;return true}return !!e}if(!add()){var n=0,iv=setInterval(function(){if(add()||++n>40)clearInterval(iv)},250)}})();</script>
+<style id="rcadsR424Css">#r181Scan .r424-photo{display:block;margin:10px auto 0;max-width:92%;padding:11px 12px;border-radius:12px;background:#fff;color:#5b3519;font:900 13px Arial,sans-serif;text-align:center;cursor:pointer;position:relative;z-index:5}</style>
 </body></html>
