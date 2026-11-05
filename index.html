@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R422 ID POSITION</title>
+<title>Rustica RCADS App — R423 ID HR EDIT</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -23914,9 +23914,11 @@ body.r162-has-nav{padding-bottom:78px!important}
   /* ---------- card rendering (mm units → exact print size) ---------- */
   function cardData(code,r){
     const f=findEmp(code)||{};const e=f.emp||{};
-    return {code:U(code),name:(r&&r.name)||e.name||code,position:e.position||(r&&r.position)||'',   /* R422: always the CURRENT position (RCPS → RCADS), not the one saved when the ID was approved */
+    const hx=(r&&r.hrEdit)||{};   /* R423: what HR typed in ✎ HR EDIT wins */
+    return {code:U(code),name:hx.name||(r&&r.name)||e.name||code,position:hx.position||e.position||(r&&r.position)||'',   /* R422: always the CURRENT position (RCPS → RCADS), not the one saved when the ID was approved */
       branch:(r&&r.branch)||f.branch||curBranch(),rid:rustId(code)||'RUST-—',
-      photo:r&&r.photo,sig:(r&&r.sig)||(U(code)==='RUS-HR01'?(hrSig().img||''):''), /* R304: HR's saved signature = his own ID signature */emg:(r&&r.emg)||{},type:(r&&r.empType)||empType(code),issued:r&&r.approvedAt,valid:r&&r.validUntil,status:r?r.status:'NONE'};
+      photo:r&&r.photo,sig:(r&&r.sig)||(U(code)==='RUS-HR01'?(hrSig().img||''):''), /* R304: HR's saved signature = his own ID signature */emg:(r&&r.emg)||{},type:hx.type||(r&&r.empType)||empType(code),issued:r&&r.approvedAt,valid:hx.valid||(r&&r.validUntil),status:r?r.status:'NONE',
+      branch:hx.branch||(r&&r.branch)||f.branch||curBranch()};
   }
   function stamp(c){
     if(c.status==='ACTIVE'&&c.code&&lostOpen(c.code))return '<div class="r167-stamp">LOST — NOT VALID</div>';
@@ -24153,7 +24155,19 @@ body.r162-has-nav{padding-bottom:78px!important}
       +(r&&r.status==='PENDING'?'<button type="button" class="r160-mini red" data-r167-reject="'+esc(code)+'">RETURN / REJECT</button>':'')
       +(r&&r.status==='ACTIVE'?'<button type="button" class="r160-mini" data-r167-print="'+esc(code)+'">PRINT</button>':'')+'</div>'
       +(r?'<div class="r160-d-log">Submitted '+esc(fmtD(r.submittedAt))+' by '+esc(r.submittedBy||'—')+(r.approvedAt?' • Approved '+esc(fmtD(r.approvedAt)):'')+(r.validUntil?' • Valid until '+esc(fmtD(r.validUntil)):'')+'</div>':'')
-      +'<details class="r167-upd"'+(!r||!r.photo||!r.sig?' open':'')+'><summary>✎ UPLOAD THE 1×1 PHOTO, SIGNATURE AND EMERGENCY CONTACT</summary>'+formHtml(code,r,true)+'</details>';
+      +'<details class="r167-upd"'+(!r||!r.photo||!r.sig?' open':'')+'><summary>✎ UPLOAD THE 1×1 PHOTO, SIGNATURE AND EMERGENCY CONTACT</summary>'+formHtml(code,r,true)+'</details>'
+      +(()=>{const c0=cardData(code,r),hx=(r&&r.hrEdit)||{},e0=(r&&r.emg)||{};   /* R423 */
+        return '<details class="r167-upd r423-edit"'+(Object.keys(hx).length?' open':'')+'><summary>✎ HR EDIT — fix what prints on the ID (name, position, branch, status, valid until, emergency contact)</summary>'
+        +'<div class="r160-hint">Use this when RCPS / RCADS is not updated yet or there is a mistake. What you save here is printed on the ID (it does not change the payroll or the DTR). Leave a box empty to use the normal value.</div>'
+        +'<label>NAME ON THE ID</label><input id="r423Name" value="'+esc(hx.name||'')+'" placeholder="'+esc(c0.name)+'">'
+        +'<label>POSITION</label><input id="r423Pos" value="'+esc(hx.position||'')+'" placeholder="'+esc(U(c0.position))+'">'
+        +'<label>BRANCH</label><select id="r423Br"><option value="">— '+esc(bName(c0.branch))+' (normal) —</option>'+(()=>{try{return Object.values(RUSTICA_BRANCHES).map(b=>'<option value="'+esc(b.code)+'"'+(hx.branch===b.code?' selected':'')+'>'+esc(b.name)+'</option>').join('')}catch(_){return ''}})()+'</select>'
+        +'<label>EMPLOYMENT STATUS</label><select id="r423Type"><option value="">— '+esc(U(c0.type||''))+' (normal) —</option>'+['REGULAR','PROBATIONARY','CONTRACTUAL','TRAINEE','EXTRA'].map(x=>'<option'+(hx.type===x?' selected':'')+'>'+x+'</option>').join('')+'</select>'
+        +'<label>VALID UNTIL</label><input type="date" id="r423Valid" value="'+esc(hx.valid?String(hx.valid).slice(0,10):'')+'">'
+        +'<label>EMERGENCY CONTACT — NAME</label><input id="r423EName" value="'+esc(e0.name||'')+'">'
+        +'<label>RELATIONSHIP</label><input id="r423ERel" value="'+esc(e0.rel||'')+'">'
+        +'<label>PHONE</label><input id="r423EPhone" inputmode="tel" value="'+esc(e0.phone||'')+'">'
+        +'<div class="r167-row" style="margin-top:8px"><button type="button" class="r160-btn" data-r423-save="'+esc(U(code))+'">💾 SAVE HR EDIT</button>'+(Object.keys(hx).length?'<button type="button" class="r160-mini light" data-r423-clear="'+esc(U(code))+'">UNDO HR EDIT</button>':'')+'</div></details>'})();
     d.querySelectorAll('[data-r167-pad]').forEach(cv=>bindPad(cv,code));
   }
   function ensureHr(){
@@ -24242,6 +24256,14 @@ body.r162-has-nav{padding-bottom:78px!important}
     }
     if(t.closest('#r167HrRemove')){if(!confirm('Remove the HR signature from the IDs?'))return;const h=hrSig();write(HRSIG_KEY,{name:h.name,title:h.title,updatedAt:new Date().toISOString()});const s2=document.getElementById('r167HrSection');if(s2)rebind(s2);return}
     if(t.closest('#r167TplClear')){if(!confirm('Remove the uploaded ID design and use the default?'))return;write(TPL_KEY,{updatedAt:new Date().toISOString()});const s=document.getElementById('r167HrSection');if(s)rebind(s);return}
+    const s423=t.closest('[data-r423-save],[data-r423-clear]');   /* R423: ✎ HR EDIT */
+    if(s423){const code=s423.getAttribute('data-r423-save')||s423.getAttribute('data-r423-clear');const r=rec(code)||{code:U(code),status:'NONE'};
+      if(s423.hasAttribute('data-r423-clear')){if(!confirm('Undo the HR edit? The ID uses the normal values again.'))return;delete r.hrEdit}
+      else{const g=id=>String((document.getElementById(id)||{}).value||'').trim();const hx={};
+        if(g('r423Name'))hx.name=g('r423Name').toUpperCase();if(g('r423Pos'))hx.position=g('r423Pos').toUpperCase();if(g('r423Br'))hx.branch=g('r423Br');if(g('r423Type'))hx.type=g('r423Type');if(g('r423Valid'))hx.valid=g('r423Valid')+'T00:00:00';
+        if(Object.keys(hx).length){hx.at=new Date().toISOString();hx.by='HR OPERATION OFFICER';r.hrEdit=hx}else delete r.hrEdit;
+        const e=Object.assign({},r.emg||{});e.name=g('r423EName');e.rel=g('r423ERel');e.phone=g('r423EPhone');r.emg=e}
+      if(!write(recKey(code),r))return;renderHrDetail(code);alert('✓ Saved. The ID shows the new details — press PRINT to print it again.');return}
     const ap=t.closest('[data-r167-approve]');
     if(ap){
       const code=ap.getAttribute('data-r167-approve');const r=rec(code);if(!rustId(code)){alert('No RUSTICA ID NO. for '+code+'.');return}if(!r||!r.photo||!r.sig){alert('The photo or signature is still missing.');return}
@@ -25478,7 +25500,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R422 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R423 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
