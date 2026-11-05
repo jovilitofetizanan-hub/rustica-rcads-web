@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R417 READING RULE</title>
+<title>Rustica RCADS App — R419 DUTY ALL</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25477,7 +25477,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R417 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R419 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -34373,7 +34373,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 
 <!-- RCADS PATCH: R409 DUTY BRANCH button for Managers / temporary transfer • Guard QR read by the phone camera keeps the employee app • device-only settings not shared in the cloud -->
 <style id="rcadsR409Css">
-#r409Duty{margin:10px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #2f6b3a;color:#3d2615}
+#r409Duty{margin:8px 0;padding:9px 11px;border-radius:12px;background:#fffaf2;border:1.5px solid #2f6b3a;color:#3d2615}
+#r409Duty .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#r409Duty .row b{font-size:12.5px;color:#2f6b3a;white-space:nowrap}
+#r409Duty select{flex:1 1 150px;min-width:140px;padding:8px 10px;border:1.5px solid #2f6b3a;border-radius:9px;background:#fff;color:#3a2210;font-weight:900;font-size:13.5px}
+#r409Duty select:disabled{opacity:.7}#r409Duty .s2{font-size:10.5px;color:#7a5a3d;margin-top:4px}
 #r409Duty .t{font-weight:900;font-size:13.5px;color:#2f6b3a;letter-spacing:.3px}
 #r409Duty .s{font-size:11.5px;color:#6d5845;margin:3px 0 8px}
 #r409Duty .bs{display:flex;flex-wrap:wrap;gap:6px}
@@ -34413,8 +34416,12 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   /* 2) who may choose a duty branch, and which branches */
   function loanOf(code){try{return window.rcadsR185&&window.rcadsR185.activeLoan(code)}catch(e){return null}}
   function isMgr(e){try{return !!(window.rcadsMgrIsManager&&window.rcadsMgrIsManager(e))||staffRole(e.code)==='MANAGER'}catch(x){return false}}
+  /* R418: roving staff = Managers, Deputy Chefs, Asst. Deputy Chefs, Head Pantry, Supervisors, Head 1 — they can duty in any branch */
+  function roving(e){if(!e)return false;if(e.code)return true;   /* R419: ALL employees (Dining, Kitchen, Admin) can choose their duty branch */
+    if(isMgr(e))return true;const p=U(e.position||'');if(/DEPUTY|EXECUTIVE CHEF|HEAD PANTRY|PANTRY HEAD|SUPERVISOR|ASST\.?\s*MANAGER|ASSISTANT MANAGER|RESIDENT MANAGER/.test(p))return true;
+    const r=staffRole(e.code);return r==='DH1'||r==='MANAGER'}
   function options(e){if(!e)return [];
-    if(isMgr(e))return branches().map(b=>b.code);
+    if(roving(e))return branches().map(b=>b.code);
     const L=loanOf(e.code);if(L){const h=homeBranch(e.code)||L.from;return [h,L.to].filter((x,i,a)=>x&&a.indexOf(x)===i)}
     return []}
   function saved(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
@@ -34446,12 +34453,12 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const duty=window.rcadsR409Duty(e)||'',timedIn=(()=>{try{return window.rcadsMgrDutyBranch?window.rcadsMgrDutyBranch(e):''}catch(x){return ''}})();
     if(duty&&curBranch()!==duty)apply(duty);
     const L=loanOf(e.code),home=homeBranch(e.code);
-    const html='<div class="t">📍 DUTY BRANCH TODAY'+(duty?' • '+esc(U(bName(duty))):'')+'</div><div class="s">'+(L&&!isMgr(e)?'Temporary transfer to <b>'+esc(bName(L.to))+'</b>. ':'')+'Tap the branch where you are now. Your phone shows that branch today'+(isMgr(e)?' (header, approvals)':'')+'. Then scan the Guard’s QR of that branch with <b>📷 SCAN THE GUARD’S QR</b>.</div>'
-      +'<div class="bs">'+opts.map(b=>'<button type="button" data-r409b="'+esc(b)+'" class="'+(b===duty?'on ':'')+(b===home?'home':'')+'"'+(timedIn&&b!==timedIn?' disabled style="opacity:.45"':'')+'>'+esc(bName(b))+'</button>').join('')+'</div>'
-      +(timedIn?'<div class="lk">✓ TIMED IN at '+esc(bName(timedIn))+' — the branch changes after your TIME OUT.</div>':'');
-    if(!card){card=document.createElement('div');card.id='r409Duty';card.setAttribute('data-r162-tab','home');card.addEventListener('click',ev=>{const b=ev.target.closest&&ev.target.closest('[data-r409b]');if(b&&!b.disabled)choose(b.getAttribute('data-r409b'),false)})}
+    const sel=duty||curBranch()||home;   /* R418: compact dropdown */
+    const html='<div class="row"><b>📍 DUTY BRANCH</b><select id="r409Sel"'+(timedIn?' disabled':'')+'>'+opts.map(b=>'<option value="'+esc(b)+'"'+(b===sel?' selected':'')+'>'+esc(bName(b))+(b===home?' (home)':'')+'</option>').join('')+'</select></div>'
+      +'<div class="s2">'+(timedIn?'✓ Timed in at '+esc(bName(timedIn))+' — you can change it after TIME OUT.':(L&&!roving(e)?'Temporary transfer to '+esc(bName(L.to))+'. ':'')+'Choose where you are on duty, then scan that branch’s Guard QR.')+'</div>';
+    if(!card){card=document.createElement('div');card.id='r409Duty';card.setAttribute('data-r162-tab','home');card.addEventListener('change',ev=>{if(ev.target&&ev.target.id==='r409Sel'&&!ev.target.disabled)choose(ev.target.value,false)})}
     if(h.after&&h.after.parentElement===h.el){if(h.after.nextElementSibling!==card)h.after.insertAdjacentElement('afterend',card)}else if(card.parentElement!==h.el)h.el.insertBefore(card,h.el.firstChild);
-    if(force||card.dataset.h!==html){card.dataset.h=html;card.innerHTML=html}
+    if(card.contains(document.activeElement)&&!force)return;if(force||card.dataset.h!==html){card.dataset.h=html;card.innerHTML=html}
   }
 
   /* 4) a Guard QR opened with the phone camera → used right after the PIN */
