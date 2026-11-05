@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R424 QR PHOTO</title>
+<title>Rustica RCADS App — R425 LOW DATA SYNC</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -29693,7 +29693,7 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
   window.rcadsUpdateNow=hardUpdate;
   async function check(){
     if(!/^https?:/.test(location.protocol)||!navigator.onLine)return;
-    try{const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});if(!r.ok)return;const t=await r.text();const m=t.match(/<title>([^<]*)<\/title>/i);const v=m?ver(m[1]):'';
+    try{if(window.__r425Etag){try{const h=await fetch(location.pathname,{method:'HEAD',cache:'no-store'});const tag=h.headers.get('etag')||h.headers.get('last-modified')||'';if(h.ok&&tag&&tag===window.__r425Etag)return}catch(e){return}} const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});if(!r.ok)return;try{window.__r425Etag=r.headers.get('etag')||r.headers.get('last-modified')||''}catch(e){} const t=await r.text();const m=t.match(/<title>([^<]*)<\/title>/i);const v=m?ver(m[1]):'';
       if(v&&MINE&&v!==MINE){NEWV=v;show()}}catch(e){}}
   function show(){let b=document.getElementById('r243Bar');if(!b){b=document.createElement('button');b.id='r243Bar';b.type='button';b.onclick=hardUpdate;document.documentElement.appendChild(b)}b.innerHTML='🔄 NEW RCADS VERSION — TAP TO UPDATE<small>'+NEWV.replace(/[<>&]/g,'')+'</small>'}
   // ⚙ menu: 🔄 UPDATE RCADS
@@ -34696,4 +34696,64 @@ body.r373-doclocked #employeeSimplePanel [data-r159-doc],body.r373-doclocked #em
 (function(){var t="/* R421 */\n.r255 .r313-head{top:1mm!important;height:19mm!important;left:2.2mm!important;gap:2mm!important}\n.r255 .r313-logo{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;border-radius:50%!important}\n.r255 .r313-txt b{font-size:6.6mm!important}\n.r255 .r313-txt span{font-weight:900!important;color:#2b1a0e!important;font-size:2.6mm!important;letter-spacing:.45mm!important}\n.r255 .r255-pos{font-weight:900!important;color:#000!important;-webkit-text-stroke:.06mm #000}\n.r255 .r255-grid{left:3.5mm!important;right:3.5mm!important;top:62.6mm!important;grid-template-columns:20mm 1fr!important;row-gap:1.1mm!important;font-size:2.6mm!important}\n.r255 .r255-grid span{font-weight:700;color:#2b1a0e}\n/* employee signature: inside its own box above the line */\n.r255 .r320-sig{margin-top:1.4mm!important}\n.r255 .r320-img{height:7mm!important;overflow:hidden!important}\n.r255 .r320-img img{bottom:0!important;max-height:7mm!important;width:auto!important;max-width:32mm!important}\n/* HR signature: inside its own box, does not cover the note */\n.r255 .r255-note{margin-bottom:.6mm!important}\n.r255 .r255-hrsig{height:7mm!important;margin-top:.4mm!important;overflow:hidden!important}\n.r255 .r255-hrsig img{bottom:0!important;max-height:7mm!important;width:auto!important;max-width:32mm!important}\n";
 function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent.indexOf('/* R421 */')<0){e.textContent+='\n'+t;return true}return !!e}if(!add()){var n=0,iv=setInterval(function(){if(add()||++n>40)clearInterval(iv)},250)}})();</script>
 <style id="rcadsR424Css">#r181Scan .r424-photo{display:block;margin:10px auto 0;max-width:92%;padding:11px 12px;border-radius:12px;background:#fff;color:#5b3519;font:900 13px Arial,sans-serif;text-align:center;cursor:pointer;position:relative;z-index:5}</style>
+<!-- RCADS PATCH: R425 LOW-DATA CLOUD SYNC -->
+<script id="rcadsR425Script">
+/* R425 — LOW EGRESS SYNC (Nov 6, 2026)
+   Before: every sync (guard every 30 s, every scan, owners every 2 min…) downloaded the WHOLE branch data
+   from Supabase, even when nothing changed → 34 GB in 4 days.
+   Now: the phone asks only for the items CHANGED since its last sync (rustica_rcads_list_kv_since).
+   • First sync on a phone, and once every 6 hours = full sync (safety net).
+   • Requests at the same moment share ONE download; repeated requests within 3 s reuse the last result.
+   • If the R425 SQL is not installed yet: full sync, but at most once a minute.
+   The merge rules (attendance, guard logs, access list, signatures) are unchanged. */
+(function(){
+  'use strict';
+  const FULL_EVERY=6*3600e3, OVERLAP=15*60e3, MIN_GAP=3000, MISSING_WAIT=10*60e3, FULL_GAP_NO_SQL=60e3;
+  const orig=window.rcadsCloudRpc;
+  if(typeof orig!=='function'||orig.__r425)return;
+  const now=()=>{try{const t=window.rcadsTrueNow&&window.rcadsTrueNow();if(t)return +t}catch(e){}return Date.now()};
+  const get=k=>{try{return localStorage.getItem(k)||''}catch(e){return ''}};
+  const put=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+  let missingUntil=0;
+  const inflight={},lastDone={};
+  function maxTime(rows,cur){let m=cur?Date.parse(cur)||0:0;
+    (Array.isArray(rows)?rows:[]).forEach(r=>{const t=Date.parse(r&&r.updated_at||'');if(t&&t>m)m=t});
+    m=Math.min(m,now()+60e3); /* a phone with a wrong clock must not push the marker into the future */
+    return m?new Date(m).toISOString():''}
+  async function pull(body){
+    const br=String(body&&body.p_branch_code||'');
+    const SK='r425_since_'+br, FK='r425_full_'+br;
+    const since=get(SK), fullAt=+get(FK)||0, t0=Date.now();
+    let rows=null;
+    if(since&&t0-fullAt<FULL_EVERY&&t0>missingUntil){
+      try{
+        rows=await orig('rustica_rcads_list_kv_since',Object.assign({},body,{p_since:new Date((Date.parse(since)||0)-OVERLAP).toISOString()}));
+      }catch(e){
+        const m=String(e&&e.message||e);
+        if(/list_kv_since|PGRST202|Could not find|does not exist|404/i.test(m))missingUntil=Date.now()+MISSING_WAIT;
+        else throw e;
+      }
+    }
+    if(rows===null){
+      if(since&&t0<missingUntil&&t0-fullAt<FULL_GAP_NO_SQL)return [];
+      rows=await orig('rustica_rcads_list_kv',body);
+      put(FK,String(Date.now()));
+    }
+    const nx=maxTime(rows,since);if(nx)put(SK,nx);
+    return Array.isArray(rows)?rows:[];
+  }
+  const wrapped=async function(name,body){
+    if(name!=='rustica_rcads_list_kv')return orig.apply(this,arguments);
+    const br=String(body&&body.p_branch_code||'');
+    if(inflight[br])return inflight[br];
+    if(lastDone[br]&&Date.now()-lastDone[br]<MIN_GAP)return [];
+    inflight[br]=pull(body||{}).then(r=>{lastDone[br]=Date.now();return r}).finally(()=>{delete inflight[br]});
+    return inflight[br];
+  };
+  wrapped.__r425=true;
+  window.rcadsCloudRpc=wrapped;
+  window.rcadsR425={pull,state:br=>({since:get('r425_since_'+br),fullAt:+get('r425_full_'+br)||0,missingUntil})};
+})();
+</script>
+
 </body></html>
