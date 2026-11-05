@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R421 ID PRINT</title>
+<title>Rustica RCADS App — R422 ID POSITION</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -23914,7 +23914,8 @@ body.r162-has-nav{padding-bottom:78px!important}
   /* ---------- card rendering (mm units → exact print size) ---------- */
   function cardData(code,r){
     const f=findEmp(code)||{};const e=f.emp||{};
-    return {code:U(code),name:(r&&r.name)||e.name||code,position:(r&&r.position)||e.position||'',branch:(r&&r.branch)||f.branch||curBranch(),rid:rustId(code)||'RUST-—',
+    return {code:U(code),name:(r&&r.name)||e.name||code,position:e.position||(r&&r.position)||'',   /* R422: always the CURRENT position (RCPS → RCADS), not the one saved when the ID was approved */
+      branch:(r&&r.branch)||f.branch||curBranch(),rid:rustId(code)||'RUST-—',
       photo:r&&r.photo,sig:(r&&r.sig)||(U(code)==='RUS-HR01'?(hrSig().img||''):''), /* R304: HR's saved signature = his own ID signature */emg:(r&&r.emg)||{},type:(r&&r.empType)||empType(code),issued:r&&r.approvedAt,valid:r&&r.validUntil,status:r?r.status:'NONE'};
   }
   function stamp(c){
@@ -25477,7 +25478,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R421 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R422 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
