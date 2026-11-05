@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R419 DUTY ALL</title>
+<title>Rustica RCADS App — R420 SCHEDULE MAKER</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25477,7 +25477,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R419 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R420 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -34602,6 +34602,54 @@ body.r373-doclocked #employeeSimplePanel [data-r159-doc],body.r373-doclocked #em
     paint()}
   function paint(){const c=document.getElementById('r417Card');if(!c||c.contains(document.activeElement))return;const h=html();if(c.dataset.h!==h){c.dataset.h=h;c.innerHTML=h}}
   setInterval(()=>{try{mount();document.body.classList.toggle('r417-docopen',!!get().closed)}catch(e){}},1500);
+})();
+</script>
+<!-- RCADS PATCH: R420 SCHEDULE MAKER — HR assigns a staff (e.g. Inventory Clerk) to fill the Kitchen / Dining Schedule + ACS for the Head 1 -->
+<style id="rcadsR420Css">
+#r420Card{margin:14px 0;padding:12px;border-radius:12px;background:#fffaf2;border:2px solid #2f6b3a;color:#3d2615}
+#r420Card .t{font-weight:900;font-size:14px;color:#2f6b3a}#r420Card .s{font-size:11.5px;color:#6d5845;margin:3px 0 10px}
+#r420Card .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+#r420Card .b{padding:9px;border:1px solid #d8bfa1;border-radius:10px;background:#fff}#r420Card .b b{display:block;font-size:12.5px;margin-bottom:5px}
+#r420Card label{display:block;font-size:10.5px;font-weight:900;color:#5b3519;margin-top:5px}#r420Card select{display:block;width:100%;margin-top:3px;padding:7px;border:1px solid #c8b38f;border-radius:8px;font-size:12px;background:#fff}
+#r420Card .ok{font-size:11px;color:#2f6b3a;font-weight:800;margin-top:6px}
+</style>
+<script id="rcadsR420Script">
+/* R420 — 📝 SCHEDULE MAKER
+   • HR → APPROVERS / GUARDS → 📝 SCHEDULE MAKER: per branch, choose one Kitchen staff and one Dining staff (e.g. the Inventory Clerk).
+   • That person gets 📝 FILL in his / her RCADS app for the ORIGINAL SCHEDULE + ACS of that department only (no approvals, no DTR).
+   • What he / she submits says "Prepared by <name> • SCHEDULE MAKER for KITCHEN HEAD 1" and goes to HR and the DTR like the Head 1's.
+   • The Head 1 still sees it and can fill / submit again. Saved in the cloud (rcads_ key). */
+(function(){'use strict';
+  const KEY='rcads_r420_sched_makers_v1';const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){return {}}}
+  function save(m){try{localStorage.setItem(KEY,JSON.stringify(m));return true}catch(e){return false}}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function staff(b){try{return (window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){return []}}
+  function dept(e){const d=U(e.dept||e.department||'');return /KITCH/.test(d)?'KITCHEN':/DIN/.test(d)?'DINING':d}
+  function mine(code){const m=load();for(const b of Object.keys(m)){const r=m[b]||{};for(const d of ['KITCHEN','DINING'])if(U(r[d])===U(code))return {b,d}}return null}
+  window.rcadsR420={mine,load};
+  /* the person's app: 📝 FILL like the Head 1 (forms only) */
+  function wrapWho(){const R=window.rcadsR264;if(!R||typeof R.who!=='function'||R.who._r420)return;const o=R.who;
+    const w=function(){const r=o.apply(this,arguments);if(r)return r;let e=null;try{e=currentEmployee}catch(_){}if(!e||!e.code)return null;const s=mine(e.code);if(!s)return null;
+      const app=document.getElementById('rcadsR131ApproverApp'),shell=app&&app.querySelector('.r131-shell');const appr=shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none';
+      const panel=document.getElementById('employeeSimplePanel');const host=appr?shell:(panel&&document.body.classList.contains('employee-simple-mode')?panel:null);if(!host)return null;
+      return {kind:'HEAD',e,host,branches:[s.b],forms:[s.d],dtr:[],label:'SCHEDULE MAKER for '+s.d+' HEAD 1',maker:true}};
+    w._r420=true;R.who=w}
+  /* HR card */
+  function html(){const m=load();
+    return '<div class="t">📝 SCHEDULE MAKER — who fills the Schedule + ACS for the Head 1</div><div class="s">Optional. Choose a staff (e.g. the <b>Inventory Clerk</b>) who fills the <b>ORIGINAL SCHEDULE</b> and <b>ACS</b> of that department in RCADS (☰ MORE → 📝 FILL). He / she has <b>no approvals and no DTR</b>. The Head 1 still sees it and can change it.</div><div class="g">'
+      +branches().map(b=>{const L=staff(b.code),r=m[b.code]||{};
+        return '<div class="b"><b>'+esc(b.name)+'</b>'+['KITCHEN','DINING'].map(d=>'<label>'+d+' SCHEDULE MAKER<select data-r420="'+esc(b.code)+'|'+d+'"><option value="">— none (Head 1 only) —</option>'
+          +L.filter(e=>dept(e)===d).map(e=>'<option value="'+esc(U(e.code))+'"'+(U(e.code)===U(r[d])?' selected':'')+'>'+esc(e.name)+' • '+esc(e.code)+(e.position?' • '+esc(e.position):'')+'</option>').join('')+'</select></label>').join('')+'</div>'}).join('')
+      +'</div>'+(m._at?'<div class="ok">✓ Saved '+esc(new Date(m._at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+' — the phones get it after sync.</div>':'')}
+  function mount(){const sec=document.getElementById('rcadsApproverAccessSection');if(!sec)return;let c=document.getElementById('r420Card');
+    if(!c){c=document.createElement('div');c.id='r420Card';c.addEventListener('change',ev=>{const s=ev.target.closest&&ev.target.closest('[data-r420]');if(!s)return;const [b,d]=s.getAttribute('data-r420').split('|');const m=load();
+      if(s.value){for(const k of Object.keys(m)){if(k==='_at')continue;for(const dd of ['KITCHEN','DINING'])if(U((m[k]||{})[dd])===U(s.value)&&!(k===b&&dd===d))m[k][dd]=''}}   /* one person = one assignment */
+      m[b]=Object.assign({},m[b]||{},{[d]:s.value});m._at=new Date().toISOString();save(m);c.dataset.h='';paint()})}
+    const after=document.getElementById('r231Card');if(after&&after.parentElement===sec){if(after.nextElementSibling!==c)after.insertAdjacentElement('afterend',c)}else if(c.parentElement!==sec)sec.appendChild(c);paint()}
+  function paint(){const c=document.getElementById('r420Card');if(!c||c.contains(document.activeElement))return;const h=html();if(c.dataset.h!==h){c.dataset.h=h;c.innerHTML=h}}
+  setInterval(()=>{try{wrapWho()}catch(e){}try{mount()}catch(e){console.warn('R420',e)}},1500);
 })();
 </script>
 </body></html>
