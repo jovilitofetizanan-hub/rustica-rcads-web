@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R414 LATE REMINDER</title>
+<title>Rustica RCADS App — R417 READING RULE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21412,20 +21412,23 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
   /* R166: documents are shown CLEARLY. Limit instead: after a person opens a document, the SAME document
      can be opened again only after 7 days (10-minute grace for an accidental close). A new version from HR
      unlocks it immediately. HR is not limited. Views are recorded per person (cloud-synced key). */
-  const VIEW_PREFIX='rcads_r159_views_',VIEW_DAYS=7,GRACE_MIN=10;
+  const VIEW_PREFIX='rcads_r159_views_',GRACE_MIN=10;
+  /* R417: HR chooses how often a document can be opened again (0 = anytime) */
+  function VDAYS(){const r=(function(){try{return JSON.parse(localStorage.getItem('rcads_r417_docrule_v1')||'null')||{}}catch(e){return {}}})();const n=Number(r.days);return isFinite(n)&&r.days!==undefined&&r.days!==''?n:7}
   function viewGate(v,docKey){
     if(!v||v.role==='HR'||v.role==='OWNER'||!docKey)return {ok:true}; // R167: Owners have no weekly limit
     const m=read(VIEW_PREFIX+v.id,{})||{};const last=m[docKey];
     if(!last)return {ok:true,first:true};
     const t=Date.parse(last.first),now=Date.now();
     if(now-t<GRACE_MIN*60000)return {ok:true};
-    if(now-t<VIEW_DAYS*864e5)return {ok:false,last:t,next:t+VIEW_DAYS*864e5};
+    const VD=VDAYS();if(VD<=0)return {ok:true};   /* R417: ANYTIME */
+    if(now-t<VD*864e5)return {ok:false,last:t,next:t+VD*864e5};
     return {ok:true,first:true};
   }
   function noteView(v,docKey,title){const k=VIEW_PREFIX+v.id;const m=read(k,{})||{};m[docKey]={first:new Date().toISOString(),title:title||'',name:v.name,code:v.code||'',role:v.role||''};write(k,m)}
   function lockedHtml(g){
     const d=x=>new Date(x).toLocaleDateString([], {weekday:'long',month:'long',day:'numeric',year:'numeric'})+' '+new Date(x).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    return '<div class="r159-locked-doc"><div class="i">🔒</div><b>YOU HAVE ALREADY READ THIS</b><p>You opened this on <b>'+esc(d(g.last))+'</b>.</p><p>You can open it again on <b>'+esc(d(g.next))+'</b>.</p><small>Each document can be opened only once a week. If HR posts a new version, you can open it right away. If you need to read it again now, see HR.</small></div>';
+    return '<div class="r159-locked-doc"><div class="i">🔒</div><b>YOU HAVE ALREADY READ THIS</b><p>You opened this on <b>'+esc(d(g.last))+'</b>.</p><p>You can open it again on <b>'+esc(d(g.next))+'</b>.</p><small>Each document can be opened only once every '+(VDAYS()===1?'day':VDAYS()+' days')+'. If HR posts a new version, you can open it right away. If you need to read it again now, see HR.</small></div>';
   }
   function openReader(title,bodyHtml,v,docKey){
     const reference=/^(ORG|CV|COD|MC)_/.test(docKey||'')||/^(MEMO CIRCULARS|CODE OF DISCIPLINE)$/.test(title||'');
@@ -25474,7 +25477,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const a=admin();if(!a)return;
     const on=adminOpen()&&wantMobile();
     let switcher=document.getElementById('r377View');
-    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R414 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
+    if(!switcher){switcher=document.createElement('div');switcher.id='r377View';switcher.innerHTML='<span>R417 · VIEW</span><button type="button" data-view="mobile">📱 PHONE</button><button type="button" data-view="desktop">💻 LAPTOP</button>';document.documentElement.appendChild(switcher);switcher.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;try{localStorage.setItem('rcads_r377_device_view',b.dataset.view)}catch(_){}section='';if(b.dataset.view==='desktop'){try{localStorage.setItem('rcads_r353_hrnav','on');rcadsHrGo('rcadsHrDashboardTop')}catch(_){}}sync()})}
     switcher.style.display=adminOpen()&&!document.querySelector('#r159Reader.show,#r328Pm.show')?'flex':'none';
     switcher.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===(on?'mobile':'desktop'))));
     a.classList.toggle('r178-m',on);a.classList.toggle('r178-sec',on&&!!section);
@@ -31259,8 +31262,7 @@ body.r328-open{overflow:hidden}
 </script>
 <style id="rcadsR330Css">
 .r330-hide{display:none!important}
-body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go="home"]):not([data-r162-go="id"]){display:none!important}
-body.r330-locked #employeeSimplePanel .r162-unread{display:none!important}
+body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go="home"]):not([data-r162-go="id"]):not([data-r162-go="notices"]){display:none!important}
 #r330Lock{margin:10px 0;padding:14px;border-radius:14px;background:#3d2412;color:#fff;text-align:center;border:2px solid #c8862a}
 #r330Lock>b{display:block;font-size:15px;color:#ffd38a;margin-bottom:6px}#r330Lock span b{color:#ffd38a}#r330Lock>span{display:block;font-size:12.5px;line-height:1.45;margin-top:4px}
 #r330Soon{margin:8px 0;padding:9px 12px;border-radius:12px;background:#fff4d6;border:1px solid #e0b64a;color:#6b4a00;font-size:12px;font-weight:700;text-align:center}
@@ -31383,7 +31385,7 @@ body.r330-locked #employeeSimplePanel .r162-unread{display:none!important}
       await pollHr()}});
 
   /* =================== (3) RANK-AND-FILE: closed when off duty =================== */
-  const AFTER_OUT=3600000,SCAN_GRACE=20*60000;
+  const AFTER_OUT=60000   /* R416: the app closes 1 MINUTE after TIME OUT (was 1 hour) */,SCAN_GRACE=20*60000;
   function staffRole(code){const l=lsGet('rcads_r175_201staff_v1',[])||[];const r=l.find(x=>U(x.code)===U(code));return r?r.role:''}
   function emp(){try{return (typeof currentEmployee!=='undefined'&&currentEmployee)||null}catch(e){return null}}
   function state(code){
@@ -31395,7 +31397,7 @@ body.r330-locked #employeeSimplePanel .r162-unread{display:none!important}
     if(s.state==='ENDED'){const out=Date.parse(s.last&&s.last.date);if(out&&t-out<AFTER_OUT)return {open:true,closesAt:out+AFTER_OUT}}
     if(g&&Date.now()-g<SCAN_GRACE)return {open:true,grace:true};
     return {open:false,out:s.state==='ENDED'?Date.parse(s.last&&s.last.date):0}}
-  const KEEP=el=>el.matches('.r162-nav,.r162-status,#r181Pass,.rcads-employee-simple-grid,#r330Lock,#r330Soon,#r167EmpId,#r405Tom')||el.id==='rcadsR105EmployeeHeader';   /* R405: schedule + MY ID only (no notices) */
+  const KEEP=el=>el.matches('.r162-nav,.r162-status,#r181Pass,.rcads-employee-simple-grid,#r330Lock,#r330Soon,#r167EmpId,#r405Tom,#r159EmpBoard,#r415Week')||el.id==='rcadsR105EmployeeHeader';   /* R415: + NOTICES (new notices / memos) + 1-week schedule */   /* R405: schedule + MY ID only (no notices) */
   function lockTick(){
     const panel=document.getElementById('employeeSimplePanel');const e=emp();
     const on=!!(panel&&e&&document.body.classList.contains('employee-simple-mode')&&getComputedStyle(panel).display!=='none');
@@ -31409,12 +31411,12 @@ body.r330-locked #employeeSimplePanel .r162-unread{display:none!important}
     let L=document.getElementById('r330Lock');
     if(locked){if(!L){L=document.createElement('div');L.id='r330Lock';L.setAttribute('data-r162-tab','any')}
       const st2=panel.querySelector(':scope > .r162-status');if(st2&&st2.parentElement===panel){if(st2.nextElementSibling!==L)st2.insertAdjacentElement('afterend',L)}else if(L.parentElement!==panel)panel.insertBefore(L,panel.firstChild);
-      const h='<b>🔒 RCADS IS CLOSED — OFF DUTY</b><span>'+(st.out?'You timed out at '+esc(fmtT(st.out))+'. RCADS closes 1 hour after TIME OUT.':'Day off, absent, on leave, or not yet timed in today.')+'</span><span>It opens again when you <b>TIME IN with the Guard</b> (scan the Guard’s QR). You can see your <b>SCHEDULE</b> below and <b>🪪 MY ID</b>.</span>';
+      const h='<b>🔒 RCADS IS CLOSED — OFF DUTY</b><span>'+(st.out?'You timed out at '+esc(fmtT(st.out))+'. RCADS closes 1 minute after TIME OUT.':'Day off, absent, on leave, or not yet timed in today.')+'</span><span>It opens again when you <b>TIME IN with the Guard</b> (scan the Guard’s QR). You can see your <b>SCHEDULE</b>, <b>📢 NOTICES</b> (new notices / memos + your schedule for 1 week) and <b>🪪 MY ID</b>.</span>';
       if(L.dataset.h!==h){L.dataset.h=h;L.innerHTML=h}
-      const act=panel.getAttribute('data-r162-active');if(act&&act!=='home'&&act!=='id'&&window.rcadsR162Tab)window.rcadsR162Tab('home');
+      const act=panel.getAttribute('data-r162-active');if(act&&act!=='home'&&act!=='id'&&act!=='notices'&&window.rcadsR162Tab)window.rcadsR162Tab('home');
     }else if(L)L.remove();
     let S=document.getElementById('r330Soon');
-    if(on&&!exempt&&st.open&&st.closesAt){if(!S){S=document.createElement('div');S.id='r330Soon';S.setAttribute('data-r162-tab','home');const st2=panel.querySelector(':scope > .r162-status');if(st2)st2.insertAdjacentElement('afterend',S);else panel.insertBefore(S,panel.firstChild)}const h='⏰ You are timed out. RCADS closes at <b>'+esc(fmtT(st.closesAt))+'</b> (1 hour after TIME OUT).';if(S.dataset.h!==h){S.dataset.h=h;S.innerHTML=h}}else if(S)S.remove();
+    if(on&&!exempt&&st.open&&st.closesAt){if(!S){S=document.createElement('div');S.id='r330Soon';S.setAttribute('data-r162-tab','home');const st2=panel.querySelector(':scope > .r162-status');if(st2)st2.insertAdjacentElement('afterend',S);else panel.insertBefore(S,panel.firstChild)}const h='⏰ You are timed out. RCADS closes at <b>'+esc(fmtT(st.closesAt))+'</b> (1 minute after TIME OUT).';if(S.dataset.h!==h){S.dataset.h=h;S.innerHTML=h}}else if(S)S.remove();
   }
   setInterval(()=>{try{lockTick()}catch(e){console.warn('R330 lock',e)}},1000);
   window.rcadsR330={lockState:()=>{const e=emp();return e?state(e.code):null},pollHr,_hra:()=>HRA};
@@ -33327,7 +33329,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(box.dataset.html!==html){const open=[...box.querySelectorAll('details')].map((d,i)=>d.open?i:-1);box.dataset.html=html;box.innerHTML=html;box.querySelectorAll('details').forEach((d,i)=>d.open=open.includes(i));}
   }
   function scheduleTable(x){const matrices=(x.weeklyBlocks||[]).map(w=>w.matrix);if(!matrices.length&&x.rowData&&x.rowData.length){const cols=Object.keys(x.rowData[0]);matrices.push([cols,...x.rowData.map(r=>cols.map(k=>r[k]))]);}return matrices.map(m=>'<div class="r373-scroll"><table><tbody>'+m.filter(r=>r&&r.some(v=>v!==''&&v!=null)).map(r=>'<tr>'+r.map(v=>'<td>'+E(v)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>').join('')||'<p>No readable schedule rows in this upload.</p>';}
-  function documentsLocked(){const e=current();if(!e||management(e)||!document.body.classList.contains('employee-simple-mode'))return false;return document.body.classList.contains('r330-locked');}
+  function documentsLocked(){const e=current();if(!e||management(e)||!document.body.classList.contains('employee-simple-mode'))return false;if(((function(){try{return JSON.parse(localStorage.getItem('rcads_r417_docrule_v1')||'null')||{}}catch(e){return {}}})()).closed)return false;   /* R417: HR allows reading even when RCADS is closed */
+    return document.body.classList.contains('r330-locked');}
   function enforceDocuments(){const locked=documentsLocked();document.body.classList.toggle('r373-doclocked',locked);if(locked){const reader=document.getElementById('r159Reader'),title=document.getElementById('r159ReaderTitle');if(reader?.dataset.r373Reference==='1'||(title&&/ORGANIZATIONAL|CORE VALUES|CODE OF DISCIPLINE|MEMO CIRCULAR/i.test(title.textContent)))document.getElementById('r159ReaderClose')?.click();}}
   document.addEventListener('click',e=>{if(documentsLocked()&&e.target.closest('[data-r159-doc],[data-r159-mc],[data-r328-lib],[data-r328-open]')){e.preventDefault();e.stopImmediatePropagation();}},true);
   window.rcadsR373={confirmedOt,isResident,residentOnDuty,management,dutyTypeEligible,chooseDutyType,documentsLocked,enforceDocuments,dtrHtml,cancelConfirmed,submit,decide,requests,decision,scheduleParts,scheduleCell,otTick,ownerTick,refreshDtr};
@@ -34522,6 +34525,76 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(!el||el.parentElement!==box||el.dataset.h!==h){if(el)el.remove();const t=document.createElement('div');t.innerHTML=h;el=t.firstChild;el.dataset.h=h;box.appendChild(el)}
     else if(box.lastElementChild!==el&&!box.lastElementChild.matches('.r405-wm,#r405DtrLock'))box.appendChild(el);
   }catch(x){console.warn('R414',x)}},1500);
+})();
+</script>
+<!-- RCADS PATCH: R415 NOTICES open after RCADS closes (1 hour after TIME OUT) • MY SCHEDULE for 1 week at the bottom of NOTICES -->
+<style id="rcadsR415Css">
+#r415Week{margin:12px 0;padding:12px;border-radius:14px;background:#fffaf2;border:2px solid #2f6b3a;color:#3d2615}
+#r415Week .h{font-weight:900;font-size:13.5px;color:#2f6b3a;letter-spacing:.3px;margin-bottom:6px}
+#r415Week .r{display:flex;justify-content:space-between;gap:8px;padding:7px 4px;border-top:1px dashed #d8bfa1;font-size:13px}
+#r415Week .r:first-of-type{border-top:0}#r415Week .r b{color:#3a2210}#r415Week .r span{font-weight:900;text-align:right}
+#r415Week .r.td{background:#eef7ef;border-radius:8px}#r415Week .r.off span{color:#8c1d14}#r415Week small{color:#7a5a3d;font-size:11px;display:block}
+</style>
+<script id="rcadsR415Script">
+/* R415 — RCADS still closes 1 hour after TIME OUT (schedule + MY ID), and now NOTICES stays open too:
+   new Notices / Memos, and at the bottom of NOTICES: MY SCHEDULE for 1 week (today + 6 days). */
+(function(){'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();const pad=n=>String(n).padStart(2,'0');
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function ymd(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function cur(){try{return (typeof currentEmployee!=='undefined'&&currentEmployee)||null}catch(e){return null}}
+  function t12(v){if(!v)return '';let [h,m]=String(v).split(':').map(Number);if(isNaN(h))return String(v);const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(m||0)+' '+ap}
+  function one(e,k){let s=null;try{s=getScheduleEntryForEmployeeDate(e,k)}catch(x){}
+    if(!s||!s.type||s.type==='EMPTY')return {t:'—',sub:'',off:false};
+    if(s.type==='STATUS')return {t:U(s.status),sub:'',off:/OFF|REST/.test(U(s.status))};
+    return {t:t12(s.in)+' – '+t12(s.out),sub:s.acs?'ACS':'',off:false}}
+  function html(e){const d=new Date();let rows='';
+    for(let i=0;i<7;i++){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()+i),k=ymd(x),o=one(e,k);
+      const lb=(i===0?'TODAY • ':i===1?'TOMORROW • ':'')+x.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      rows+='<div class="r'+(i===0?' td':'')+(o.off?' off':'')+'"><b>'+esc(lb)+'</b><span>'+esc(o.t)+(o.sub?'<small>'+esc(o.sub)+'</small>':'')+'</span></div>'}
+    return '<div class="h">📅 MY SCHEDULE — NEXT 7 DAYS</div>'+rows+'<small>— = no schedule yet (ask your Head 1). Changes in the ACS show here too.</small>'}
+  setInterval(()=>{try{
+    const p=document.getElementById('employeeSimplePanel'),e=cur();let el=document.getElementById('r415Week');
+    if(!p||!e||!document.body.classList.contains('employee-simple-mode')){if(el)el.remove();return}
+    if(!el){el=document.createElement('div');el.id='r415Week';el.setAttribute('data-r162-tab','notices')}
+    const nav=p.querySelector(':scope > .r162-nav');if(el.parentElement!==p||(nav&&el.nextElementSibling!==nav)){if(nav)p.insertBefore(el,nav);else p.appendChild(el)}
+    const k=ymd(new Date())+'|'+e.code;const h=html(e);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
+  }catch(x){console.warn('R415',x)}},2000);
+})();
+</script>
+<!-- RCADS PATCH: R416 app closes 1 MINUTE after TIME OUT • closed: HOME + MY ID + new Notices / Memos + 1-week schedule only -->
+<style id="rcadsR416Css">
+/* closed app: no Code of Discipline, Core Values, Organizational Chart or Memo Circulars library (they open again after TIME IN) */
+body.r330-locked:not(.r417-docopen) #employeeSimplePanel [data-r159-doc],body.r330-locked:not(.r417-docopen) #employeeSimplePanel [data-r159-mc],body.r330-locked:not(.r417-docopen) #employeeSimplePanel [data-r328-lib],
+body.r373-doclocked #employeeSimplePanel [data-r159-doc],body.r373-doclocked #employeeSimplePanel [data-r159-mc],body.r373-doclocked #employeeSimplePanel [data-r328-lib]{display:none!important}
+</style>
+<!-- RCADS PATCH: R417 HR control — how often documents can be opened again + open even when RCADS is closed (orientation) -->
+<style id="rcadsR417Css">
+#r417Card{margin:10px 0 14px;padding:12px;border-radius:12px;background:#fffaf2;border:2px solid #2f6b3a;color:#3d2615}
+#r417Card b.t{display:block;font-size:13.5px;color:#2f6b3a;margin-bottom:4px}#r417Card small{display:block;color:#6d5845;font-size:11.5px;margin:3px 0 8px}
+#r417Card .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}#r417Card select{padding:8px;border:1px solid #c8b38f;border-radius:9px;font-size:13px;background:#fff}
+#r417Card label.c{display:flex;gap:6px;align-items:center;font-size:12.5px;font-weight:700}#r417Card .ok{color:#2f6b3a;font-weight:900;font-size:12px}
+</style>
+<script id="rcadsR417Script">
+/* R417 — HR → 📢 Notice Board / Memo: 📖 READING RULE (saved in the cloud, all phones follow it)
+   • Open again after: ANYTIME / 1 day / 2 days / 3 days / 1 week (default).
+   • ☐ Also when RCADS is closed (after TIME OUT / day off) — for ORIENTATION. */
+(function(){'use strict';
+  const KEY='rcads_r417_docrule_v1';
+  function get(){try{return JSON.parse(localStorage.getItem(KEY)||'null')||{}}catch(e){return {}}}
+  function set(v){try{localStorage.setItem(KEY,JSON.stringify(Object.assign(get(),v,{at:new Date().toISOString()})));return true}catch(e){return false}}
+  const OPTS=[[0,'ANYTIME (orientation)'],[1,'Every 1 day'],[2,'Every 2 days'],[3,'Every 3 days'],[7,'Every 1 week (default)']];
+  function html(){const r=get(),d=(r.days===undefined||r.days==='')?7:Number(r.days);
+    return '<b class="t">📖 READING RULE — Code of Discipline, Core Values, Organizational Chart, Memo Circulars</b><small>How often an employee can open the same document again. HR and Owners can always open them.</small>'
+      +'<div class="row"><label>Open again: <select id="r417Days">'+OPTS.map(o=>'<option value="'+o[0]+'"'+(o[0]===d?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></label>'
+      +'<label class="c"><input type="checkbox" id="r417Closed"'+(r.closed?' checked':'')+'> Also when RCADS is closed (after TIME OUT / day off) — orientation</label></div>'
+      +(r.at?'<small class="ok">✓ Saved '+new Date(r.at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' — all phones follow this after sync.</small>':'')}
+  function mount(){const sec=document.getElementById('r159HrSection');if(!sec)return;let c=document.getElementById('r417Card');
+    if(!c){c=document.createElement('div');c.id='r417Card';c.addEventListener('change',e=>{if(e.target.id==='r417Days')set({days:Number(e.target.value)});if(e.target.id==='r417Closed')set({closed:!!e.target.checked});c.dataset.h='';paint()})}
+    if(c.parentElement!==sec){const t=sec.querySelector('.r160-hr-title,.r159-hr-title,h2,h3');if(t&&t.parentElement===sec)t.insertAdjacentElement('afterend',c);else sec.insertBefore(c,sec.firstChild)}
+    paint()}
+  function paint(){const c=document.getElementById('r417Card');if(!c||c.contains(document.activeElement))return;const h=html();if(c.dataset.h!==h){c.dataset.h=h;c.innerHTML=h}}
+  setInterval(()=>{try{mount();document.body.classList.toggle('r417-docopen',!!get().closed)}catch(e){}},1500);
 })();
 </script>
 </body></html>
