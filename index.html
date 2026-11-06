@@ -96,6 +96,29 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <html lang="en">
 <head>
+<script id="rcadsR431Boot">
+/* R431: phones of employees / owners / guards never show the HR screen first.
+   Until RCADS has opened the right screen, a plain RUSTICA splash is shown. HR devices are not affected. */
+(function(){try{
+  if(window.top!==window)return;
+  const ls=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+  const role=ls('r182_device_role')||'';
+  const hr=ls('rustica_r167_hrdevice_pin_flag')==='1'||role==='HR';
+  const acc=/rcadsAccess=/.test(location.href);
+  const mine=!!ls('rustica_r160_mypin_device')||(!!role&&role!=='HR');
+  if(hr&&!acc)return;if(!mine&&!acc)return;
+  const H=document.documentElement;H.classList.add('r431-boot');
+  const st=document.createElement('style');st.textContent='html.r431-boot body{visibility:hidden!important}html.r431-boot::after{content:"RUSTICA\\A RCADS\\A\\A Opening…";white-space:pre;position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;text-align:center;background:#4c2b17;color:#f3e2c4;font:900 22px/1.25 Arial,Helvetica,sans-serif;letter-spacing:2px;visibility:visible}';
+  document.head?document.head.appendChild(st):H.appendChild(st);
+  const t0=Date.now();
+  function done(){H.classList.remove('r431-boot')}
+  function ready(){const g=document.getElementById('r160Gate');if(g&&getComputedStyle(g).display!=='none')return true;
+    const sel=document.getElementById('selectScreen');if(sel&&getComputedStyle(sel).display==='none')return true;
+    const B=document.body&&document.body.classList;if(B&&(B.contains('guard-session-active')||B.contains('employee-session-active')))return true;return false}
+  (function tick(){if(!document.body){return setTimeout(tick,50)}if(Date.now()-t0>4500)return done();if(document.readyState!=='loading'&&ready())return setTimeout(done,150);setTimeout(tick,80)})();
+}catch(e){try{document.documentElement.classList.remove('r431-boot')}catch(_){}}})();
+</script>
+
 <script>function rcadsIsGuardLabel(l){return /^Guard \d+$/.test(String(l||""))}</script>
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
 <meta name="googlebot" content="noindex, nofollow">
@@ -145,7 +168,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R430 NEW REMINDER POPUP</title>
+<title>Rustica RCADS App — R431 NO HR SCREEN FIRST</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
