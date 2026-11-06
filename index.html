@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R426 MEMOS REMINDERS</title>
+<title>Rustica RCADS App — R427 MGMT REMINDERS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34761,7 +34761,7 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
 })();
 </script>
 
-<!-- RCADS PATCH: R426 TYPED MEMOS • RECEIVE & OPEN • REMINDERS • QUIET ALERTS -->
+<!-- RCADS PATCH: R426/R427 TYPED MEMOS • RECEIVE & OPEN • REMINDERS (with Management audience) • QUIET ALERTS -->
 <style id="rcadsR426Css">
 [id^="r199"],#r213Pop,#r213Card,#r214Owner,#r214HrSection,#r214HrNavBtn,#r230Sig,#r208Pop{display:none!important}
 .r426-card h4{margin:0 0 6px}
@@ -35008,7 +35008,16 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   /* =================== 3) 📌 REMINDERS (HR + Owners) =================== */
   const RK='rcads_r426_rem_',SEENK=c=>'rcads_r426_rseen_'+U(c);
   function remList(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf(RK)===0){const r=J(k,null);if(r&&r.id&&!r.deleted&&(!r.until||Date.parse(r.until)>Date.now()))out.push(r)}}return out.sort((a,b)=>String(b.at).localeCompare(String(a.at)))}
-  function remHtml(v){const L=remList();if(!L.length)return '';return '<div class="r426-rem-h">📌 REMINDERS</div>'+L.map(r=>'<div class="r426-ri">'+esc(r.text)+'<small>— '+esc(r.by)+' • '+esc(fmt(r.at))+'</small></div>').join('')}
+  function isMgmtEmp(e){return U(e&&(e.dept||e.department))==='MANAGEMENT'&&!/TOPMGNT/i.test(String(e&&e.code||''))}
+  function mgmtOf(brs){const x=X();const out=[];if(!x)return out;brs.forEach(b=>{(x.staff(b)||[]).forEach(e=>{if(e&&e.code&&isMgmtEmp(e))out.push({code:U(e.code),name:U(e.name||e.code),pos:e.position||'',b})})});return out}
+  function viewerSees(r,v){const aud=r.aud||'ALL';if(aud==='ALL')return true;if(!empV(v))return true;const code=U(v.code);
+    if(aud==='PICK')return (r.codes||[]).includes(code);const x=X();const f=x&&x.findEmp(code);return !!(f&&isMgmtEmp(f.emp))}
+  function audTxt(r){return (r.aud==='MGMT'?'Management only':r.aud==='PICK'?(r.codes||[]).length+' chosen Management employee(s)':'All employees')}
+  function renderPick(){const box=document.getElementById('r426RemPick');const sel=document.getElementById('r426RemAud');if(!box||!sel)return;if(sel.value!=='PICK'){box.style.display='none';return}box.style.display='flex';
+    const brs=chosen('rem');const L=mgmtOf(brs);const was=new Set([...box.querySelectorAll('input:checked')].map(i=>i.value));const sig=JSON.stringify(L.map(e=>e.code));if(box.dataset.sig===sig)return;box.dataset.sig=sig;
+    box.innerHTML=L.length?L.map(e=>'<label><input type="checkbox" value="'+esc(e.code)+'" data-b="'+esc(e.b)+'"'+(was.has(e.code)?' checked':'')+'> <b>'+esc(e.name)+'</b>&nbsp;<small>'+esc(e.pos)+' • '+esc(bName(e.b))+'</small></label>').join(''):'<small>No Management employees found for the chosen branch(es).</small>'}
+  document.addEventListener('change',e=>{if(e.target.id==='r426RemAud'||(e.target.closest&&e.target.closest('[data-r426-brs="rem"]')))setTimeout(renderPick,0)});
+  function remHtml(v){const L=remList().filter(r=>viewerSees(r,v));if(!L.length)return '';return '<div class="r426-rem-h">📌 REMINDERS</div>'+L.map(r=>'<div class="r426-ri">'+esc(r.text)+'<small>— '+esc(r.by)+' • '+esc(fmt(r.at))+'</small></div>').join('')}
   function untilOf(d){const n=now();if(d==='TODAY'){const e=new Date(n);e.setHours(23,59,59,0);return e.toISOString()}if(d==='3D')return new Date(+n+3*864e5).toISOString();if(d==='1W')return new Date(+n+7*864e5).toISOString();return ''}
   async function pushTo(b,key,val){const cur=curBranch();if(b===cur){localStorage.setItem(key,JSON.stringify(val));return}
     const DB=RUSTICA_CENTRAL_DB;await window.rcadsCloudRpc('rustica_rcads_upsert_kv',{p_branch_code:b,p_sync_secret:DB.syncSecret,p_data_key:key,p_data_value:JSON.stringify(val),p_device_id:(typeof rcadsCloudDeviceId==='function'?rcadsCloudDeviceId():''),p_client_updated_at:new Date().toISOString()})}
@@ -35016,22 +35025,26 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   function mine(){return (J(MYK,[])||[]).filter(r=>!r.deleted&&(!r.until||Date.parse(r.until)>Date.now()))}
   function remFormHtml(who){return '<h4>📌 WRITE A REMINDER'+(who?' — '+esc(who):'')+'</h4><div class="r159-info">Short reminder for the employees (shown on top of their NOTICES). Up to 300 letters.</div>'
     +'<textarea id="r426RemText" maxlength="300" rows="3" placeholder="e.g. Please wear complete uniform tomorrow — inspection at 10 AM." style="width:100%"></textarea>'
-    +'<label>SEND TO</label>'+brChecks('rem')
+    +'<label>SEND TO (BRANCH)</label>'+brChecks('rem')
+    +'<label>WHO WILL SEE IT</label><select id="r426RemAud"><option value="ALL">All employees of the chosen branch(es)</option><option value="MGMT">Management employees only (chosen branch(es))</option><option value="PICK">Choose the Management employees…</option></select>'
+    +'<div id="r426RemPick" class="r426-brs" style="display:none;flex-direction:column;align-items:flex-start;max-height:220px;overflow:auto;border:1px solid #e4d2b8;border-radius:8px;padding:6px 8px"></div>'
     +'<label>SHOW FOR</label><select id="r426RemDur"><option value="TODAY">Today only</option><option value="3D">3 days</option><option value="1W">1 week</option><option value="">Until removed</option></select>'
     +'<button type="button" class="r159-btn" id="r426RemPost" style="margin-top:8px">POST REMINDER</button><div id="r426RemMsg" class="r426-msg"></div>'
     +'<div class="r426-mylist" id="r426RemMine"></div>'}
   function renderMine(){const box=document.getElementById('r426RemMine');if(!box)return;const L=mine();const seenAll={};
     if(isHr()){for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('rcads_r426_rseen_')===0){const s=J(k,{})||{};Object.keys(s).forEach(id=>seenAll[id]=(seenAll[id]||0)+1)}}}
-    const h=L.length?'<div class="r426-rem-h" style="margin-top:8px">MY ACTIVE REMINDERS</div>'+L.map(r=>'<div class="r426-ri"><div>'+esc(r.text)+'<small>'+esc(fmt(r.at))+' • '+esc(r.branches.length===branches().length?'ALL BRANCHES':r.branches.map(bName).join(', '))+(r.until?' • until '+esc(fmt(r.until)):' • until removed')+(isHr()?' • seen here: '+(seenAll[r.id]||0):'')+'</small></div><button type="button" data-r426-remdel="'+esc(r.id)+'">REMOVE</button></div>').join(''):'';
+    const h=L.length?'<div class="r426-rem-h" style="margin-top:8px">MY ACTIVE REMINDERS</div>'+L.map(r=>'<div class="r426-ri"><div>'+esc(r.text)+'<small>'+esc(fmt(r.at))+' • '+esc(r.branches.length===branches().length?'ALL BRANCHES':r.branches.map(bName).join(', '))+' • '+esc(audTxt(r))+(r.until?' • until '+esc(fmt(r.until)):' • until removed')+(isHr()?' • seen here: '+(seenAll[r.id]||0):'')+'</small></div><button type="button" data-r426-remdel="'+esc(r.id)+'">REMOVE</button></div>').join(''):'';
     if(box.dataset.h!==h){box.dataset.h=h;box.innerHTML=h}}
   function poster(){if(isHr())return {by:U(hrSig().name||'HR OPERATION OFFICER')+' (HR)',role:'HR'};const s=window.rcadsTopManagementSession;if(s)return {by:U(s.ownerLabel||'TOP MANAGEMENT')+' (OWNER)',role:'OWNER'};return null}
   document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
     if(t.closest('#r426RemPost')){const p=poster();const msg=document.getElementById('r426RemMsg');if(!p){msg.textContent='Only HR and the Owners can post reminders.';return}
       const text=(document.getElementById('r426RemText').value||'').trim().slice(0,300);const brs=chosen('rem');if(!text){msg.textContent='Type the reminder.';return}if(!brs.length){msg.textContent='Choose the branch(es).';return}
-      const r={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),text,by:p.by,role:p.role,at:now().toISOString(),until:untilOf(document.getElementById('r426RemDur').value),branches:brs};
-      msg.textContent='Posting…';const bad=[];for(const b of brs){try{await pushTo(b,RK+r.id,r)}catch(err){bad.push(bName(b))}}
+      const aud=(document.getElementById('r426RemAud')||{}).value||'ALL';let codes=[],tb=brs;
+      if(aud==='PICK'){const ch=[...document.querySelectorAll('#r426RemPick input:checked')];if(!ch.length){msg.textContent='Choose at least one Management employee.';return}codes=ch.map(i=>i.value);tb=[...new Set(ch.map(i=>i.getAttribute('data-b')))]}
+      const r={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),text,by:p.by,role:p.role,at:now().toISOString(),until:untilOf(document.getElementById('r426RemDur').value),branches:tb,aud,codes};
+      msg.textContent='Posting…';const bad=[];for(const b of tb){try{await pushTo(b,RK+r.id,r)}catch(err){bad.push(bName(b))}}
       const my=J(MYK,[])||[];my.unshift(r);put(MYK,my.slice(0,60));document.getElementById('r426RemText').value='';
-      msg.textContent=bad.length?'⚠ Not posted to: '+bad.join(', ')+' (check the internet, then post again).':'✓ Posted to '+(brs.length===branches().length?'ALL BRANCHES':brs.map(bName).join(', '))+'.';renderMine();return}
+      msg.textContent=bad.length?'⚠ Not posted to: '+bad.join(', ')+' (check the internet, then post again).':'✓ Posted to '+(tb.length===branches().length?'ALL BRANCHES':tb.map(bName).join(', '))+' • '+audTxt(r)+'.';document.querySelectorAll('#r426RemPick input:checked').forEach(i=>i.checked=false);renderMine();return}
     const d=t.closest('[data-r426-remdel]');if(d){const id=d.getAttribute('data-r426-remdel');const my=J(MYK,[])||[];const r=my.find(z=>z.id===id);if(!r||!confirm('Remove this reminder from all its branches?'))return;
       const gone=Object.assign({},r,{deleted:true,removedAt:now().toISOString()});for(const b of r.branches){try{await pushTo(b,RK+id,gone)}catch(err){}}r.deleted=true;put(MYK,my);renderMine()}});
   function remTick(){
