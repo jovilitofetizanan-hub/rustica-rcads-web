@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R428 MGMT LIST FIX</title>
+<title>Rustica RCADS App — R429 REMINDER MGMT LIST</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -35008,7 +35008,10 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   /* =================== 3) 📌 REMINDERS (HR + Owners) =================== */
   const RK='rcads_r426_rem_',SEENK=c=>'rcads_r426_rseen_'+U(c);
   function remList(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf(RK)===0){const r=J(k,null);if(r&&r.id&&!r.deleted&&(!r.until||Date.parse(r.until)>Date.now()))out.push(r)}}return out.sort((a,b)=>String(b.at).localeCompare(String(a.at)))}
-  function isMgmtEmp(e){return U(e&&(e.dept||e.department))==='MANAGEMENT'&&!/TOPMGNT/i.test(String(e&&e.code||''))}
+  /* R429: extra people counted as Management for REMINDERS only (HR request) — Ms. Viviene Bautista (Angeles) */
+  const EXTRA_MGMT=[/BAUTISTA/i,/VIVI[EA]?N/i];
+  function extraMgmt(e){const n=String(e&&e.name||'');return EXTRA_MGMT.every(r=>r.test(n))}
+  function isMgmtEmp(e){return !/TOPMGNT/i.test(String(e&&e.code||''))&&(U(e&&(e.dept||e.department))==='MANAGEMENT'||extraMgmt(e))}
   function mgmtOf(brs){const x=X();const out=[];if(!x)return out;brs.forEach(b=>{(x.staff(b)||[]).forEach(e=>{if(e&&e.code&&isMgmtEmp(e))out.push({code:U(e.code),name:U(e.name||e.code),pos:e.position||'',b})})});return out}
   function viewerSees(r,v){const aud=r.aud||'ALL';if(aud==='ALL')return true;if(!empV(v))return true;const code=U(v.code);
     if(aud==='PICK')return (r.codes||[]).includes(code);const x=X();const f=x&&x.findEmp(code);return !!(f&&isMgmtEmp(f.emp))}
