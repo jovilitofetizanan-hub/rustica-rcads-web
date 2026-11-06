@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R429 REMINDER MGMT LIST</title>
+<title>Rustica RCADS App — R430 NEW REMINDER POPUP</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34787,6 +34787,9 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
 .r426-tbl{width:100%;border-collapse:collapse;font-size:12px}.r426-tbl th,.r426-tbl td{border:1px solid #e4d2b8;padding:4px 6px;text-align:left;vertical-align:middle}.r426-tbl img{height:28px}
 .r426-asof{font-size:11px;font-weight:800;color:#2f6b3a;margin-left:8px}
 #r426Toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:2147483400;background:#3d2615;color:#fff;font-weight:900;font-size:13px;padding:10px 16px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+#r430Pop{position:fixed;left:50%;transform:translateX(-50%);top:14px;z-index:2147483500;width:min(92vw,400px);background:#fffaf2;border:2px solid #e0b64a;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:12px 14px;color:#3d2615}
+#r430Pop h4{margin:0 0 6px;font-size:15px;color:#7a4a00}#r430Pop .it{font-size:13px;padding:4px 0;border-top:1px dashed #e7cf8a}#r430Pop .it:first-of-type{border-top:0}
+#r430Pop .bt{display:flex;gap:8px;margin-top:10px}#r430Pop button{flex:1;border:0;border-radius:10px;padding:10px;font-weight:900;cursor:pointer}#r430Pop .go{background:#2f6b3a;color:#fff}#r430Pop .ok{background:#fff;color:#5b3519;border:1px solid #c8a46a}
 </style>
 <script id="rcadsR426Script">
 /* R426 — Nov 6, 2026
@@ -35070,6 +35073,26 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
       renderMine()}
   }
   setInterval(()=>{try{remTick()}catch(e){console.warn('R426 rem',e)}try{pmGate()}catch(e){}try{lockTick()}catch(e){}},1500);
+  /* =================== R430: NEW REMINDER / NEW MEMO pop-up when the app opens =================== */
+  function popViewer(){if(isHr()||document.getElementById('r160Gate')||document.getElementById('r426Lock')||document.getElementById('r426Gate'))return null;
+    const pmo=document.getElementById('r328Pm');if(pmo&&getComputedStyle(pmo).display!=='none')return null;
+    for(const el of document.querySelectorAll('.r159-board')){const v=el._r159viewer;if(empV(v))return {key:U(v.code),v,emp:true}}
+    const s=window.rcadsTopManagementSession;const th=document.getElementById('topManagementHomeScreen');if(s&&th&&getComputedStyle(th).display!=='none')return {key:'OWNER_'+(s.ownerAccountKey||s.ownerLabel||''),v:null,emp:false};return null}
+  function popTick(){if(document.getElementById('r430Pop'))return;const pv=popViewer();if(!pv)return;
+    const K='r430_pop_'+pv.key;const shown=J(K,{})||{};const items=[];
+    remList().filter(r=>!pv.emp||viewerSees(r,pv.v)).forEach(r=>{if(!shown['R'+r.id])items.push({k:'R'+r.id,t:'📌 '+r.text,s:r.by})});
+    if(pv.emp){const x=X();const a=acks(pv.key);((x&&x.lib('MC'))||[]).filter(d=>!d.legacy&&!a[d.id]).forEach(d=>{if(!shown['M'+d.id])items.push({k:'M'+d.id,t:'📄 '+((d.doc_no?d.doc_no+' — ':'')+(d.title||'Memo Circular')),s:'Memo Circular — open NOTICES → MEMO CIRCULARS and tap RECEIVE & OPEN'})})}
+    if(!items.length)return;
+    const nR=items.filter(i=>i.k[0]==='R').length,nM=items.length-nR;
+    const title=(nR?(nR===1?'📌 NEW REMINDER':'📌 '+nR+' NEW REMINDERS'):'')+(nR&&nM?' • ':'')+(nM?(nM===1?'📄 NEW MEMO':'📄 '+nM+' NEW MEMOS'):'');
+    const d=document.createElement('div');d.id='r430Pop';d.setAttribute('role','alert');
+    d.innerHTML='<h4>'+esc(title)+'</h4>'+items.slice(0,4).map(i=>'<div class="it">'+esc(i.t)+'<small style="display:block;color:#8a6a4a;font-size:11px;font-weight:700">'+esc(i.s)+'</small></div>').join('')+(items.length>4?'<div class="it"><small>+'+(items.length-4)+' more</small></div>':'')
+      +'<div class="bt"><button type="button" class="go">OPEN NOTICES</button><button type="button" class="ok">OK</button></div>';
+    document.body.appendChild(d);try{navigator.vibrate&&navigator.vibrate(120)}catch(e){}
+    const done=()=>{items.forEach(i=>shown[i.k]=Date.now());const keep={};Object.entries(shown).forEach(([k,t])=>{if(Date.now()-t<60*864e5)keep[k]=t});put(K,keep);d.remove()};
+    d.querySelector('.ok').onclick=done;
+    d.querySelector('.go').onclick=()=>{done();const b=[...document.querySelectorAll('[data-r162-go="notices"]')].find(x=>x.offsetParent!==null);if(b)b.click();else{const ob=document.getElementById('r159OwnerBoard');if(ob)ob.scrollIntoView({behavior:'smooth'})}}}
+  setInterval(()=>{try{popTick()}catch(e){}},4000);
   window.rcadsR426={clean,paginate,remList,acks,fullPull};
 })();
 </script>
