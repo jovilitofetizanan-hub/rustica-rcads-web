@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R425 LOW DATA SYNC</title>
+<title>Rustica RCADS App — R426 MEMOS REMINDERS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -28386,7 +28386,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
    • Owners / Managers / Dining Head 1 get a pop-up once per alert; HR sees it in the red-flag dots. */
 (function(){
   'use strict';
-  const RAW='rustica_srf_guard_duty_logs',STRAIGHT_H=12,DUE_H=11,ACTIVE_DAYS=7;
+  const RAW='rustica_srf_guard_duty_logs',STRAIGHT_H=13,DUE_H=12,ACTIVE_DAYS=7;
   const U=c=>String(c||'').trim().toUpperCase();
   function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
   function cur(){try{return rusticaGetCurrentBranchCode()}catch(e){return 'SAN_RAFAEL'}}
@@ -28406,6 +28406,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const recent=!!(last&&Date.now()-Date.parse(last.timestamp)<ACTIVE_DAYS*864e5);
     const slots=(window.rcadsGuardLabelsLive?window.rcadsGuardLabelsLive(b,L):['Guard 1','Guard 2']).map(g=>{let open=null,lastOut=null;for(let i=L.length-1;i>=0;i--){const r=L[i];if(r.guard!==g)continue;if(r.type==='OUT'&&!lastOut&&!open)lastOut=r;if(r.type==='IN'){const later=L.slice(i+1).some(x=>x.guard===g&&x.type==='OUT');if(!later)open=r;break}}
       const ms=open?Date.now()-Date.parse(open.timestamp):0;return {g,name:gName(b,g)||g,open,lastOut,ms,lvl:open?(ms>=STRAIGHT_H*36e5?'red':(ms>=DUE_H*36e5?'yellow':'green')):'off'}});
+    /* R426: when the other guard has timed in after him, his duty is over (even without his OUT) */
+    slots.forEach(s=>{if(s.open){const t=Date.parse(s.open.timestamp);const nx=L.find(x=>x&&x.type==='IN'&&x.guard!==s.g&&Date.parse(x.timestamp)>t);if(nx){s.lastOut={timestamp:nx.timestamp};s.open=null;s.ms=0;s.lvl='off'}}});
     const onDuty=slots.filter(s=>s.open);
     const alerts=[];slots.forEach(s=>{if(s.lvl==='red')alerts.push({lvl:'red',k:b+'|SD|'+s.g+'|'+(s.open&&s.open.timestamp),txt:'📍 '+U(bName(b))+' • STRAIGHT DUTY — '+s.name+' ('+s.g+') on duty '+hm(s.ms)+', no reliever yet'});else if(s.lvl==='yellow')alerts.push({lvl:'yellow',k:b+'|DUE|'+s.g+'|'+(s.open&&s.open.timestamp),txt:'📍 '+U(bName(b))+' • Relief due — '+s.name+' ('+s.g+') on duty '+hm(s.ms)})});
     if(recent&&!onDuty.length)alerts.push({lvl:'red',k:b+'|NONE|'+(last&&last.timestamp),txt:'📍 '+U(bName(b))+' • NO GUARD ON DUTY'+(last?' since '+tm(last.timestamp):'')});
@@ -28434,7 +28436,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function dh1Branch(){try{const a=typeof getCurrentApproverAssignment==='function'?getCurrentApproverAssignment():null;if(!a||a.key!=='diningHead1')return '';const e=currentEmployee;for(const x of branches()){const l=window.rusticaManagerLoadBranchEmployeeMaster?.(x.code)||[];if(l.some(q=>U(q.code)===U(e.code)))return x.code}}catch(e){}return ''}
   function place(id,host,before,tab){let el=document.getElementById(id);if(!el){el=document.createElement('div');el.id=id;el.className='r208-card'}if(tab)el.setAttribute('data-r162-tab',tab);if(before===el)return el;
     if(before&&before.parentElement===host){if(el.nextElementSibling!==before)host.insertBefore(el,before)}else if(el.parentElement!==host)host.insertBefore(el,host.firstChild);return el}
-  function render(el,list,title,who){const h=cardHtml(list,title);if(!h){el.style.display='none';return}el.style.display='';if(el.dataset.h!==h&&!el.querySelector('details[open]')){el.dataset.h=h;el.innerHTML=h}popup(list,who)}
+  function render(el,list,title,who){const h=cardHtml(list,title);if(!h){el.style.display='none';return}el.style.display='';if(el.dataset.h!==h&&!el.querySelector('details[open]')){el.dataset.h=h;el.innerHTML=h}}
   function popup(list,who){
     const reds=[];list.forEach(s=>s.alerts.filter(a=>a.lvl==='red').forEach(a=>reds.push(Object.assign({b:s.b},a))));
     const seenK='rcads_r208_seen_'+who;let seen={};try{seen=JSON.parse(localStorage.getItem(seenK)||'{}')||{}}catch(e){}
@@ -28644,9 +28646,9 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     if(window.rcadsTopManagementSession&&root&&getComputedStyle(th).display!=='none'){if(!el){el=document.createElement('div');el.id='r214Owner';el.className='r213-card';el.setAttribute('data-r162-tab','home')}const g=document.getElementById('r208Owner');if(g&&g.parentElement===root){if(g.nextElementSibling!==el)g.insertAdjacentElement('afterend',el)}else if(el.parentElement!==root)root.insertBefore(el,root.firstChild);const hh=res.length?h:'';el.style.display=hh?'':'none';if(el.dataset.h!==hh){el.dataset.h=hh;el.innerHTML=hh}}
     else if(el)el.remove();
   }
-  setInterval(()=>{try{quiet()}catch(e){console.warn('R214',e)}},6000);
+  /* R426: OFF */0;
   window.rcadsR213={opening,all,flags,cardHtml};
-  setInterval(()=>{try{tick()}catch(e){console.warn('R213',e)}},5000);
+  /* R426: opening alarm OFF */0;
 })();
 </script>
 
@@ -29504,7 +29506,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     // the existing "Select branch being checked" also opens the signals of that branch
     const f=w.focus;const fv=f?U(f.value):'';if(fv&&fv!==lastFocus&&branches().some(x=>x.code===fv)){lastFocus=fv;pick(w,fv);return}if(!fv)lastFocus='';
     draw(el)}
-  setInterval(tick,2000);setTimeout(tick,800);
+  /* R426: branch signals OFF */0;setTimeout(tick,800);
   window.rcadsR230={sig,pick:b=>{const w=who();if(w)pick(w,b)}};
 })();
 </script>
@@ -30937,9 +30939,9 @@ body.r328-open{overflow:hidden}
   async function filesToPages(files,prog){let pages=[];for(const f of files){if(/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name))pages=pages.concat(await pdfPages(f,prog));else if(/^image\//i.test(f.type))pages.push(await imgPage(f));else throw new Error(f.name+': only PDF or pictures (JPG/PNG). For Word, save it as PDF first.');if(pages.length>MAXP)throw new Error('Up to '+MAXP+' pages per document.')}return pages}
   function b64of(u){return String(u).split(',')[1]||''}
   async function uploadDoc(meta,pages,prog){
-    const d=await rpc('rustica_doc_put',Object.assign(auth(),{p_id:null,p_kind:meta.kind,p_doc_no:meta.no||null,p_title:meta.title||null,p_doc_date:meta.date||null,p_emp_code:meta.emp||null,p_emp_name:meta.empName||null,p_pages:pages.length}));
-    try{for(let i=0;i<pages.length;i++){prog&&prog(i+1,pages.length);let ok=false,err=null;for(let t=0;t<2&&!ok;t++){try{await rpc('rustica_doc_page_put',Object.assign(auth(),{p_id:d.id,p_page:i+1,p_data_b64:b64of(pages[i])}));ok=true}catch(e){err=e}}if(!ok)throw err}}
-    catch(e){try{await rpc('rustica_doc_delete',Object.assign(auth(),{p_id:d.id}))}catch(_){}throw e}
+    const BO=meta.branch?{p_branch_code:meta.branch}:{};const d=await rpc('rustica_doc_put',Object.assign(auth(),BO,{p_id:null,p_kind:meta.kind,p_doc_no:meta.no||null,p_title:meta.title||null,p_doc_date:meta.date||null,p_emp_code:meta.emp||null,p_emp_name:meta.empName||null,p_pages:pages.length}));
+    try{for(let i=0;i<pages.length;i++){prog&&prog(i+1,pages.length);let ok=false,err=null;for(let t=0;t<2&&!ok;t++){try{await rpc('rustica_doc_page_put',Object.assign(auth(),BO,{p_id:d.id,p_page:i+1,p_data_b64:b64of(pages[i])}));ok=true}catch(e){err=e}}if(!ok)throw err}}
+    catch(e){try{await rpc('rustica_doc_delete',Object.assign(auth(),BO,{p_id:d.id}))}catch(_){}throw e}
     return d.id}
   function parseName(name){const base=String(name||'').replace(/\.[a-z0-9]{2,5}$/i,'').replace(/_/g,' ').trim();
     const m=base.match(/^\s*((?:(?:memo(?:randum)?|circular|mc|m\.c\.|cod|code|no\.?|#)[\s.\-]*)*[0-9][0-9\-–.\/]*)\s*[-–.:)]*\s*(.*)$/i);
@@ -31057,8 +31059,10 @@ body.r328-open{overflow:hidden}
     for(let n=1;n<=r.pages;n++){
       const im=await loadImage(await page(r.id,n,PM));const W=Math.round(im.width*(scale||1)),H=Math.round(im.height*(scale||1));
       const last=n===r.pages;const BH=last?Math.round(W*0.30):0;
-      const c=document.createElement('canvas');c.width=W;c.height=H+BH;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,W,H);
-      if(last){const y0=H,u=W/1000;g.fillStyle='#000';g.font='bold '+Math.round(22*u)+'px Arial';g.textAlign='left';g.fillText('RECEIVED AND READ BY:',60*u,y0+40*u);
+      /* R426: if the bottom of the last page is blank (typed Legal memos), sign INSIDE the page -> stays Legal size */
+      let inside=false;if(last&&BH<H){try{const t=document.createElement('canvas');t.width=120;t.height=Math.max(12,Math.round(120*BH/W));const tg=t.getContext('2d');tg.drawImage(im,0,im.height*(1-BH/H),im.width,im.height*BH/H,0,0,t.width,t.height);const px=tg.getImageData(0,0,t.width,t.height).data;let dark=0;for(let k=0;k<px.length;k+=4){if(px[k]+px[k+1]+px[k+2]<690)dark++}inside=dark<(px.length/4)*0.004}catch(e){}}
+      const c=document.createElement('canvas');c.width=W;c.height=inside?H:H+BH;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,W,H);
+      if(last){const y0=inside?H-BH:H,u=W/1000;g.fillStyle='#000';g.font='bold '+Math.round(22*u)+'px Arial';g.textAlign='left';g.fillText(inside?'RECEIVED & OPENED BY:':'RECEIVED AND READ BY:',60*u,y0+40*u);
         const bw=440*u,bh=130*u,cx=W/2;const sc=Math.min(bw/sig.width,bh/sig.height);const sw=sig.width*sc,sh=sig.height*sc;
         const lineY=y0+200*u;g.drawImage(sig,cx-sw/2,lineY-sh+6*u,sw,sh);
         g.fillRect(cx-250*u,lineY,500*u,Math.max(1,2*u));
@@ -31074,7 +31078,7 @@ body.r328-open{overflow:hidden}
     put('%PDF-1.4\n%âãÏÓ\n');
     const obj=(id,s,stream)=>{off[id]=len;put(id+' 0 obj\n'+s);if(stream){put('\nstream\n');put(stream);put('\nendstream')}put('\nendobj\n')};
     obj(1,'<< /Type /Catalog /Pages 2 0 R >>');obj(2,'<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+N+' >>');
-    pages.forEach((p,i)=>{const id=3+i*3;const pw=595.28,ph=(pw*p.h/p.w).toFixed(2);const img=b64ToBytes(b64of(p.u));const cs='q '+pw+' 0 0 '+ph+' 0 0 cm /Im0 Do Q';
+    pages.forEach((p,i)=>{const id=3+i*3;const pw=Math.abs(p.h/p.w-14/8.5)<0.02?612:595.28,ph=(pw*p.h/p.w).toFixed(2);const img=b64ToBytes(b64of(p.u));const cs='q '+pw+' 0 0 '+ph+' 0 0 cm /Im0 Do Q';
       obj(id,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+pw+' '+ph+'] /Resources << /XObject << /Im0 '+(id+2)+' 0 R >> >> /Contents '+(id+1)+' 0 R >>');
       obj(id+1,'<< /Length '+cs.length+' >>',enc.encode(cs));
       obj(id+2,'<< /Type /XObject /Subtype /Image /Width '+p.w+' /Height '+p.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+img.length+' >>',img)});
@@ -31205,7 +31209,7 @@ body.r328-open{overflow:hidden}
     return others.concat([new File([pdf],name,{type:'application/pdf'})])}
   window.rcadsR328Files=filesFor;
 
-  window.rcadsR328={openLib,mineButton,count:k=>items(k).length-legacyItems(k).length,sig:()=>VER+'|'+JSON.stringify(PMC),refreshAll,libRefresh,parseName,jpegPdf,_pm:()=>PM,_lib:LIB};
+  window.rcadsR328={_x:{uploadDoc,rpc,auth,findEmp,branchList,staff,PMC,SEEN,openMine,openPm,openItem,cur:()=>CUR,pm:()=>PM,lib,libRefresh},openLib,mineButton,count:k=>items(k).length-legacyItems(k).length,sig:()=>VER+'|'+JSON.stringify(PMC),refreshAll,libRefresh,parseName,jpegPdf,_pm:()=>PM,_lib:LIB};
 })();
 
 </script>
@@ -34708,7 +34712,7 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
    The merge rules (attendance, guard logs, access list, signatures) are unchanged. */
 (function(){
   'use strict';
-  const FULL_EVERY=6*3600e3, OVERLAP=15*60e3, MIN_GAP=3000, MISSING_WAIT=10*60e3, FULL_GAP_NO_SQL=60e3;
+  const FULL_EVERY=24*3600e3, OVERLAP=15*60e3, MIN_GAP=3000, MISSING_WAIT=10*60e3, FULL_GAP_NO_SQL=60e3;
   const orig=window.rcadsCloudRpc;
   if(typeof orig!=='function'||orig.__r425)return;
   const now=()=>{try{const t=window.rcadsTrueNow&&window.rcadsTrueNow();if(t)return +t}catch(e){}return Date.now()};
@@ -34720,12 +34724,12 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
     (Array.isArray(rows)?rows:[]).forEach(r=>{const t=Date.parse(r&&r.updated_at||'');if(t&&t>m)m=t});
     m=Math.min(m,now()+60e3); /* a phone with a wrong clock must not push the marker into the future */
     return m?new Date(m).toISOString():''}
-  async function pull(body){
+  async function pull(body,force){
     const br=String(body&&body.p_branch_code||'');
     const SK='r425_since_'+br, FK='r425_full_'+br;
     const since=get(SK), fullAt=+get(FK)||0, t0=Date.now();
     let rows=null;
-    if(since&&t0-fullAt<FULL_EVERY&&t0>missingUntil){
+    if(!force&&since&&t0-fullAt<FULL_EVERY&&t0>missingUntil){
       try{
         rows=await orig('rustica_rcads_list_kv_since',Object.assign({},body,{p_since:new Date((Date.parse(since)||0)-OVERLAP).toISOString()}));
       }catch(e){
@@ -34735,7 +34739,7 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
       }
     }
     if(rows===null){
-      if(since&&t0<missingUntil&&t0-fullAt<FULL_GAP_NO_SQL)return [];
+      if(!force&&since&&t0<missingUntil&&t0-fullAt<FULL_GAP_NO_SQL)return [];
       rows=await orig('rustica_rcads_list_kv',body);
       put(FK,String(Date.now()));
     }
@@ -34745,6 +34749,7 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   const wrapped=async function(name,body){
     if(name!=='rustica_rcads_list_kv')return orig.apply(this,arguments);
     const br=String(body&&body.p_branch_code||'');
+    if(window.__r426Force){try{if(inflight[br])await inflight[br]}catch(e){}const r=await pull(body||{},true);lastDone[br]=Date.now();return r}
     if(inflight[br])return inflight[br];
     if(lastDone[br]&&Date.now()-lastDone[br]<MIN_GAP)return [];
     inflight[br]=pull(body||{}).then(r=>{lastDone[br]=Date.now();return r}).finally(()=>{delete inflight[br]});
@@ -34753,6 +34758,303 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   wrapped.__r425=true;
   window.rcadsCloudRpc=wrapped;
   window.rcadsR425={pull,state:br=>({since:get('r425_since_'+br),fullAt:+get('r425_full_'+br)||0,missingUntil})};
+})();
+</script>
+
+<!-- RCADS PATCH: R426 TYPED MEMOS • RECEIVE & OPEN • REMINDERS • QUIET ALERTS -->
+<style id="rcadsR426Css">
+[id^="r199"],#r213Pop,#r213Card,#r214Owner,#r214HrSection,#r214HrNavBtn,#r230Sig,#r208Pop{display:none!important}
+.r426-card h4{margin:0 0 6px}
+.r426-ed{min-height:220px;max-height:520px;overflow:auto;border:1px solid #c8a46a;border-radius:8px;background:#fff;color:#000;padding:12px 14px;font:15px/1.45 Arial,Helvetica,sans-serif;outline:none}
+.r426-ed table{border-collapse:collapse}.r426-ed td,.r426-ed th{border:1px solid #555;padding:3px 6px}
+.r426-tb{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}.r426-tb button{border:1px solid #c8a46a;background:#fffaf2;color:#4c2b17;border-radius:6px;padding:5px 9px;font-weight:900;cursor:pointer;min-width:34px}
+.r426-brs{display:flex;flex-wrap:wrap;gap:6px 12px;margin:4px 0 8px;font-size:12px;font-weight:800}.r426-brs label{display:flex;align-items:center;gap:4px}
+.r426-msg{font-size:12px;font-weight:800;margin-top:6px;color:#4c2b17}.r426-msg.bad{color:#a1281f}
+.r426-prev{display:flex;gap:8px;overflow-x:auto;margin-top:8px}.r426-prev img{height:360px;border:1px solid #ccc;background:#fff}
+.r426-rem{border:2px solid #e0b64a;background:#fff8e1;border-radius:12px;padding:8px 10px;margin:0 0 10px}
+.r426-rem-h{font-weight:900;color:#7a4a00;font-size:13px;margin-bottom:4px}
+.r426-ri{border-top:1px dashed #e7cf8a;padding:5px 0;font-size:13.5px;color:#3d2615}.r426-ri:first-of-type{border-top:0}
+.r426-ri small{display:block;color:#8a6a4a;font-size:11px;font-weight:700}
+.r426-mylist .r426-ri{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.r426-mylist button{border:1px solid #b33;background:#fff;color:#a1281f;border-radius:6px;font-weight:900;padding:3px 8px;cursor:pointer}
+#r426Gate,#r426Lock{position:fixed;inset:0;z-index:2147483647;background:rgba(40,22,10,.82);display:flex;align-items:center;justify-content:center;padding:18px}
+.r426-gbox{background:#fffaf2;border-radius:18px;max-width:420px;width:100%;padding:20px;text-align:center;color:#3d2615;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.r426-gbox h3{margin:0 0 6px;color:#5b3519;font-size:18px}.r426-gbox p{font-size:13px;margin:8px 0 14px;color:#6d5845}
+.r426-gbtn{display:block;width:100%;border:0;border-radius:12px;background:#2f6b3a;color:#fff;font-weight:900;font-size:16px;padding:14px;cursor:pointer}
+.r426-gbtn.light{background:#fff;color:#5b3519;border:1px solid #c8a46a;margin-top:8px;font-size:13px;padding:10px}
+.r426-pmgate{position:absolute;inset:0;z-index:5;background:#fffaf2;display:flex;align-items:flex-start;justify-content:center;padding:30px 16px}
+#r328PmBody{position:relative}
+.r426-tbl{width:100%;border-collapse:collapse;font-size:12px}.r426-tbl th,.r426-tbl td{border:1px solid #e4d2b8;padding:4px 6px;text-align:left;vertical-align:middle}.r426-tbl img{height:28px}
+.r426-asof{font-size:11px;font-weight:800;color:#2f6b3a;margin-left:8px}
+#r426Toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:2147483400;background:#3d2615;color:#fff;font-weight:900;font-size:13px;padding:10px 16px;border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+</style>
+<script id="rcadsR426Script">
+/* R426 — Nov 6, 2026
+   1) ✍ WRITE A MEMO (HR): type or paste from WPS/Word → Legal-size pages with the HR signature
+      • PERSONAL MEMO / NTE → the employee taps ✍ RECEIVE & OPEN = SEEN + signature (Rustica ID) → signed PDF in the 201
+      • MEMO CIRCULAR → chosen branches (or ALL) → every employee taps ✍ RECEIVE & OPEN (seen + signature + read-to-the-end)
+   2) The app is locked until an unsigned Personal Memo is received.
+   3) 📌 REMINDERS in NOTICES — written by HR and the Owners only (short, chosen branches / ALL, with a duration).
+   4) No more alarms / red-flag pop-ups (HR and all Management). Guards: 13 h straight duty, handover ends the previous duty.
+   5) HR: data refreshed every 3 min; a FULL refresh before any DTR Summary Log action ("Data as of").
+   (R425 full safety sync is now once a day.) */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const J=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}};
+  const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}};
+  const now=()=>{try{const t=window.rcadsTrueNow&&window.rcadsTrueNow();if(t)return new Date(t)}catch(e){}return new Date()};
+  const fmt=d=>{d=new Date(d);return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})};
+  const X=()=>(window.rcadsR328&&window.rcadsR328._x)||null;
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function curBranch(){try{return rusticaGetCurrentBranchCode()}catch(e){return 'SAN_RAFAEL'}}
+  function isHr(){const m=document.getElementById('simpleHrAdminModal');return !!(m&&getComputedStyle(m).display!=='none')}
+  function toast(t,ms){let d=document.getElementById('r426Toast');if(!t){if(d)d.remove();return}if(!d){d=document.createElement('div');d.id='r426Toast';document.body.appendChild(d)}d.textContent=t;clearTimeout(d._t);if(ms)d._t=setTimeout(()=>d.remove(),ms)}
+  function hrSig(){return J('rcads_r171_hr_signature_v1',{})||{}}
+  function idSigOf(code){try{const r=window.rcadsR167&&window.rcadsR167.rec(U(code));return r&&r.sig||''}catch(e){return ''}}
+
+  /* =================== 5) DATA REFRESH (HR) =================== */
+  let LASTFULL=0;
+  async function fullPull(){if(typeof window.rcadsCloudPullMerge!=='function')throw Error('Cloud is not ready.');window.__r426Force=true;try{await window.rcadsCloudPullMerge()}finally{window.__r426Force=false}LASTFULL=Date.now();return LASTFULL}
+  window.rcadsR426FullPull=fullPull;
+  setInterval(()=>{try{if(isHr()&&navigator.onLine&&document.visibilityState!=='hidden'&&typeof window.rcadsCloudPullMerge==='function')window.rcadsCloudPullMerge().catch(()=>{})}catch(e){}},180000);
+  const DTRBTN=/DTR SUMMARY|SUMMARY LOG|EDIT DTR|DOWNLOAD DTR|VIEW DTR|EXPORT DTR/i;
+  let passing=false;
+  document.addEventListener('click',async e=>{
+    if(passing)return;const b=e.target.closest&&e.target.closest('button,a');if(!b||!isHr())return;
+    const inPanel=!!b.closest('#hrDtrExportPanel');if(!inPanel&&!DTRBTN.test(b.textContent||''))return;
+    if(!/DTR|SUMMARY|EXPORT|DOWNLOAD|VIEW|EDIT/i.test(b.textContent||''))return;
+    if(Date.now()-LASTFULL<120000||!navigator.onLine)return;
+    e.preventDefault();e.stopImmediatePropagation();
+    toast('⬇ Getting ALL the latest data from the cloud first…');
+    try{await Promise.race([fullPull(),new Promise((_,rj)=>setTimeout(()=>rj(Error('timeout')),25000))]);toast('✓ Data as of '+fmt(LASTFULL),2500)}
+    catch(err){toast('⚠ Could not get the latest data ('+err.message+'). Using the data on this laptop.',4000);LASTFULL=Date.now()-60000}
+    passing=true;try{b.click()}finally{passing=false}
+  },true);
+  setInterval(()=>{try{document.querySelectorAll('.r371-box header b').forEach(h=>{if(LASTFULL&&!h.querySelector('.r426-asof'))h.insertAdjacentHTML('beforeend','<span class="r426-asof">• Data as of '+esc(fmt(LASTFULL))+'</span>')})}catch(e){}},1000);
+
+  /* =================== 1) MEMO WRITER (HR) =================== */
+  const PW=816,PH=1344,PAD=72,OUTW=1240;
+  const ALLOW={B:1,STRONG:1,I:1,EM:1,U:1,P:1,BR:1,UL:1,OL:1,LI:1,TABLE:1,THEAD:1,TBODY:1,TR:1,TD:1,TH:1,H1:1,H2:1,H3:1,DIV:1,SPAN:1};
+  function clean(html){
+    const t=document.createElement('template');t.innerHTML=String(html||'').replace(/<!--[\s\S]*?-->/g,'');
+    t.content.querySelectorAll('style,script,meta,link,title,xml,img,svg,object,iframe,o\\:p').forEach(n=>n.remove());
+    function walk(n,out){
+      n.childNodes.forEach(c=>{
+        if(c.nodeType===3){out.appendChild(document.createTextNode(c.nodeValue.replace(/ /g,' ')));return}
+        if(c.nodeType!==1)return;const tag=c.tagName.toUpperCase().replace(/^.*:/,'');
+        if(!ALLOW[tag]){walk(c,out);return}
+        const st=(c.getAttribute('style')||'').toLowerCase();let el;
+        if(tag==='SPAN'){
+          let wrap=out;const bold=/font-weight\s*:\s*(bold|[6-9]00)/.test(st),it=/font-style\s*:\s*italic/.test(st),un=/text-decoration[^;]*underline/.test(st);
+          if(!bold&&!it&&!un){walk(c,out);return}
+          if(bold){const x=document.createElement('b');wrap.appendChild(x);wrap=x}if(it){const x=document.createElement('i');wrap.appendChild(x);wrap=x}if(un){const x=document.createElement('u');wrap.appendChild(x);wrap=x}
+          walk(c,wrap);return}
+        el=document.createElement(tag==='STRONG'?'B':tag==='EM'?'I':tag);
+        const al=(st.match(/text-align\s*:\s*(left|center|right|justify)/)||[])[1]||String(c.getAttribute('align')||'').toLowerCase();
+        if(/^(left|center|right|justify)$/.test(al)&&/^(P|DIV|H1|H2|H3|TD|TH|LI)$/.test(tag))el.style.textAlign=al;
+        if(/^(TD|TH)$/.test(tag)){['colspan','rowspan'].forEach(a=>{const v=c.getAttribute(a);if(v&&/^\d+$/.test(v))el.setAttribute(a,v)})}
+        out.appendChild(el);walk(c,el);
+      })}
+    const box=document.createElement('div');walk(t.content,box);
+    box.querySelectorAll('p,div').forEach(p=>{if(!p.textContent.trim()&&!p.querySelector('br,table'))p.innerHTML='<br>'});
+    return box.innerHTML}
+  const MEMOCSS='.r426pg{width:'+PW+'px;height:'+PH+'px;box-sizing:border-box;padding:'+PAD+'px;background:#fff;color:#000;font:15px/1.45 Arial,Helvetica,sans-serif;position:relative;overflow:hidden}'
+    +'.r426pg *{box-sizing:border-box}.r426pg p,.r426pg div{margin:0 0 8px}.r426pg ul,.r426pg ol{margin:0 0 8px;padding-left:28px}.r426pg h1{font-size:22px;margin:0 0 8px}.r426pg h2{font-size:19px;margin:0 0 8px}.r426pg h3{font-size:17px;margin:0 0 6px}'
+    +'.r426pg table{border-collapse:collapse;margin:0 0 8px;max-width:100%}.r426pg td,.r426pg th{border:1px solid #333;padding:3px 6px;font-size:14px;vertical-align:top}'
+    +'.r426lh{text-align:center;border-bottom:3px double #000;padding-bottom:8px;margin-bottom:12px}.r426lh b{font-size:21px;letter-spacing:1px;display:block}.r426lh small{font-size:12px;letter-spacing:2px}'
+    +'.r426tt{text-align:center;font-weight:900;font-size:19px;letter-spacing:2px;margin:4px 0 12px}'
+    +'.r426meta{width:100%;border:0!important;margin-bottom:10px}.r426meta td{border:0!important;padding:2px 4px;font-size:14.5px}.r426meta td:first-child{width:110px;font-weight:900}'
+    +'.r426hr{border-top:1.5px solid #000;margin:6px 0 14px}.r426sig{margin-top:22px}.r426sig img{height:62px;display:block;margin:4px 0 -6px}.r426sig b{display:block;font-size:15px;text-decoration:underline}.r426sig small{font-size:13px}'
+    +'.r426pn{position:absolute;top:26px;right:'+PAD+'px;font-size:11px;color:#555}.r426spacer{height:262px}';
+  function headerHtml(m){
+    return '<div class="r426lh"><b>RUSTICA RESTAURANT &amp; CATERING</b><small>HUMAN RESOURCES DEPARTMENT</small></div>'
+      +'<div class="r426tt">'+(m.kind==='MC'?'MEMORANDUM CIRCULAR':(/NTE|EXPLAIN/i.test(m.no+' '+m.title)?'NOTICE TO EXPLAIN':'MEMORANDUM'))+'</div>'
+      +'<table class="r426meta">'+(m.no?'<tr><td>MEMO NO.</td><td>: '+esc(m.no)+'</td></tr>':'')+'<tr><td>DATE</td><td>: '+esc(m.dateTxt)+'</td></tr><tr><td>TO</td><td>: '+esc(m.to)+'</td></tr><tr><td>FROM</td><td>: '+esc(m.fromName)+', HR OPERATION OFFICER</td></tr><tr><td>SUBJECT</td><td>: <b>'+esc(m.title)+'</b></td></tr></table><div class="r426hr"></div>'}
+  function sigHtml(){const h=hrSig();return '<div class="r426sig">Prepared by:'+(h.img?'<img src="'+h.img+'">':'<div style="height:50px"></div>')+'<b>'+esc(U(h.name||'JOVILITO F. FETIZANAN'))+'</b><small>'+esc(h.title||'HR Operation Officer')+'</small></div>'}
+  function loadImg(u){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(Error('Cannot draw the memo page.'));im.src=u})}
+  async function paginate(m,bodyHtml){
+    const host=document.createElement('div');host.style.cssText='position:fixed;left:-20000px;top:0;visibility:hidden';host.innerHTML='<style>'+MEMOCSS+'</style>';document.body.appendChild(host);
+    const pages=[];let pg,inner;const avail=PH-2*PAD;
+    function newPage(){pg=document.createElement('div');pg.className='r426pg';inner=document.createElement('div');pg.appendChild(inner);host.appendChild(pg);pages.push(pg)}
+    function fits(){return inner.scrollHeight<=avail}
+    function add(node){inner.appendChild(node);if(fits())return;inner.removeChild(node);
+      if(inner.childNodes.length){newPage();inner.appendChild(node);if(fits())return;inner.removeChild(node)}
+      const tag=node.tagName;
+      if(tag==='UL'||tag==='OL'||tag==='TABLE'){const kids=tag==='TABLE'?[...node.querySelectorAll('tr')]:[...node.children];let shell=node.cloneNode(false);let tb=tag==='TABLE'?document.createElement('tbody'):null;if(tb)shell.appendChild(tb);inner.appendChild(shell);
+        kids.forEach(k=>{(tb||shell).appendChild(k);if(!fits()){(tb||shell).removeChild(k);newPage();shell=node.cloneNode(false);tb=tag==='TABLE'?document.createElement('tbody'):null;if(tb)shell.appendChild(tb);inner.appendChild(shell);(tb||shell).appendChild(k)}});return}
+      if(node.textContent&&node.textContent.length>40&&!node.querySelector('table')){const words=node.textContent.split(/(\s+)/);let el=node.cloneNode(false);inner.appendChild(el);let buf='';for(const w of words){el.textContent=buf+w;if(!fits()){el.textContent=buf;newPage();el=node.cloneNode(false);inner.appendChild(el);buf=w.trimStart();el.textContent=buf}else buf+=w}return}
+      inner.appendChild(node)}
+    newPage();
+    const tmp=document.createElement('div');tmp.innerHTML=headerHtml(m);[...tmp.childNodes].forEach(n=>add(n));
+    const body=document.createElement('div');body.innerHTML=bodyHtml||'';[...body.childNodes].forEach(n=>{if(n.nodeType===3){if(!n.nodeValue.trim())return;const p=document.createElement('p');p.textContent=n.nodeValue;n=p}add(n)});
+    const sg=document.createElement('div');sg.innerHTML=sigHtml();add(sg.firstChild);
+    const sp=document.createElement('div');sp.className='r426spacer';add(sp);
+    pages.forEach((p,i)=>{if(pages.length>1)p.insertAdjacentHTML('beforeend','<div class="r426pn">Page '+(i+1)+' of '+pages.length+'</div>')});
+    const out=[];
+    for(const p of pages){
+      const xhtml=new XMLSerializer().serializeToString(p);
+      const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+PW+'" height="'+PH+'"><foreignObject x="0" y="0" width="'+PW+'" height="'+PH+'"><div xmlns="http://www.w3.org/1999/xhtml"><style>'+MEMOCSS+'</style>'+xhtml+'</div></foreignObject></svg>';
+      const im=await loadImg('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg));
+      const c=document.createElement('canvas');c.width=OUTW;c.height=Math.round(PH*OUTW/PW);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);
+      out.push(c.toDataURL('image/jpeg',0.72))}
+    host.remove();return out}
+  window.rcadsR426Paginate=paginate;
+  function brChecks(name){return '<div class="r426-brs" data-r426-brs="'+name+'"><label><input type="checkbox" value="ALL" checked> ALL BRANCHES</label>'+branches().map(b=>'<label><input type="checkbox" value="'+esc(b.code)+'"> '+esc(b.name)+'</label>').join('')+'</div>'}
+  function chosen(name){const box=document.querySelector('[data-r426-brs="'+name+'"]');if(!box)return [];const v=[...box.querySelectorAll('input:checked')].map(i=>i.value);return v.includes('ALL')?branches().map(b=>b.code):v}
+  document.addEventListener('change',e=>{const i=e.target;if(!i.closest||!i.closest('[data-r426-brs]'))return;const box=i.closest('[data-r426-brs]');if(i.value==='ALL'&&i.checked)box.querySelectorAll('input:not([value="ALL"])').forEach(x=>x.checked=false);else if(i.value!=='ALL'&&i.checked){const a=box.querySelector('input[value="ALL"]');if(a)a.checked=false}});
+  function writerHtml(){return '<h4>✍ WRITE A MEMO — type here or PASTE from WPS / Word (always LEGAL size, with your signature)</h4>'
+    +'<div class="r426-brs"><label><input type="radio" name="r426Kind" value="MC" checked> 📄 MEMO CIRCULAR (goes to MEMO CIRCULARS)</label><label><input type="radio" name="r426Kind" value="PM"> 📝 PERSONAL MEMO / NTE (one employee → 201)</label></div>'
+    +'<div id="r426ToMc"><label>SEND TO</label>'+brChecks('mc')+'</div>'
+    +'<div id="r426ToPm" style="display:none"><label>EMPCODE</label><input id="r426Emp" list="r159NCodeList" placeholder="e.g. SRF-EMP10" autocomplete="off"><div id="r426EmpWho" class="r426-msg"></div></div>'
+    +'<div class="r159-row2"><div><label>MEMO NO.</label><input id="r426No" placeholder="e.g. MC-2026-015"></div><div><label>DATE</label><input id="r426Date" type="date"></div></div>'
+    +'<label>SUBJECT / TITLE</label><input id="r426Title" placeholder="e.g. Proper Wearing of Uniform">'
+    +'<div class="r426-tb"><button type="button" data-r426-cmd="bold"><b>B</b></button><button type="button" data-r426-cmd="italic"><i>I</i></button><button type="button" data-r426-cmd="underline"><u>U</u></button><button type="button" data-r426-cmd="insertUnorderedList">• List</button><button type="button" data-r426-cmd="insertOrderedList">1. List</button><button type="button" data-r426-cmd="justifyLeft">⟸</button><button type="button" data-r426-cmd="justifyCenter">≡</button><button type="button" data-r426-cmd="justifyRight">⟹</button><button type="button" data-r426-cmd="removeFormat">✕ format</button></div>'
+    +'<div class="r426-ed" id="r426Ed" contenteditable="true" spellcheck="true"></div>'
+    +'<div class="r159-row2" style="margin-top:8px"><button type="button" class="r159-btn" id="r426Prev" style="background:#fff;color:#4c2b17;border:1px solid #c8a46a">👁 PREVIEW (LEGAL)</button><button type="button" class="r159-btn" id="r426Send">SEND MEMO</button></div>'
+    +'<div id="r426Msg" class="r426-msg"></div><div id="r426PrevBox" class="r426-prev"></div>'}
+  function kind(){const r=document.querySelector('input[name="r426Kind"]:checked');return r?r.value:'MC'}
+  function memoMeta(){const k=kind();const no=(document.getElementById('r426No').value||'').trim();const title=(document.getElementById('r426Title').value||'').trim();const dv=document.getElementById('r426Date').value;const d=dv?new Date(dv+'T00:00:00'):now();
+    const h=hrSig();let to='ALL EMPLOYEES';let emp=null;
+    if(k==='PM'){const f=X()&&X().findEmp(document.getElementById('r426Emp').value);if(f){emp=f;to=U(f.emp.name)+' ('+U(f.emp.code)+')'+(f.emp.position?' — '+U(f.emp.position):'')}}
+    else{const br=chosen('mc');to=br.length===branches().length?'ALL EMPLOYEES — ALL BRANCHES':'ALL EMPLOYEES — '+br.map(bName).join(', ').toUpperCase()}
+    return {kind:k,no,title,date:dv||'',dateTxt:d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),to,fromName:U(h.name||'JOVILITO F. FETIZANAN'),emp}}
+  function say(t,bad){const m=document.getElementById('r426Msg');if(m){m.textContent=t;m.className='r426-msg'+(bad?' bad':'')}}
+  async function build(){const m=memoMeta();if(!m.title)throw Error('Type the SUBJECT / TITLE.');const ed=document.getElementById('r426Ed');const body=clean(ed.innerHTML);if(!ed.textContent.trim())throw Error('Type or paste the memo.');
+    if(m.kind==='PM'&&!m.emp)throw Error('Type a valid EMPCODE.');if(m.kind==='MC'&&!chosen('mc').length)throw Error('Choose the branch(es).');
+    const pages=await paginate(m,body);return {m,pages}}
+  let SENDING=false;
+  async function send(){if(SENDING)return;const x=X();if(!x){say('⚠ Memo storage not ready (R328).',true);return}
+    let built;try{say('Preparing the Legal pages…');built=await build()}catch(e){say('⚠ '+e.message,true);return}
+    const {m,pages}=built;
+    if(m.kind==='PM'){if(!confirm('Send "'+(m.no?m.no+' — ':'')+m.title+'" ('+pages.length+' Legal page(s)) to '+m.emp.emp.name+'?\n\nThe employee must tap ✍ RECEIVE & OPEN. The signed copy goes to the 201 automatically.'))return;
+      SENDING=true;try{await x.uploadDoc({kind:'PM',no:m.no,title:m.title,emp:U(m.emp.emp.code),empName:m.emp.emp.name,branch:m.emp.branch&&m.emp.branch.code},pages,(a,b)=>say('Uploading page '+a+' of '+b+'…'));say('✓ Sent to '+m.emp.emp.name+'. Waiting for RECEIVE & OPEN.');clearEd()}catch(e){say('⚠ NOT SENT: '+e.message,true)}finally{SENDING=false}return}
+    const brs=chosen('mc');if(!confirm('Post "'+(m.no?m.no+' — ':'')+m.title+'" ('+pages.length+' Legal page(s)) to MEMO CIRCULARS of: '+brs.map(bName).join(', ')+'?'))return;
+    SENDING=true;const done=[],bad=[];let firstId=null,global=false;
+    try{for(const b of brs){if(global){done.push(b);continue}
+        try{const id=await x.uploadDoc({kind:'MC',no:m.no,title:m.title,date:m.date||null,branch:b},pages,(a,c)=>say(bName(b)+': uploading page '+a+' of '+c+'…'));done.push(b);
+          if(!firstId){firstId=id;const other=brs.find(o=>o!==b);if(other){try{const d=await x.rpc('rustica_doc_list',Object.assign(x.auth(),{p_branch_code:other,p_kind:'MC'}));if((d&&d.rows||[]).some(r=>r.id===id))global=true}catch(e){}}}}
+        catch(e){bad.push(bName(b)+': '+e.message)}}
+      try{await x.libRefresh('MC')}catch(e){}
+      say(bad.length?'⚠ Posted to '+done.map(bName).join(', ')+'. NOT posted: '+bad.join(' • '):'✓ Posted to MEMO CIRCULARS: '+done.map(bName).join(', ')+(global?' (one shared list for all branches)':''),!!bad.length);if(!bad.length)clearEd()}
+    finally{SENDING=false}}
+  function clearEd(){['r426No','r426Title'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});const ed=document.getElementById('r426Ed');if(ed)ed.innerHTML='';const p=document.getElementById('r426PrevBox');if(p)p.innerHTML=''}
+  document.addEventListener('paste',e=>{const ed=e.target.closest&&e.target.closest('#r426Ed');if(!ed)return;e.preventDefault();const cd=e.clipboardData;const h=cd.getData('text/html');let html=h?clean(h):esc(cd.getData('text/plain')).replace(/\r?\n/g,'<br>');try{document.execCommand('insertHTML',false,html)}catch(_){ed.insertAdjacentHTML('beforeend',html)}});
+  document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
+    const c=t.closest('[data-r426-cmd]');if(c){e.preventDefault();document.getElementById('r426Ed').focus();try{document.execCommand(c.getAttribute('data-r426-cmd'),false,null)}catch(_){}return}
+    if(t.closest('#r426Prev')){try{say('Preparing the preview…');const {pages}=await build();document.getElementById('r426PrevBox').innerHTML=pages.map(p=>'<img src="'+p+'">').join('');say('✓ '+pages.length+' Legal page(s). The space at the bottom of the last page is for the employee’s signature.')}catch(err){say('⚠ '+err.message,true)}return}
+    if(t.closest('#r426Send')){send();return}});
+  document.addEventListener('change',e=>{if(e.target.name==='r426Kind'){const pm=kind()==='PM';document.getElementById('r426ToPm').style.display=pm?'':'none';document.getElementById('r426ToMc').style.display=pm?'none':''}});
+  document.addEventListener('input',e=>{if(e.target.id!=='r426Emp')return;const f=X()&&X().findEmp(e.target.value);const w=document.getElementById('r426EmpWho');if(w)w.textContent=f?'✓ '+U(f.emp.name)+' • '+(f.emp.position||'')+' • '+f.branch.name:''});
+
+  /* =================== 1b) PERSONAL MEMO: ✍ RECEIVE & OPEN (auto-sign) =================== */
+  function pmGate(){const box=document.getElementById('r328PmBody');const sign=document.getElementById('r328Sign');if(!box||!sign||box.querySelector('.r426-pmgate'))return;const x=X();const PM=x&&x.pm();if(!PM||!PM.cur||PM.cur.signed_at)return;
+    if(box.dataset.r426Open===String(PM.cur.id))return;
+    const has=!!idSigOf(PM.code);const g=document.createElement('div');g.className='r426-pmgate';
+    g.innerHTML='<div class="r426-gbox"><h3>📝 '+esc(PM.cur.title||'MEMO FROM HR')+'</h3><p>By tapping the button, you confirm that you <b>RECEIVED</b> this memo. '+(has?'The signature on your Rustica ID, the date and the time are placed on the memo and the signed copy goes to your 201 FILES.':'You have no signature on your Rustica ID yet — you will sign with your finger at the bottom.')+'</p><button type="button" class="r426-gbtn" data-r426-recv>✍ RECEIVE &amp; OPEN MEMO</button><div class="r426-msg" id="r426PmMsg"></div></div>';
+    box.appendChild(g)}
+  async function recvPm(){const x=X();const PM=x.pm();const g=document.querySelector('.r426-pmgate');const msg=document.getElementById('r426PmMsg');const id=PM.cur.id;
+    if(!idSigOf(PM.code)){document.getElementById('r328PmBody').dataset.r426Open=String(id);if(g)g.remove();const s=document.getElementById('r328Sign');if(s)s.scrollIntoView({behavior:'smooth'});return}
+    const btn=g.querySelector('[data-r426-recv]');btn.disabled=true;if(msg)msg.textContent='Receiving… please wait.';
+    const ib=document.querySelector('[data-r328-idsig]');if(ib)ib.click();const a=document.getElementById('r328Agree');if(a){a.checked=true;a.dispatchEvent(new Event('change',{bubbles:true}))}
+    const t0=Date.now();while(Date.now()-t0<90000){const sb=document.querySelector('[data-r328-sign]');if(sb&&!sb.disabled){window.__r426AutoSign=id;sb.click();break}await new Promise(r=>setTimeout(r,400))}
+    const t1=Date.now();while(Date.now()-t1<120000){const r=(x.pm().rows||[]).find(z=>z.id===id);if(r&&r.signed_at){try{await x.openPm(id)}catch(e){}return}await new Promise(r=>setTimeout(r,500))}
+    if(msg)msg.textContent='⚠ Not received yet — check the internet and try again.';btn.disabled=false}
+  document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-r426-recv]')){recvPm();}});
+  /* the app is locked until a new personal memo is received */
+  function viewerCode(){for(const el of document.querySelectorAll('.r159-board')){const v=el._r159viewer;if(v&&v.code&&/^(EMPLOYEE|APPROVER|MANAGER)$/.test(v.role||'')&&el.offsetParent!==null)return U(v.code)}return ''}
+  function lockTick(){const x=X();let L=document.getElementById('r426Lock');const pmOpen=document.getElementById('r328Pm')&&getComputedStyle(document.getElementById('r328Pm')).display!=='none';
+    const code=viewerCode();const n=x&&code?(x.PMC[code]||0):0;
+    if(!n||isHr()||pmOpen||document.getElementById('r160Gate')){if(L)L.remove();return}
+    if(!L){L=document.createElement('div');L.id='r426Lock';L.innerHTML='<div class="r426-gbox"><h3>📝 YOU HAVE A NEW MEMO FROM HR</h3><p>Please receive and read it first. RCADS continues after you receive it.</p><button type="button" class="r426-gbtn" data-r426-lockopen>✍ RECEIVE &amp; OPEN</button></div>';document.body.appendChild(L)}
+    L.dataset.code=code}
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-r426-lockopen]');if(!b)return;const L=document.getElementById('r426Lock');const code=L&&L.dataset.code;const btn=document.querySelector('[data-r328-mine="'+code+'"]');L&&L.remove();if(btn)btn.click();else{const x=X();x&&x.openMine(code,code)}});
+
+  /* =================== 1c) MEMO CIRCULAR: ✍ RECEIVE & OPEN + read to the end =================== */
+  const ACK=c=>'rcads_r426_ack_'+U(c);
+  function acks(c){return J(ACK(c),{})||{}}
+  function empV(v){return v&&v.code&&/^(EMPLOYEE|APPROVER|MANAGER)$/.test(v.role||'')&&/^[A-Z]{2,4}-[A-Z0-9.]+$/.test(U(v.code))}
+  let OPENED=null;
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;const o=t.closest('[data-r328-open],[data-r328-go]');if(!o)return;const id=o.getAttribute('data-r328-open')||o.getAttribute('data-r328-go');if(!id)return;if(gateMc(id)){e.preventDefault();e.stopImmediatePropagation()}},true);
+  document.addEventListener('change',e=>{const s=e.target.closest&&e.target.closest('[data-r328-sel]');if(!s||!s.value)return;if(gateMc(s.value)){e.stopImmediatePropagation()}},true);
+  function gateMc(id){const x=X();if(!x)return false;const cur=x.cur();if(!cur||cur.kind!=='MC'||!empV(cur.v))return false;const doc=(x.lib('MC')||[]).find(d=>d.id===id);if(!doc||doc.legacy)return false;
+    const code=U(cur.v.code);if(acks(code)[id]){OPENED={code,id};return false}
+    const has=idSigOf(code);let g=document.getElementById('r426Gate');if(g)g.remove();g=document.createElement('div');g.id='r426Gate';
+    g.innerHTML='<div class="r426-gbox"><h3>📄 '+esc((doc.doc_no?doc.doc_no+' — ':'')+(doc.title||'MEMO CIRCULAR'))+'</h3><p>By tapping the button, you confirm that you <b>RECEIVED</b> this memo circular. Your name'+(has?', the signature on your Rustica ID,':'')+' the date and the time are recorded for HR.</p><button type="button" class="r426-gbtn" data-r426-mcok>✍ RECEIVE &amp; OPEN MEMO</button><button type="button" class="r426-gbtn light" data-r426-mcx>NOT NOW</button></div>';
+    document.body.appendChild(g);g.querySelector('[data-r426-mcx]').onclick=()=>g.remove();
+    g.querySelector('[data-r426-mcok]').onclick=()=>{const a=acks(code);a[id]={seen:now().toISOString(),no:doc.doc_no||'',title:doc.title||'',sig:!!has,branch:curBranch()};put(ACK(code),a);g.remove();OPENED={code,id};x.openItem(id)};
+    return true}
+  document.addEventListener('scroll',e=>{if(!OPENED)return;const el=e.target;if(!el||!el.querySelector||!el.querySelector('[data-r328-pages="'+OPENED.id+'"]'))return;if(el.querySelector('[data-r328-pages] .r159-empty'))return;
+    if(el.scrollTop+el.clientHeight>=el.scrollHeight-60){const a=acks(OPENED.code);const r=a[OPENED.id];if(r&&!r.end){r.end=now().toISOString();put(ACK(OPENED.code),a)}}},true);
+  /* HR: who received the memo circular */
+  function recvHtml(){const x=X();const list=(x?x.lib('MC'):[]).filter(d=>!d.legacy);const b=curBranch();
+    return '<h4>✍ MEMO CIRCULARS — RECEIVED LIST ('+esc(bName(b))+')</h4><div class="r159-info">Who tapped ✍ RECEIVE &amp; OPEN, with signature, date and time, and who read it to the end. Switch the branch at the top to see another branch.</div>'
+      +'<select id="r426RecvDoc"><option value="">— choose a memo circular —</option>'+list.map(d=>'<option value="'+esc(d.id)+'">'+esc((d.doc_no?d.doc_no+' — ':'')+(d.title||''))+'</option>').join('')+'</select>'
+      +'<div class="r159-row2" style="margin-top:6px"><button type="button" class="r159-btn" id="r426RecvShow">SHOW LIST</button><button type="button" class="r159-btn" id="r426RecvPrint" style="background:#fff;color:#4c2b17;border:1px solid #c8a46a">🖨 PRINT (LEGAL)</button></div><div id="r426RecvOut"></div>'}
+  function recvRows(id){const x=X();const b=curBranch();const emps=(x?x.staff(b):[]).filter(e=>e&&e.code&&!/TOPMGNT/i.test(e.code));
+    return emps.map(e=>{const a=acks(e.code)[id]||null;return {code:U(e.code),name:U(e.name||e.code),pos:e.position||'',seen:a&&a.seen||'',end:a&&a.end||'',sig:a?idSigOf(e.code):''}}).sort((p,q)=>(!!q.seen)-(!!p.seen)||p.name.localeCompare(q.name))}
+  function recvTable(rows){const n=rows.filter(r=>r.seen).length;return '<div class="r426-msg">'+n+' of '+rows.length+' received</div><table class="r426-tbl"><tr><th>#</th><th>NAME</th><th>EMPCODE</th><th>SIGNATURE</th><th>RECEIVED &amp; OPENED</th><th>READ TO THE END</th></tr>'
+    +rows.map((r,i)=>'<tr><td>'+(i+1)+'</td><td><b>'+esc(r.name)+'</b><br><small>'+esc(r.pos)+'</small></td><td>'+esc(r.code)+'</td><td>'+(r.sig?'<img src="'+r.sig+'">':(r.seen?'(no ID signature)':''))+'</td><td>'+(r.seen?esc(fmt(r.seen)):'<b style="color:#a1281f">NOT YET</b>')+'</td><td>'+(r.end?esc(fmt(r.end)):(r.seen?'—':''))+'</td></tr>').join('')+'</table>'}
+  document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('#r426RecvShow')||t.closest('#r426RecvPrint')){const id=(document.getElementById('r426RecvDoc')||{}).value;if(!id){alert('Choose a memo circular.');return}
+      try{await window.rcadsCloudPullMerge()}catch(_){}
+      const rows=recvRows(id);const x=X();const d=(x.lib('MC')||[]).find(z=>z.id===id)||{};
+      if(t.closest('#r426RecvShow')){document.getElementById('r426RecvOut').innerHTML=recvTable(rows);return}
+      const w=window.open('','_blank');if(!w){alert('Allow pop-ups to print.');return}
+      w.document.write('<!doctype html><html><head><title>Received list</title><style>@page{size:legal portrait;margin:12mm}body{font:12px Arial}h2{margin:0}table{width:100%;border-collapse:collapse}th,td{border:1px solid #444;padding:4px;font-size:11px}img{height:30px}</style></head><body><h2>RUSTICA RESTAURANT &amp; CATERING — MEMO RECEIVED LIST</h2><p><b>'+esc((d.doc_no?d.doc_no+' — ':'')+(d.title||''))+'</b><br>Branch: '+esc(bName(curBranch()))+' • Printed '+esc(fmt(now()))+'</p>'+recvTable(rows)+'<script>setTimeout(()=>print(),400)<\/script></body></html>');w.document.close()}});
+
+  /* =================== 3) 📌 REMINDERS (HR + Owners) =================== */
+  const RK='rcads_r426_rem_',SEENK=c=>'rcads_r426_rseen_'+U(c);
+  function remList(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf(RK)===0){const r=J(k,null);if(r&&r.id&&!r.deleted&&(!r.until||Date.parse(r.until)>Date.now()))out.push(r)}}return out.sort((a,b)=>String(b.at).localeCompare(String(a.at)))}
+  function remHtml(v){const L=remList();if(!L.length)return '';return '<div class="r426-rem-h">📌 REMINDERS</div>'+L.map(r=>'<div class="r426-ri">'+esc(r.text)+'<small>— '+esc(r.by)+' • '+esc(fmt(r.at))+'</small></div>').join('')}
+  function untilOf(d){const n=now();if(d==='TODAY'){const e=new Date(n);e.setHours(23,59,59,0);return e.toISOString()}if(d==='3D')return new Date(+n+3*864e5).toISOString();if(d==='1W')return new Date(+n+7*864e5).toISOString();return ''}
+  async function pushTo(b,key,val){const cur=curBranch();if(b===cur){localStorage.setItem(key,JSON.stringify(val));return}
+    const DB=RUSTICA_CENTRAL_DB;await window.rcadsCloudRpc('rustica_rcads_upsert_kv',{p_branch_code:b,p_sync_secret:DB.syncSecret,p_data_key:key,p_data_value:JSON.stringify(val),p_device_id:(typeof rcadsCloudDeviceId==='function'?rcadsCloudDeviceId():''),p_client_updated_at:new Date().toISOString()})}
+  const MYK='r426_myrem';
+  function mine(){return (J(MYK,[])||[]).filter(r=>!r.deleted&&(!r.until||Date.parse(r.until)>Date.now()))}
+  function remFormHtml(who){return '<h4>📌 WRITE A REMINDER'+(who?' — '+esc(who):'')+'</h4><div class="r159-info">Short reminder for the employees (shown on top of their NOTICES). Up to 300 letters.</div>'
+    +'<textarea id="r426RemText" maxlength="300" rows="3" placeholder="e.g. Please wear complete uniform tomorrow — inspection at 10 AM." style="width:100%"></textarea>'
+    +'<label>SEND TO</label>'+brChecks('rem')
+    +'<label>SHOW FOR</label><select id="r426RemDur"><option value="TODAY">Today only</option><option value="3D">3 days</option><option value="1W">1 week</option><option value="">Until removed</option></select>'
+    +'<button type="button" class="r159-btn" id="r426RemPost" style="margin-top:8px">POST REMINDER</button><div id="r426RemMsg" class="r426-msg"></div>'
+    +'<div class="r426-mylist" id="r426RemMine"></div>'}
+  function renderMine(){const box=document.getElementById('r426RemMine');if(!box)return;const L=mine();const seenAll={};
+    if(isHr()){for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.indexOf('rcads_r426_rseen_')===0){const s=J(k,{})||{};Object.keys(s).forEach(id=>seenAll[id]=(seenAll[id]||0)+1)}}}
+    const h=L.length?'<div class="r426-rem-h" style="margin-top:8px">MY ACTIVE REMINDERS</div>'+L.map(r=>'<div class="r426-ri"><div>'+esc(r.text)+'<small>'+esc(fmt(r.at))+' • '+esc(r.branches.length===branches().length?'ALL BRANCHES':r.branches.map(bName).join(', '))+(r.until?' • until '+esc(fmt(r.until)):' • until removed')+(isHr()?' • seen here: '+(seenAll[r.id]||0):'')+'</small></div><button type="button" data-r426-remdel="'+esc(r.id)+'">REMOVE</button></div>').join(''):'';
+    if(box.dataset.h!==h){box.dataset.h=h;box.innerHTML=h}}
+  function poster(){if(isHr())return {by:U(hrSig().name||'HR OPERATION OFFICER')+' (HR)',role:'HR'};const s=window.rcadsTopManagementSession;if(s)return {by:U(s.ownerLabel||'TOP MANAGEMENT')+' (OWNER)',role:'OWNER'};return null}
+  document.addEventListener('click',async e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('#r426RemPost')){const p=poster();const msg=document.getElementById('r426RemMsg');if(!p){msg.textContent='Only HR and the Owners can post reminders.';return}
+      const text=(document.getElementById('r426RemText').value||'').trim().slice(0,300);const brs=chosen('rem');if(!text){msg.textContent='Type the reminder.';return}if(!brs.length){msg.textContent='Choose the branch(es).';return}
+      const r={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),text,by:p.by,role:p.role,at:now().toISOString(),until:untilOf(document.getElementById('r426RemDur').value),branches:brs};
+      msg.textContent='Posting…';const bad=[];for(const b of brs){try{await pushTo(b,RK+r.id,r)}catch(err){bad.push(bName(b))}}
+      const my=J(MYK,[])||[];my.unshift(r);put(MYK,my.slice(0,60));document.getElementById('r426RemText').value='';
+      msg.textContent=bad.length?'⚠ Not posted to: '+bad.join(', ')+' (check the internet, then post again).':'✓ Posted to '+(brs.length===branches().length?'ALL BRANCHES':brs.map(bName).join(', '))+'.';renderMine();return}
+    const d=t.closest('[data-r426-remdel]');if(d){const id=d.getAttribute('data-r426-remdel');const my=J(MYK,[])||[];const r=my.find(z=>z.id===id);if(!r||!confirm('Remove this reminder from all its branches?'))return;
+      const gone=Object.assign({},r,{deleted:true,removedAt:now().toISOString()});for(const b of r.branches){try{await pushTo(b,RK+id,gone)}catch(err){}}r.deleted=true;put(MYK,my);renderMine()}});
+  function remTick(){
+    document.querySelectorAll('.r159-board').forEach(el=>{const v=el._r159viewer;const h=remHtml(v);let box=el.querySelector(':scope > .r426-rem');
+      if(!h){if(box)box.remove();return}if(!box){box=document.createElement('div');box.className='r426-rem';el.insertBefore(box,el.firstChild)}else if(el.firstChild!==box)el.insertBefore(box,el.firstChild);
+      if(box.dataset.h!==h){box.dataset.h=h;box.innerHTML=h}
+      if(empV(v)&&el.offsetParent!==null){const s=J(SEENK(v.code),{})||{};let ch=false;remList().forEach(r=>{if(!s[r.id]){s[r.id]=now().toISOString();ch=true}});if(ch)put(SEENK(v.code),s)}});
+    /* owners */
+    const th=document.getElementById('topManagementHomeScreen');const root=th&&th.querySelector('.r100-content');let oc=document.getElementById('r426OwnRem');
+    if(window.rcadsTopManagementSession&&root&&getComputedStyle(th).display!=='none'){if(!oc){oc=document.createElement('section');oc.id='r426OwnRem';oc.className='r373-card r426-card';oc.setAttribute('data-r162-tab','home');oc.innerHTML=remFormHtml(window.rcadsTopManagementSession.ownerLabel||'');const ob=document.getElementById('r159OwnerBoard');if(ob)ob.insertAdjacentElement('afterend',oc);else root.insertBefore(oc,root.firstChild)}renderMine()}
+    else if(oc)oc.remove();
+    /* HR cards */
+    const sec=document.getElementById('r159HrSection');const grid=sec&&sec.querySelector('.r159-hr-grid');
+    if(grid&&isHr()){
+      if(!document.getElementById('r426Writer')){const c=document.createElement('div');c.id='r426Writer';c.className='r159-hr-card r426-card';c.innerHTML=writerHtml();grid.insertBefore(c,grid.firstChild)}
+      if(!document.getElementById('r426HrRem')){const c=document.createElement('div');c.id='r426HrRem';c.className='r159-hr-card r426-card';c.innerHTML=remFormHtml('');document.getElementById('r426Writer').insertAdjacentElement('afterend',c)}
+      let rc=document.getElementById('r426Recv');const x=X();const sig=x?JSON.stringify((x.lib('MC')||[]).map(d=>d.id))+curBranch():'';
+      if(!rc){rc=document.createElement('div');rc.id='r426Recv';rc.className='r159-hr-card r426-card';document.getElementById('r426HrRem').insertAdjacentElement('afterend',rc)}
+      if(rc.dataset.sig!==sig){rc.dataset.sig=sig;rc.innerHTML=recvHtml()}
+      renderMine()}
+  }
+  setInterval(()=>{try{remTick()}catch(e){console.warn('R426 rem',e)}try{pmGate()}catch(e){}try{lockTick()}catch(e){}},1500);
+  window.rcadsR426={clean,paginate,remList,acks,fullPull};
 })();
 </script>
 
