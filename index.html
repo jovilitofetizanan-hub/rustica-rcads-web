@@ -145,7 +145,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R427 MGMT REMINDERS</title>
+<title>Rustica RCADS App — R428 MGMT LIST FIX</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -35027,7 +35027,7 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
     +'<textarea id="r426RemText" maxlength="300" rows="3" placeholder="e.g. Please wear complete uniform tomorrow — inspection at 10 AM." style="width:100%"></textarea>'
     +'<label>SEND TO (BRANCH)</label>'+brChecks('rem')
     +'<label>WHO WILL SEE IT</label><select id="r426RemAud"><option value="ALL">All employees of the chosen branch(es)</option><option value="MGMT">Management employees only (chosen branch(es))</option><option value="PICK">Choose the Management employees…</option></select>'
-    +'<div id="r426RemPick" class="r426-brs" style="display:none;flex-direction:column;align-items:flex-start;max-height:220px;overflow:auto;border:1px solid #e4d2b8;border-radius:8px;padding:6px 8px"></div>'
+    +'<div id="r426RemPick" class="r426-brs" style="display:none;flex-direction:column;flex-wrap:nowrap;align-items:flex-start;overflow-x:hidden;max-height:220px;overflow:auto;border:1px solid #e4d2b8;border-radius:8px;padding:6px 8px"></div>'
     +'<label>SHOW FOR</label><select id="r426RemDur"><option value="TODAY">Today only</option><option value="3D">3 days</option><option value="1W">1 week</option><option value="">Until removed</option></select>'
     +'<button type="button" class="r159-btn" id="r426RemPost" style="margin-top:8px">POST REMINDER</button><div id="r426RemMsg" class="r426-msg"></div>'
     +'<div class="r426-mylist" id="r426RemMine"></div>'}
