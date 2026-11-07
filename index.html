@@ -168,7 +168,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R431 NO HR SCREEN FIRST</title>
+<title>Rustica RCADS App — R432 STORAGE CLEANUP</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -35116,6 +35116,28 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
     d.querySelector('.ok').onclick=done;
     d.querySelector('.go').onclick=()=>{done();const b=[...document.querySelectorAll('[data-r162-go="notices"]')].find(x=>x.offsetParent!==null);if(b)b.click();else{const ob=document.getElementById('r159OwnerBoard');if(ob)ob.scrollIntoView({behavior:'smooth'})}}}
   setInterval(()=>{try{popTick()}catch(e){}},4000);
+  /* =================== R432: STORAGE CLEAN-UP (old attachments) + Org Chart replace =================== */
+  const ATTP='rcads_r159_att_';
+  function lsSize(){let t=0;const g={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)||'';const v=localStorage.getItem(k)||'';const n=(k.length+v.length)*2;t+=n;
+      const grp=k.indexOf(ATTP)===0?'Notice / memo attachments':/r167_idcard|r167_photo|r167_sig/.test(k)?'Rustica ID photos & signatures':/att|dtr|attendance|guard/.test(k)?'Attendance & guard logs':'Other RCADS data';g[grp]=(g[grp]||0)+n}return {t,g}}
+  function orphans(){const ids=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)||'';if(k.indexOf(ATTP)===0){const v=localStorage.getItem(k)||'';if(v.length>2)ids.push(k.slice(ATTP.length))}}
+    if(!ids.length)return [];const refs=new Set();for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)||'';if(k.indexOf(ATTP)===0||k.indexOf('rcads_r373_org_history_')===0||/^rcads_cloud_|queue|_meta_v|r430_pop_|r425_/i.test(k))continue;const v=localStorage.getItem(k)||'';if(v.length>400000)continue;ids.forEach(id=>{if(!refs.has(id)&&v.indexOf(id)>=0)refs.add(id)})}
+    return ids.filter(id=>!refs.has(id))}
+  function freeAtt(id){try{localStorage.setItem(ATTP+id,'')}catch(e){try{localStorage.removeItem(ATTP+id)}catch(_){}}}
+  function cleanOrphans(){let n=0,b=0;orphans().forEach(id=>{const v=localStorage.getItem(ATTP+id)||'';b+=v.length*2;freeAtt(id);n++});return {n,b}}
+  const MB=b=>(b/1048576).toFixed(2)+' MB';
+  function storeHtml(){const s=lsSize();const o=orphans();let ob=0;o.forEach(id=>ob+=(localStorage.getItem(ATTP+id)||'').length*2);
+    return '<h4>💾 HR LAPTOP STORAGE</h4><div class="r159-info">The browser keeps about 5–10 MB for RCADS. When it is full, uploads say <b>"device storage is full"</b>.</div>'
+      +'<div class="r426-msg">Used: <b>'+MB(s.t)+'</b></div><table class="r426-tbl">'+Object.entries(s.g).sort((a,b)=>b[1]-a[1]).map(([k,v])=>'<tr><td>'+esc(k)+'</td><td style="text-align:right">'+MB(v)+'</td></tr>').join('')+'</table>'
+      +'<div class="r426-msg">Old attachments no longer used by any notice / memo / chart: <b>'+o.length+'</b> ('+MB(ob)+')</div>'
+      +'<button type="button" class="r159-btn" id="r432Clean"'+(o.length?'':' disabled')+'>🧹 REMOVE UNUSED OLD ATTACHMENTS</button><div id="r432Msg" class="r426-msg"></div>'}
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+    if(t.closest('#r432Clean')){if(!confirm('Remove old attachments that are no longer used by any notice, memo or chart?\n\nCurrent notices, memos, Code of Discipline and the Organizational Chart are NOT touched.'))return;const r=cleanOrphans();const c=document.getElementById('r432Store');if(c){c.dataset.sig='';}const m=document.getElementById('r432Msg');if(m)m.textContent='✓ Removed '+r.n+' old attachment(s) — '+MB(r.b)+' freed.';return}
+    /* Org Chart: free the space of the chart being replaced (and unused attachments) BEFORE saving the new one */
+    if(t.closest('#r373OrgSave')){try{cleanOrphans();const prev=J('rcads_r373_org_chart_v1',null);if(prev&&prev.att&&prev.att.id)freeAtt(prev.att.id)}catch(err){}}
+  },true);
+  setInterval(()=>{try{const sec=document.getElementById('r159HrSection');const grid=sec&&sec.querySelector('.r159-hr-grid');if(!grid||!isHr())return;let c=document.getElementById('r432Store');
+    if(!c){c=document.createElement('div');c.id='r432Store';c.className='r159-hr-card r426-card';grid.appendChild(c)}const sig=String(localStorage.length)+'|'+Math.round(lsSize().t/20000);if(c.dataset.sig!==sig){c.dataset.sig=sig;const keep=document.getElementById('r432Msg');const msg=keep?keep.textContent:'';c.innerHTML=storeHtml();if(msg)document.getElementById('r432Msg').textContent=msg}}catch(e){}},5000);
   window.rcadsR426={clean,paginate,remList,acks,fullPull};
 })();
 </script>
