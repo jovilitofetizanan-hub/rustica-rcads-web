@@ -168,7 +168,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R434 DELETE OLD FILES</title>
+<title>Rustica RCADS App — R438 ROVING BRANCH SCHEDULE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -28765,15 +28765,24 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   /* ---------- schedule lookup: ACS first, then ORIGINAL, from the employee's own branch ---------- */
   let codeBranch={},cbAt=0;
   function branchOfCode(code){if(Date.now()-cbAt>60000){codeBranch={};branches().forEach(b=>staff(b.code).forEach(e=>{const c=U(e.code);if(!codeBranch[c])codeBranch[c]=b.code}));cbAt=Date.now()}return codeBranch[U(code)]||''}
+  /* R436: a schedule shorter than 8 hours is never meant — "8:30 – 9:00" = 8:30 AM to 9:00 PM */
+  function fixPair(tin,tout){let p={tin,tout};try{p=normalizeSchedulePair(tin,tout)}catch(e){}const mm=v=>{const a=String(v||'').split(':').map(Number);return a[0]*60+(a[1]||0)};
+    const i=mm(p.tin),o=mm(p.tout);if(o>i&&o-i<480&&o<720){const t=o+720;p.tout=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}return p}
+  /* R436: the ORIGINAL schedule TIME OUT of that day — used when the ACS "New Sched" has only the new TIME IN */
+  function origOut(br,code,dk){const L=lib().filter(x=>x&&String(x.branch||'').toUpperCase()===U(br)&&!isAcs(x)).sort((a,c)=>String(c.savedAt||'').localeCompare(String(a.savedAt||'')));
+    for(const x of L){const r=fromEntry(x,code,dk);if(r&&r.type==='TIME')return r.out}return ''}
   function fromEntry(x,code,dk){
     if(Array.isArray(x.rowData)&&x.rowData.length){const m=x.rowData.find(r=>U(r['EMPLOYEE ID'])===code&&excelDateToISO(r['DATE'])===dk);
-      if(m){const tin=excelTimeToHHMM(m['TIME IN']),tout=excelTimeToHHMM(m['TIME OUT']);if(tin&&tout)return {type:'TIME',in:tin,out:tout,status:''};const p=parseScheduleRange(m['TIME IN']);if(p.type==='STATUS')return {type:'STATUS',status:p.status};return {type:'EMPTY',status:''}}}
+      if(m){const tin=excelTimeToHHMM(m['TIME IN']),tout=excelTimeToHHMM(m['TIME OUT']);if(tin&&tout){const q=fixPair(tin,tout);return {type:'TIME',in:q.tin,out:q.tout,status:''}}const p=parseScheduleRange(m['TIME IN']);if(p.type==='STATUS')return {type:'STATUS',status:p.status};if(p.type==='TIME'&&p.dutyBranch)return {type:'TIME',in:p.in,out:p.out,status:'',dutyBranch:p.dutyBranch,branchDuty:p.branchDuty};return {type:'EMPTY',status:''}}}
     for(const w of (x.weeklyBlocks||[])){const col=(w.dateCols||[]).find(c=>c.date===dk);if(!col)continue;const row=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===code);if(!row)continue;
       /* R405: in the RCPS ACS form the cell after "New Sched" is LONG BREAK — never read it as the TIME OUT */
       const acsLay=acsCols(w,col);
       const rawIn=row[col.idx],rawOut=(!acsLay&&col.outIdx!==undefined)?row[col.outIdx]:'';const tin=excelTimeToHHMM(rawIn),tout=excelTimeToHHMM(rawOut);
-      if(tin&&tout){const p=normalizeSchedulePair(tin,tout);return {type:'TIME',in:p.tin,out:p.tout,status:''}}
-      const p=parseScheduleRange(rawIn);if(p.type==='STATUS')return {type:'STATUS',status:p.status};if(p.type==='TIME')return {type:'TIME',in:p.in,out:p.out,status:''};return {type:'EMPTY',status:''}}
+      if(tin&&tout){const p=fixPair(tin,tout);return {type:'TIME',in:p.tin,out:p.tout,status:''}}
+      const p=parseScheduleRange(rawIn);if(p.type==='STATUS')return {type:'STATUS',status:p.status};if(p.type==='TIME'){const q=fixPair(p.in,p.out);return {type:'TIME',in:q.tin,out:q.tout,status:'',dutyBranch:p.dutyBranch||'',branchDuty:p.branchDuty||''}}
+      /* R436: ACS "New Sched" = only the new TIME IN (e.g. 10:00) → new IN + the ORIGINAL TIME OUT of that day (10 AM – 9 PM) */
+      if(acsLay&&tin){const o=origOut(x.branch,code,dk);if(o){const q=fixPair(tin,o);return {type:'TIME',in:q.tin,out:q.tout,status:'',acsNewIn:true}}}
+      return {type:'EMPTY',status:''}}
     return null;
   }
   const orig=window.getScheduleEntryForEmployeeDate;let cache={},cacheSig='';
@@ -28803,7 +28812,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   function acsSub(w){for(let k=1;k<=3;k++){const r=(w.matrix&&w.matrix[w.headerRow+k])||[];const t=r.map(v=>U(v).replace(/\s+/g,' '));if(t.some(v=>/LONG|APRVD|O\.\s*T|\bOT\b|NEW SCHED/.test(v)))return t}return null}
   function acsCols(w,col){const t=acsSub(w);if(!t)return null;const lb=t[col.idx+1]||'',ot=t[col.idx+2]||'';if(/LONG/.test(lb))return {lb:col.idx+1,ot:/O\.?\s*T/.test(ot)?col.idx+2:-1};return null}
   function lbMinutes(v){if(v===null||v===undefined||v==='')return null;if(typeof v==='number'){if(v<=0)return null;return Math.round(v<1?v*1440:v*60)}
-    const t=String(v).trim().toUpperCase();if(!t)return null;let m=t.match(/^(\d{1,2}):(\d{2})/);if(m)return +m[1]*60+(+m[2]);m=t.match(/^(\d+(?:\.\d+)?)\s*(H|HR|HRS|HOUR|HOURS)?\b/);if(m)return Math.round(+m[1]*60);m=t.match(/^(\d+)\s*(M|MIN|MINS|MINUTES)\b/);return m?+m[1]:null}
+    const t=String(v).trim().toUpperCase();if(!t)return null;let m=t.match(/^:\s*(\d{1,2})$/);if(m)return +m[1];/* R437: ":30" = 30 minutes */m=t.match(/^(\d+)\s*(M|MIN|MINS|MINUTE|MINUTES)\b/);if(m)return +m[1];m=t.match(/^(\d{1,2}):(\d{2})/);if(m)return +m[1]*60+(+m[2]);m=t.match(/^(\d+(?:\.\d+)?)\s*(H|HR|HRS|HOUR|HOURS)?\b/);if(m)return Math.round(+m[1]*60);m=t.match(/^(\d+)\s*(M|MIN|MINS|MINUTES)\b/);return m?+m[1]:null}
   /* R405: LONG BREAK written in the ACS for that day (minutes) — null when the Head left it blank */
   function acsLongBreakMinutes(code,dk){const br=branchOfCode(code)||(typeof rusticaGetCurrentBranchCode==='function'?rusticaGetCurrentBranchCode():'');
     const L=lib().filter(x=>x&&String(x.branch||'').toUpperCase()===U(br)&&isAcs(x)).sort((a,c)=>String(c.savedAt||'').localeCompare(String(a.savedAt||'')));
@@ -28926,12 +28935,14 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
   function overBreakDay(emp,dk,punches){
     let s=null;try{s=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!s||s.type!=='TIME')return 0;
-    let a=dtrMinutesFromHHMM(s.in),b=dtrMinutesFromHHMM(s.out);if(a==null||b==null)return 0;if(b<=a)b+=1440;let allowed=Math.max(0,(b-a)-NEED);
+    let a=dtrMinutesFromHHMM(s.in),b=dtrMinutesFromHHMM(s.out);if(a==null||b==null)return 0;if(b<=a)b+=1440;else if(b-a<NEED)b+=720;/* R435: "08:30 – 09:00" = 8:30 AM to 9:00 PM */let allowed=Math.max(0,(b-a)-NEED);
     /* R405: the LONG BREAK written in the ACS is the allowed total of the 1st + 2nd break */
     try{const lb=window.rcadsR215&&window.rcadsR215.acsLongBreakMinutes?window.rcadsR215.acsLongBreakMinutes(emp.code,dk):null;if(lb!=null)allowed=lb}catch(e){}
     const ps=punches.slice().sort((x,y)=>(Date.parse(x.date)||0)-(Date.parse(y.date)||0));let brk=0,at=null;
-    ps.filter(r=>!r.errand&&!r.errandReturn).forEach(r=>{if(r.type==='OUT'&&r.kind==='Break')at=Date.parse(r.date);else if(r.type==='IN'&&at!=null){brk+=(Date.parse(r.date)-at)/60000;at=null}});
-    return Math.max(0,Math.round(brk-allowed));
+    /* R435: exact to the second — the break may last the allowed hours counted from the exact BREAK-OUT time
+       (out 2:23:19 PM + 4 h ACS long break → back by 6:23:19 PM). Coffee + lunch breaks share the allowance. */
+    ps.filter(r=>!r.errand&&!r.errandReturn).forEach(r=>{if(r.type==='OUT'&&r.kind==='Break')at=Math.floor((Date.parse(r.date)||0)/1000);else if(r.type==='IN'&&at!=null){brk+=Math.max(0,Math.floor((Date.parse(r.date)||0)/1000)-at);at=null}});
+    const over=brk-allowed*60;return over>0?Math.floor(over/60):0;
   }
   const orig=window.calculateEmployeeDtrSummary;
   if(typeof orig==='function')window.calculateEmployeeDtrSummary=function(emp,cutoff){
@@ -35172,4 +35183,31 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
 })();
 </script>
 
+
+<!-- RCADS PATCH: R438 ROVING MANAGERS / DEPUTY CHEF 1 — a BRANCH NAME in the schedule = duty day at that branch -->
+<script id="rcadsR438Script">
+/* R438 — Roving Managers / Deputy Chef 1: the schedule cell may hold the BRANCH of the day
+   ("ANGELES", "SAN FERNANDO", "CABANATUAN", "SAN JUAN", "SAN RAFAEL", optionally with a time: "ANGELES 10:00-9:00").
+   • It is a working day: a TIME IN at the guard is still needed (no punch = absent).
+   • Branch only → 11:00 AM – 9:00 PM (Management: late only after 11:00 AM). With a time → that time is used.
+   • DAY OFF stays DAY OFF. */
+(function(){
+  'use strict';
+  const orig=window.parseScheduleRange;if(typeof orig!=='function')return;
+  const BASE=[['SAN FERNANDO','SAN_FERNANDO'],['SAN RAFAEL','SAN_RAFAEL'],['SAN JUAN','SAN_JUAN'],['CABANATUAN','CABANATUAN'],['ANGELES','ANGELES']];
+  function list(){const out=BASE.slice();try{const b=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{});
+      Object.values(b||{}).forEach(x=>{if(!x||!x.code)return;[x.name,String(x.code).replace(/_/g,' ')].forEach(n=>{n=String(n||'').toUpperCase().replace(/^RUSTICA\s+/,'').replace(/\s+BRANCH$/,'').trim();if(n&&!out.some(o=>o[0]===n))out.push([n,x.code])})})}catch(e){}
+    return out.sort((a,b)=>b[0].length-a[0].length)}
+  window.parseScheduleRange=function(cell){
+    const r=orig.apply(this,arguments);
+    try{if(r&&r.type!=='STATUS'){const t=String(cell??'').toUpperCase().replace(/_/g,' ').replace(/\s+/g,' ').trim().replace(/^RUSTICA\s+/,'');
+      for(const [n,code] of list()){if(t===n||t.startsWith(n+' ')||t.startsWith(n+'-')||t.startsWith(n+':')||t.startsWith(n+'(')){
+        let rest=t.slice(n.length).replace(/^\s*(BRANCH)?\s*[-:(]?\s*/,'').replace(/\)\s*$/,'').trim();
+        let tin='11:00',tout='21:00';if(rest){const q=orig(rest);if(q&&q.type==='TIME'){tin=q.in;tout=q.out}}
+        try{const z=normalizeSchedulePair(tin,tout);tin=z.tin;tout=z.tout}catch(e){}
+        return {type:'TIME',in:tin,out:tout,raw:String(cell),dutyBranch:code,branchDuty:n}}}}}catch(e){}
+    return r};
+  window.rcadsR438={list};
+})();
+</script>
 </body></html>
