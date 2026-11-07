@@ -168,7 +168,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R433 STORAGE CARD ON TOP</title>
+<title>Rustica RCADS App — R434 DELETE OLD FILES</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -35140,12 +35140,34 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   },true);
   /* R433: the storage card sits at the TOP (after ✍ WRITE A MEMO); it is computed only when opened; errors are shown */
   function storeShell(){return '<h4>💾 HR LAPTOP STORAGE</h4><div class="r159-info">If an upload says <b>"device storage is full"</b>, check here and remove old unused attachments.</div><button type="button" class="r159-btn" id="r433Check">💾 CHECK STORAGE</button><div id="r433Out"></div>'}
-  function drawStore(){const o=document.getElementById('r433Out');if(!o)return;try{o.innerHTML=storeHtml().replace('<h4>💾 HR LAPTOP STORAGE</h4>','')}catch(err){o.innerHTML='<div class="r426-msg bad">⚠ '+esc(err&&err.message||err)+'</div>'}}
+  function drawStore(){const o=document.getElementById('r433Out');if(!o)return;try{o.innerHTML=storeHtml().replace('<h4>💾 HR LAPTOP STORAGE</h4>','')+attListHtml()}catch(err){o.innerHTML='<div class="r426-msg bad">⚠ '+esc(err&&err.message||err)+'</div>'}}
   document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#r433Check'))drawStore()});
   setInterval(()=>{try{const sec=document.getElementById('r159HrSection');const grid=sec&&sec.querySelector('.r159-hr-grid');if(!grid)return;let c=document.getElementById('r432Store');
     if(!c){c=document.createElement('div');c.id='r432Store';c.className='r159-hr-card r426-card';c.innerHTML=storeShell();const w=document.getElementById('r426Writer');if(w)w.insertAdjacentElement('afterend',c);else grid.insertBefore(c,grid.firstChild)}}catch(e){}},2000);
   /* R433: whenever RCADS says the storage is full, offer the clean-up right away */
   (function(){const oa=window.alert;window.alert=function(m){const r=oa.apply(this,arguments);try{if(/storage is full/i.test(String(m||''))){const n=orphans().length;if(n&&confirm('RCADS found '+n+' old attachment(s) that are no longer used.\n\nRemove them now to free space? (Current notices, memos and charts are not touched.)')){const x=cleanOrphans();oa.call(window,'✓ Removed '+x.n+' old attachment(s) — '+MB(x.b)+' freed. Please try the upload again.')}else if(!n){oa.call(window,'No unused old attachments found. Delete an old notice or memo that has an attachment, then try again.')}}}catch(e){}return r}})();
+  /* =================== R434: list every attachment with size + where it is used + DELETE =================== */
+  const BOARD='rcads_r159_notice_board_v1';
+  function attList(){const board=J(BOARD,{})||{};const org=J('rcads_r373_org_chart_v1',null);const out=[];
+    const where=id=>{const r=[];(board.notices||[]).forEach(n=>{if(n&&n.att&&n.att.id===id)r.push({t:'NOTICE',d:n.title||'(no title)',ref:{k:'N',id:n.id}})});
+      (board.circulars||[]).forEach(c=>{if(c&&c.att&&c.att.id===id)r.push({t:'MEMO CIRCULAR (old storage)',d:(c.number?c.number+' — ':'')+(c.title||''),ref:{k:'C',id:c.id}})});
+      if(board.cod&&board.cod.att&&board.cod.att.id===id)r.push({t:'CODE OF DISCIPLINE (old card)',d:board.cod.title||'',ref:{k:'COD'}});
+      if(board.cv&&board.cv.att&&board.cv.att.id===id)r.push({t:'CORE VALUES',d:board.cv.title||'',ref:{k:'CV'}});
+      if(org&&org.att&&org.att.id===id)r.push({t:'ORGANIZATIONAL CHART (current)',d:org.title||'',ref:{k:'ORG'}});return r};
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)||'';if(k.indexOf(ATTP)!==0)continue;const v=localStorage.getItem(k)||'';if(v.length<=2)continue;
+      const id=k.slice(ATTP.length);let name='';try{name=(JSON.parse(v)||{}).name||''}catch(e){}out.push({id,name,b:(k.length+v.length)*2,w:where(id)})}
+    return out.sort((a,b)=>b.b-a.b)}
+  function attListHtml(){const L=attList();if(!L.length)return '<div class="r426-msg">No attachments saved on this laptop.</div>';
+    return '<div class="r426-rem-h" style="margin-top:10px">📎 ATTACHMENTS ON THIS LAPTOP (biggest first)</div><table class="r426-tbl"><tr><th>FILE</th><th>SIZE</th><th>USED BY</th><th></th></tr>'
+      +L.map(a=>{const w=a.w;const cur=w.some(x=>x.ref.k==='ORG');const used=w.length?w.map(x=>'<b>'+esc(x.t)+'</b><br><small>'+esc(x.d)+'</small>').join('<br>'):'<small>not used</small>';
+        return '<tr><td>'+esc(a.name||a.id)+'</td><td style="white-space:nowrap">'+MB(a.b)+'</td><td>'+used+'</td><td>'+(cur?'<small>in use — upload a new chart to replace</small>':'<button type="button" class="r159-mini red" data-r434-del="'+esc(a.id)+'">DELETE</button>')+'</td></tr>'}).join('')+'</table>'}
+  function delAtt(id){const a=attList().find(x=>x.id===id);if(!a)return;const w=a.w;
+    const what=w.length?w.map(x=>x.t+(x.d?' — '+x.d:'')).join('\n'):'(not used by anything)';
+    if(!confirm('DELETE this attachment for everyone?\n\n'+(a.name||a.id)+' • '+MB(a.b)+'\n\nUsed by:\n'+what+(w.some(x=>/NOTICE|MEMO CIRCULAR|CODE OF DISCIPLINE/.test(x.t))?'\n\nThe old notice / memo above will also be removed.':'')))return;
+    const board=J(BOARD,{})||{};let ch=false;
+    w.forEach(x=>{if(x.ref.k==='N'){board.notices=(board.notices||[]).filter(n=>n.id!==x.ref.id);ch=true}else if(x.ref.k==='C'){board.circulars=(board.circulars||[]).filter(c=>c.id!==x.ref.id);ch=true}else if(x.ref.k==='COD'){board.cod=null;ch=true}else if(x.ref.k==='CV'&&board.cv){board.cv=Object.assign({},board.cv,{att:null});ch=true}});
+    if(ch){try{localStorage.setItem(BOARD,JSON.stringify(board))}catch(e){}}freeAtt(id);drawStore();try{window.dispatchEvent(new StorageEvent('storage',{key:BOARD}))}catch(e){}}
+  document.addEventListener('click',e=>{const d=e.target.closest&&e.target.closest('[data-r434-del]');if(d){delAtt(d.getAttribute('data-r434-del'))}});
   window.rcadsR426={clean,paginate,remList,acks,fullPull};
 })();
 </script>
