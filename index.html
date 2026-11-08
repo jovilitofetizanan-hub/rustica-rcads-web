@@ -168,7 +168,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R438 ROVING BRANCH SCHEDULE</title>
+<title>Rustica RCADS App — R439 PREVIEW SCHEDULE FORMS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -33701,9 +33701,12 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function b64(u8){u8=u8 instanceof Uint8Array?u8:new Uint8Array(u8);let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)}
   function unb64(s){const b=atob(String(s||''));const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
   function R(){return window.rcadsR182||null}
-  function myKey(){try{return (R()&&R().key&&R().key())||''}catch(e){return ''}}
+  function myKey(){try{const k=(R()&&R().key&&R().key())||'';if(k)return k}catch(e){}
+    /* R439: 👁 PREVIEW on the HR laptop — read the forms with the HR key of the HR window (view only; SUBMIT is blocked below) */
+    try{if(window.RCADS_PREVIEW&&window.parent&&window.parent!==window){const P=window.parent.rcadsR182;if(P&&P.role&&P.role()==='HR'&&P.key)return P.key()||''}}catch(e){}
+    return ''}
   function isHrDevice(){try{return !!(R()&&R().role&&R().role()==='HR'&&R().key())}catch(e){return false}}
-  async function rpc(name,body){let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}if(!url||!anon)throw new Error('No Supabase settings on this device.');
+  async function rpc(name,body){if(window.RCADS_PREVIEW&&/_put$|_apply$|_delete$/i.test(name))throw new Error('👁 PREVIEW MODE — nothing is sent to HR. The real Head 1 phone sends it with 📤 SUBMIT TO HR.');let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}if(!url||!anon)throw new Error('No Supabase settings on this device.');
     let r;try{r=await fetch(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('No internet connection.')}
     let d=null;try{d=await r.json()}catch(e){}
     if(!r.ok){const m=(d&&(d.message||d.hint))||('Server error '+r.status);if(r.status===404||/Could not find the function|PGRST202/i.test(m))throw new Error('The server is not ready for R399 yet. HR: run RCADS_R399_SCHEDULE_FORMS_SUPABASE.sql once in Supabase → SQL Editor.');throw new Error(m)}
