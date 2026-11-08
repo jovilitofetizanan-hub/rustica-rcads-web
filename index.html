@@ -168,7 +168,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R439 PREVIEW SCHEDULE FORMS</title>
+<title>Rustica RCADS App — R442 HR APPROVES SCHEDULES</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -33619,6 +33619,30 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 #r399Ed .tools{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px}
 #r399Ed .warn{font-size:11.5px;color:#a1281f;font-weight:800;flex-basis:100%}
 @media(max-width:420px){#r399Ed .day{grid-template-columns:60px 84px 1fr}#r399Ed .day select,#r399Ed .day input{font-size:12px;padding:6px 3px}}
+
+/* R440 TABLE VIEW */
+#r399Ed .ed.wide{max-width:100%}
+#r399Ed .r440-v{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+#r399Ed .gw{overflow:auto;max-height:calc(100vh - 230px);border:1px solid #d8bfa1;border-radius:8px;background:#fff;-webkit-overflow-scrolling:touch}
+#r399Ed table.g{border-collapse:separate;border-spacing:0;font-size:11.5px;min-width:max-content}
+#r399Ed table.g th,#r399Ed table.g td{border-right:1px solid #e3cfb2;border-bottom:1px solid #e3cfb2;padding:2px 3px;white-space:nowrap;background:#fff}
+#r399Ed table.g thead th{position:sticky;top:0;z-index:3;background:#f3e4cd;color:#3a2210;font-weight:900;text-align:center}
+#r399Ed table.g thead tr:nth-child(2) th{top:34px}
+#r399Ed table.g th.dh small{display:block;font-weight:700;color:#7a6250;font-size:10px}
+#r399Ed table.g th.sub{font-size:10px;padding:3px 4px}
+#r399Ed table.g .s1{position:sticky;left:0;z-index:2;min-width:86px;font-weight:900}
+#r399Ed table.g .s2{position:sticky;left:86px;z-index:2;min-width:150px;max-width:190px;overflow:hidden;text-overflow:ellipsis;font-weight:800;color:#3a2210;border-right:2px solid #c8a46a}
+#r399Ed table.g thead .s1,#r399Ed table.g thead .s2{z-index:4}
+#r399Ed table.g td.ps{font-size:10.5px;color:#7a6250}
+#r399Ed table.g tr.inc td.s2{color:#a1281f}
+#r399Ed table.g td.c input,#r399Ed table.g td.c select{width:86px;box-sizing:border-box;padding:6px 4px;border:1px solid #d8bfa1;border-radius:6px;font-size:12px;background:#fffdf8}
+#r399Ed table.g td.lb input{width:52px}#r399Ed table.g td.ot select{width:52px}
+#r399Ed table.g td.st input{background:#fdeee9;color:#a1281f;font-weight:800}
+#r399Ed table.g td.c input:disabled{background:#f2ebe2}
+@media(max-width:600px){#r399Ed table.g .s1{position:static;min-width:0;font-size:10px}#r399Ed table.g .s2{left:0;min-width:104px;max-width:112px;font-size:10.5px;white-space:normal;line-height:1.15}#r399Ed table.g td.c input,#r399Ed table.g td.c select{width:74px;font-size:11.5px}#r399Ed table.g td.lb input,#r399Ed table.g td.ot select{width:46px}}
+#r399Ed table.g .cp{margin-left:4px;padding:1px 6px;border:1px solid #c8a46a;border-radius:6px;background:#fff;font-weight:900;cursor:pointer}
+
+#r399HrBox .r442-pend{color:#8a5a00;font-weight:800;font-size:12px;margin:3px 0}#r399HrBox .r442-pend button{margin:2px 4px 2px 0}
 </style>
 <script id="rcadsR399Script">
 /* R399 — RCPS ⇄ RCADS SYNC FOLDER + FILL THE SCHEDULE / ACS INSIDE RCADS + LEGAL SIZE FOR EVERY EXCEL
@@ -33701,6 +33725,17 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function b64(u8){u8=u8 instanceof Uint8Array?u8:new Uint8Array(u8);let s='';for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)}
   function unb64(s){const b=atob(String(s||''));const u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u}
   function R(){return window.rcadsR182||null}
+  /* R441: in 👁 PREVIEW the HR edits / saves / submits for the Head — drafts go to the HR laptop storage */
+  function r441LS(){try{if(window.RCADS_PREVIEW&&window.parent!==window&&window.parent.localStorage)return window.parent.localStorage}catch(e){}return localStorage}
+  /* R442 — HR APPROVAL: what a Head 1 sends waits for HR ✅ APPROVE; only then it goes to the employees' apps and the DTR.
+     HR fills the San Rafael ADMIN schedule / ACS himself (approved at once). */
+  const OK_KEY='rcads_r442_sched_ok_v1';
+  function okMap(){try{return JSON.parse(localStorage.getItem(OK_KEY)||'{}')||{}}catch(e){return {}}}
+  function isOk(id){return !!okMap()[String(id)]}
+  function setOk(id,by){const m=okMap();m[String(id)]={at:new Date().toISOString(),by:by||'HR'};try{localStorage.setItem(OK_KEY,JSON.stringify(m))}catch(e){}try{rcadsCloudFlushQueue()}catch(e){}}
+  let R442W=null;   /* the HR acting as the filler of the ADMIN sheet */
+  const HR_FILL={SAN_RAFAEL:['ADMIN']};
+  function hrW(b){return {kind:'HR',label:'HR',e:{name:'HR'},branches:[b],forms:HR_FILL[b]||[]}}
   function myKey(){try{const k=(R()&&R().key&&R().key())||'';if(k)return k}catch(e){}
     /* R439: 👁 PREVIEW on the HR laptop — read the forms with the HR key of the HR window (view only; SUBMIT is blocked below) */
     try{if(window.RCADS_PREVIEW&&window.parent&&window.parent!==window){const P=window.parent.rcadsR182;if(P&&P.role&&P.role()==='HR'&&P.key)return P.key()||''}}catch(e){}
@@ -33995,7 +34030,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   async function autoApply(){
     if(apBusy||!isHrDevice()||!FL.rows||!(window.rcadsR215&&window.rcadsR215.upload))return;apBusy=true;
     const keepBr=localStorage.getItem('rustica_central_current_branch_v1');
-    try{const done=apDone();const todo=FL.rows.filter(r=>(r.kind==='ORIG'||r.kind==='ACS')&&!done.includes(r.id)).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+    try{const done=apDone();const todo=FL.rows.filter(r=>(r.kind==='ORIG'||r.kind==='ACS')&&!done.includes(r.id)&&isOk(r.id)).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
       for(const r of todo){
         if(inLib(r)){apMark(r.id);continue}
         let d=null;try{d=await rpc('rustica_sched_filled_get',{p_key:myKey(),p_id:+r.id})}catch(e){continue}
@@ -34016,10 +34051,11 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const weeks=acsWeeks(acsCut).filter(m=>m<=c.t&&m>=ACS_START);
     let h='<div class="r399-n" style="margin:0 0 4px"><b>ORIGINAL SCHEDULE</b>: sent <b>'+esc(fmtDay(c.sat))+'</b> • due back <b>'+esc(fmtDay(c.due))+'</b>. <b>ACS</b>: cut-off <b>'+esc(cutLbl(acsCut))+'</b> • due <b>'+esc(fmtDay(acsCut.to))+'</b>.</div><table class="r399-t"><thead><tr><th>BRANCH</th>'+want.map(w=>'<th>'+esc(w[2])+'<br><small>'+esc(fmtWk(w[0]))+'</small></th>').join('')+'<th>ACS • CUT-OFF<br><small>'+esc(cutLbl(acsCut))+'</small></th></tr></thead><tbody>';
     branches().forEach(b=>{h+='<tr><td><b>'+esc(b.name)+'</b></td>'+want.map(w=>'<td>'+depts.map(d=>{const r=FL.rows.find(x=>x.branch===b.code&&x.dept===d&&x.kind===w[1]&&String(x.week).slice(0,10)===w[0]);
-      if(!r)return d==='ADMIN'?'':'<div class="r399-no">'+(c.sat<RULE_SAT?'— ':c.t>c.due?'⚠ LATE ':'🔴 ')+d+'</div>';return '<div class="r399-ok">✅ '+d+' <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇</button><br><small>'+esc(fmtAt(r.at))+(r.by?' • '+esc(r.by):'')+'</small></div>'}).join('')+'</td>').join('')+
-      '<td>'+depts.map(d=>{const recs=weeks.map(m=>({m,r:FL.rows.find(x=>x.branch===b.code&&x.dept===d&&x.kind==='ACS'&&String(x.week).slice(0,10)===m)}));const ok=recs.filter(x=>acsState(x.r,x.m,acsCut)==='OK').length;
+      if(!r)return d==='ADMIN'?'':'<div class="r399-no">'+(c.sat<RULE_SAT?'— ':c.t>c.due?'⚠ LATE ':'🔴 ')+d+'</div>';return isOk(r.id)?'<div class="r399-ok">✅ '+d+' <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇</button><br><small>'+esc(fmtAt(r.at))+(r.by?' • '+esc(r.by):'')+' • approved</small></div>'
+        :'<div class="r442-pend">🟡 '+d+' — FOR APPROVAL <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇ VIEW</button><button type="button" class="r399-btn ok" data-r442-ok="'+r.id+'">✅ APPROVE</button><br><small>'+esc(fmtAt(r.at))+(r.by?' • '+esc(r.by):'')+'</small></div>'}).join('')+'</td>').join('')+
+      '<td>'+depts.map(d=>{const recs=weeks.map(m=>({m,r:FL.rows.find(x=>x.branch===b.code&&x.dept===d&&x.kind==='ACS'&&String(x.week).slice(0,10)===m)}));const ok=recs.filter(x=>acsState(x.r,x.m,acsCut)==='OK'&&isOk(x.r.id)).length;const pend=recs.filter(x=>x.r&&!isOk(x.r.id));
         if(d==='ADMIN'&&!recs.some(x=>x.r))return '';const all=ok===recs.length&&recs.length;
-        return '<div class="'+(all?'r399-ok':'r399-no')+'">'+(all?'✅ ':(c.t>acsCut.to?'⚠ LATE ':'🔴 '))+d+' '+ok+'/'+recs.length+' '+recs.filter(x=>x.r).map(x=>'<button type="button" class="r399-btn l" title="'+esc(fmtWk(x.m))+'" data-r399-get="'+x.r.id+'">⬇ '+esc(fmtD(x.m))+'</button>').join(' ')+'</div>'}).join('')+'</td></tr>'});
+        return '<div class="'+(all?'r399-ok':'r399-no')+'">'+(all?'✅ ':(c.t>acsCut.to?'⚠ LATE ':'🔴 '))+d+' '+ok+'/'+recs.length+' '+recs.filter(x=>x.r).map(x=>'<button type="button" class="r399-btn l" title="'+esc(fmtWk(x.m))+'" data-r399-get="'+x.r.id+'">⬇ '+esc(fmtD(x.m))+'</button>').join(' ')+(pend.length?'<div class="r442-pend">🟡 FOR APPROVAL: '+pend.map(x=>'<button type="button" class="r399-btn ok" data-r442-ok="'+x.r.id+'">✅ APPROVE '+esc(fmtD(x.m))+'</button>').join(' ')+'</div>':'')+'</div>'}).join('')+'</td></tr>'});
     h+='</tbody></table>';
     const others=FL.rows.filter(x=>!want.some(w=>String(x.week).slice(0,10)===w[0]&&x.kind===w[1])&&!(x.kind==='ACS'&&weeks.includes(String(x.week).slice(0,10))));
     if(others.length)h+='<div class="r399-n"><b>Other forms filled:</b> '+others.map(r=>esc(bName(r.branch))+' '+r.dept+' '+(r.kind==='ACS'?'ACS':'SCHEDULE')+' '+esc(fmtD(r.week))+' <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇</button>').join(' • ')+'</div>';
@@ -34033,12 +34069,21 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const res=GL.res?'<table class="r399-t"><tbody>'+GL.res.filter(r=>!r.skip).map(r=>'<tr><td>'+(r.ok?'<span class="r399-ok">✓</span>':'<span class="r399-no">⚠</span>')+'</td><td><b>'+esc(r.it.name)+'</b><br><small>'+esc(r.ok?r.line||'':r.why||'')+'</small></td></tr>').join('')+'</tbody></table>':'';
     return '<div class="r399-h">📥 GET LATEST FROM RCPS</div><div class="r399-sub">Original Schedule • ACS • DTR Summary Log • Employee List</div>'+
       newHtml()+'<button type="button" class="r399-big" id="r399Get"'+(GL.busy?' disabled':'')+'>'+(GL.busy?'⏳ WORKING…':'📥 GET LATEST FROM RCPS')+'</button>'+
-      '<div class="r399-n">Reads the newest files that RCPS saved with <b>📤 SEND LATEST TO RCADS</b> in <b>'+esc(SYNC_NAME)+' / '+esc(IN_NAME)+'</b>. The Schedule / ACS and DTR Summary Log go straight to the Kitchen Head 1, Dining Head 1 and HR Assistant (☰ MORE → 📝 FILL). What they send back is used for the employees’ DTR right away — no HR review needed. The employee list is shown below for you to check and ✓ APPLY.'+
+      '<div class="r399-n">Reads the newest files that RCPS saved with <b>📤 SEND LATEST TO RCADS</b> in <b>'+esc(SYNC_NAME)+' / '+esc(IN_NAME)+'</b>. The Schedule / ACS and DTR Summary Log go straight to the Kitchen Head 1, Dining Head 1 and HR Assistant (☰ MORE → 📝 FILL). What they send back waits for your <b>✅ APPROVE</b> below — after you approve, it shows in the employees’ apps and is used for the DTR. The employee list is shown below for you to check and ✓ APPLY.'+
       (folderOK()?' <br>Folder: <b>'+esc(GL.folder||'(chosen on the first press)')+'</b> • <a href="#" id="r399Change">change folder</a> • <a href="#" id="r399PickL">or choose the files</a>':' <br>This browser cannot open a folder — you will choose the files.')+'</div>'+
       '<input type="file" id="r399Pick" accept=".xlsx,.json" multiple hidden>'+
       (GL.msg?'<div class="r399-msg'+(GL.err?' err':'')+'">'+esc(GL.msg)+'</div>':'')+res+
-      '<div class="r399-sec">📥 SCHEDULE / ACS FILLED IN RCADS BY THE BRANCHES <button type="button" class="r399-btn l" id="r399Ref">↻</button></div>'+filledHtml()+holHrHtml();
+      '<div class="r399-sec">📥 SCHEDULE / ACS FILLED IN RCADS BY THE BRANCHES <button type="button" class="r399-btn l" id="r399Ref">↻</button></div>'+filledHtml()+hrFillHtml()+holHrHtml();
   }
+  /* R442: HR makes the ADMIN schedule / ACS of San Rafael (approved at once) */
+  function hrFillHtml(){let h='';Object.keys(HR_FILL).forEach(b=>{
+      h+='<div class="r399-sec">📝 '+esc(bName(b).toUpperCase())+' — ADMIN SCHEDULE / ACS (made by HR) <button type="button" class="r399-btn l" data-r442-load="'+b+'">↻</button></div>';
+      if(!HD.forms[b]){h+='<div class="r399-n">'+(HD.busy?'Loading…':'Press ↻ to load the forms.')+'</div>';return}
+      const rows=headRows(hrW(b),b);if(!rows.length){h+='<div class="r399-n">No ADMIN form yet. Press 📥 GET LATEST FROM RCPS first.</div>';return}
+      rows.forEach(x=>{if(x.wait){h+='<div class="r399-item"><b>'+esc(x.label)+' • ADMIN</b><small>'+esc(fmtWk(x.mon))+' • '+esc(x.why)+'</small></div>';return}
+        const id=x.f.id+'|'+x.mon+'|'+x.kind+'|'+x.dept;
+        h+='<div class="r399-item"><b>'+esc(x.label)+' • ADMIN</b><small>'+esc(fmtWk(x.mon))+' • '+(x.done?'<span class="r399-ok">✅ DONE '+esc(fmtAt(x.done.at))+' (approved)</span>':'<span class="r399-no">'+esc(x.due||'')+'</span>')+'</small><div class="r399-row"><button type="button" class="r399-btn ok" data-r442-fill="'+b+'|'+id+'">📝 '+(x.done||x.again?'EDIT':'FILL')+' '+(x.kind==='ACS'?'ACS':'SCHEDULE')+'</button></div></div>'})});
+    return h}
   function holHrHtml(){
     const t=today(),to=addD(t,75);const all=holidaysFor('ALL',t,to);const ex=holExtra().filter(x=>x.date>=addD(t,-30)).sort((a,c)=>a.date.localeCompare(c.date));
     return '<div class="r399-sec">🎌 HOLIDAYS — reminder shown to the Dept. Head 1 when they fill the schedule</div>'+
@@ -34071,7 +34116,12 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
         if(t.closest('#r399Ref')){FL.at=0;loadFilled();return}
         if(t.closest('#r404Add')){holAdd();return}
         const hd=t.closest('[data-r404-del]');if(hd){holDel(hd.getAttribute('data-r404-del'));return}
-        const g=t.closest('[data-r399-get]');if(g){hrDownload(g.getAttribute('data-r399-get'))}});
+        const g=t.closest('[data-r399-get]');if(g){hrDownload(g.getAttribute('data-r399-get'));return}
+        const ok=t.closest('[data-r442-ok]');if(ok){const id=ok.getAttribute('data-r442-ok');const r=(FL.rows||[]).find(x=>String(x.id)===String(id));
+          if(!confirm('✅ APPROVE '+(r?(r.kind==='ACS'?'ACS':'SCHEDULE')+' • '+bName(r.branch)+' • '+r.dept+' • '+fmtWk(String(r.week).slice(0,10)):'this form')+'?\n\nAfter approval it shows in the employees\' apps and is used for the DTR.'))return;
+          setOk(id,'HR');ok.disabled=true;ok.textContent='⏳ APPLYING…';autoApply().then(()=>drawHr());drawHr();return}
+        const ld=t.closest('[data-r442-load]');if(ld){const b=ld.getAttribute('data-r442-load');HD.at[b]=0;loadHead(b,true).then(()=>drawHr());drawHr();return}
+        const fl=t.closest('[data-r442-fill]');if(fl){const p=fl.getAttribute('data-r442-fill').split('|');const b=p.shift();HD.b=b;R442W=hrW(b);openEditor(p.join('|'));if(!document.getElementById('r399Ed'))R442W=null;return}});
       box.addEventListener('change',e=>{if(e.target.id==='r399Pick'){const fs=[...(e.target.files||[])];e.target.value='';fromPickedFiles(fs)}});
       dirGet().then(h=>{if(h){GL.folder=h.name;drawHr()}});
     }
@@ -34111,7 +34161,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   /* ================= Heads / HR Assistant: 📝 FILL THE SCHEDULE / ACS IN RCADS ================= */
   const SHEET={ORIG:{KITCHEN:'KIT.ORIG.SCHED',DINING:'DIN.ORIG.SCHED',ADMIN:'ADM.ORIG.SCHED'},ACS:{KITCHEN:'ACS KITCHEN',DINING:'ACS DINING',ADMIN:'ACS.ADMIN'}};
   const DTRSHEET={MANAGEMENT:'Mgmt',KITCHEN:'Kitc',DINING:'Dini',EXTRA:'Extra'};
-  function who(){try{const w=window.rcadsR264&&window.rcadsR264.who&&window.rcadsR264.who();if(!w||(w.kind!=='HEAD'&&w.kind!=='HRA'))return null;return w}catch(e){return null}}
+  function who(){if(R442W)return R442W;try{const w=window.rcadsR264&&window.rcadsR264.who&&window.rcadsR264.who();if(!w||(w.kind!=='HEAD'&&w.kind!=='HRA'))return null;return w}catch(e){return null}}
   const HD={b:'',forms:{},filled:{},at:{},busy:false,msg:'',err:false};
   function fmtTime(hhmm){if(!hhmm)return '';let [h,m]=hhmm.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(m)+' '+ap}
   function toHHMM(v){if(v==null||v==='')return '';if(typeof v==='number'){const t=Math.round((v%1)*1440);return pad(Math.floor(t/60)%24)+':'+pad(t%60)}
@@ -34133,13 +34183,14 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
         const e={r,code,name:txt(r,1),pos:txt(r,2),days:[]};
         days.forEach(d=>{if(kind==='ORIG'){const a=val(r,d.c),b=val(r,d.c+1);const st=typeof a==='string'&&a.trim()&&!toHHMM(a)?a.trim():'';e.days.push({st,in:st?'':toHHMM(a),out:st?'':toHHMM(b)})}
           else{const a=val(r,d.c),ot=val(r,d.c+2);let st='',tin='',tout='';const s=String(a??'').trim();
-            if(s){const p=s.split(/\s*[-–—]\s*/);if(p.length>=2&&toHHMM(p[0])&&toHHMM(p[1])){tin=toHHMM(p[0]);tout=toHHMM(p[1])}else if(typeof a==='number'){tin=toHHMM(a)}else st=s}
-            e.days.push({st,in:tin,out:tout,ot:ot===''?'':String(ot)})}});
+            if(s){const p=s.split(/\s*[-–—]\s*/);if(p.length>=2&&toHHMM(p[0])&&toHHMM(p[1])){tin=toHHMM(p[0]);tout=toHHMM(p[1])}else if(typeof a==='number'||toHHMM(s)){tin=toHHMM(a)}else st=s}
+            const lbv=val(r,d.c+1);let lb=lbv===''||lbv==null?'':(typeof lbv==='number'?String(lbv>0&&lbv<1?Math.round(lbv*24*100)/100:lbv):String(lbv).trim());   /* R440: LONG BREAK */
+            e.days.push({st,in:tin,out:tout,ot:ot===''?'':String(ot),lb})}});
         emps.push(e)}
       else if(/^PREPARED BY/.test(U(txt(r,0))))prep=XLSX.utils.encode_cell({r,c:0})}
     return {sheetName,h,days,emps,prep,kind};
   }
-  function dayStatus(d,kind){if(d.st)return 'ST';if(d.in&&d.out)return 'TIME';if(kind==='ACS'&&(d.ot!==''&&d.ot!=null))return 'OTONLY';return ''}
+  function dayStatus(d,kind){if(d.st)return 'ST';if(d.in&&(d.out||kind==='ACS'))return 'TIME';if(kind==='ACS'&&String(d.lb??'').trim())return 'LB';if(kind==='ACS'&&(d.ot!==''&&d.ot!=null))return 'OTONLY';return ''}
   function empDone(e,kind){if(kind==='ACS')return true;return e.days.every(d=>dayStatus(d,kind)==='ST'||dayStatus(d,kind)==='TIME')}
   /* writes the values into the ORIGINAL file (only the time cells + PREPARED BY) and keeps only this department's sheet */
   function buildFilled(u8,L,kind,byName){
@@ -34149,7 +34200,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       if(kind==='ORIG'){const a=colL(c+1)+r,b=colL(c+2)+r;
         if(d.st){x=setCell(x,a,d.st);x=setCell(x,b,'')}else if(d.in&&d.out){x=setCell(x,a,fmtTime(d.in));x=setCell(x,b,fmtTime(d.out))}else{x=setCell(x,a,'');x=setCell(x,b,'')}}
       else{const a=colL(c+1)+r,o=colL(c+3)+r;
-        if(d.st)x=setCell(x,a,d.st);else if(d.in&&d.out)x=setCell(x,a,String(+d.in.slice(0,2))+d.in.slice(2)+'-'+String(+d.out.slice(0,2))+d.out.slice(2));else x=setCell(x,a,'');   /* ACS: 24-hour '8:30-17:30' fits the narrow New Sched column */
+        if(d.st)x=setCell(x,a,d.st);else if(d.in&&d.out)x=setCell(x,a,String(+d.in.slice(0,2))+d.in.slice(2)+'-'+String(+d.out.slice(0,2))+d.out.slice(2));else if(d.in)x=setCell(x,a,String(+d.in.slice(0,2))+d.in.slice(2));else x=setCell(x,a,'');
+        {const lb=String(d.lb??'').trim();x=setCell(x,colL(c+2)+r,lb===''?'':(/^\d+(\.\d+)?$/.test(lb)?+lb:lb))}   /* R440: LONG BREAK */   /* ACS: 24-hour '8:30-17:30' fits the narrow New Sched column */
         const ot=String(d.ot??'').trim();x=setCell(x,o,ot&&+ot>0?Math.floor(+ot):'')}})});
     if(L.prep&&byName)x=setCell(x,L.prep,'PREPARED BY: '+byName+'   ('+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+')');
     zSet(z,s.path,x);keepOnly(z,L.sheetName);return zWrite(z);
@@ -34195,7 +34247,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       {const mons=[...new Set(rows.map(x=>x.mon))].sort();if(mons.length){const hl=holidaysFor(b,mons[0],addD(mons[mons.length-1],6)).filter(x=>x.date>=addD(today(),-1));h+=holBox(hl)}}
       rows.forEach(x=>{if(x.wait){h+='<div class="r399-item"><b>'+esc(x.label)+(w.forms.length>1||x.dept==='ADMIN'?' • '+esc(x.dept):'')+'</b><small>'+esc(fmtWk(x.mon))+' • '+esc(x.why)+'</small></div>';return}
         const id=x.f.id+'|'+x.mon+'|'+x.kind+'|'+x.dept;
-        h+='<div class="r399-item"><b>'+esc(x.label)+(w.forms.length>1||x.dept==='ADMIN'?' • '+esc(x.dept):'')+'</b><small>'+esc(fmtWk(x.mon))+' • '+(x.done?'<span class="r399-ok">✅ SENT TO HR '+esc(fmtAt(x.done.at))+'</span>':'<span class="r399-no">'+esc(x.due||'')+(x.again?' • last sent '+esc(fmtAt(x.again.at)):'')+'</span>')+'</small>'+
+        h+='<div class="r399-item"><b>'+esc(x.label)+(w.forms.length>1||x.dept==='ADMIN'?' • '+esc(x.dept):'')+'</b><small>'+esc(fmtWk(x.mon))+' • '+(x.done?(isOk(x.done.id)?'<span class="r399-ok">✅ APPROVED BY HR • sent '+esc(fmtAt(x.done.at))+'</span>':'<span class="r399-ok">📤 SENT TO HR '+esc(fmtAt(x.done.at))+' • HR approves it before it shows in the employees’ apps</span>'):'<span class="r399-no">'+esc(x.due||'')+(x.again?' • last sent '+esc(fmtAt(x.again.at)):'')+'</span>')+'</small>'+
           '<div class="r399-row"><button type="button" class="r399-btn ok" data-r399-fill="'+id+'">📝 '+(x.done||x.again?'EDIT':'FILL')+' '+(x.kind==='ACS'?'ACS':'SCHEDULE')+'</button><button type="button" class="r399-btn l" data-r399-dl="'+id+'">⬇ DOWNLOAD'+(x.done||x.again?'':' (blank)')+'</button></div></div>'});
       const dtr=(HD.forms[b]||[]).find(x=>x.kind==='DTR');
       if(dtr&&w.kind==='HEAD')h+='<div class="r399-item"><b>DTR SUMMARY LOG • '+(w.forms[0]==='DINING'?'ALL DEPARTMENTS (Management, Kitchen, Dining, Extra)':esc(w.forms[0]))+'</b><small>'+esc(fmtD(dtr.from)+' – '+fmtD(dtr.to)+', '+String(dtr.to).slice(0,4))+' • editable during the pilot — check it; send corrections to HR</small><div class="r399-row"><button type="button" class="r399-btn l" data-r399-dtr="'+dtr.id+'">⬇ DOWNLOAD DTR SUMMARY LOG</button></div></div>';
@@ -34227,7 +34279,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     catch(e){alert('Could not open the form: '+e.message);return}
     if(!L.emps.length){alert('There are no '+dept+' employees in this form. Ask HR to update it in RCPS.');return}
     ED={b,id,mon,kind,dept,base,L,w,open:{},hol:{}};holidaysFor(b,mon,addD(mon,6)).forEach(x=>{ED.hol[x.date]=x});
-    try{const d=JSON.parse(localStorage.getItem(draftKey())||'null');if(d&&d.emps&&confirm('You have an unsent draft from '+fmtAt(d.at)+'. Continue it?'))d.emps.forEach(x=>{const e=L.emps.find(y=>y.code===x.code);if(e&&Array.isArray(x.days)&&x.days.length===7)e.days=x.days})}catch(e){}
+    try{const d=JSON.parse(r441LS().getItem(draftKey())||'null');if(d&&d.emps&&confirm('You have an unsent draft from '+fmtAt(d.at)+'. Continue it?'))d.emps.forEach(x=>{const e=L.emps.find(y=>y.code===x.code);if(e&&Array.isArray(x.days)&&x.days.length===7)e.days=x.days})}catch(e){}
     let el=document.getElementById('r399Ed');if(!el){el=document.createElement('div');el.id='r399Ed';document.body.appendChild(el);
       el.addEventListener('change',edChange);el.addEventListener('input',edChange);el.addEventListener('click',edClick)}
     edDraw();
@@ -34239,54 +34291,96 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const hd=ED.hol&&ED.hol[addD(ED.mon,di)];
     let h='<div class="day"><div class="dl">'+dd.name+'<small>'+esc(dd.date)+'</small>'+(hd?'<span class="r399-hb '+(hd.type==='R'?'r':'s')+'">'+(hd.type==='R'?'REG. HOL.':'SPECIAL')+'</span>':'')+'</div><select data-e="'+ei+'" data-d="'+di+'" data-f="st">'+opts+'</select>'+
       '<div class="tm'+(sel==='TIME'?'':' off')+'"><input type="time" step="1800" data-e="'+ei+'" data-d="'+di+'" data-f="in" value="'+esc(d.in||'')+'"><span>to</span><input type="time" step="1800" data-e="'+ei+'" data-d="'+di+'" data-f="out" value="'+esc(d.out||'')+'"></div>';
-    if(ED.kind==='ACS')h+='<div class="ot"><label>APPROVED O.T.</label><select data-e="'+ei+'" data-d="'+di+'" data-f="ot">'+['','1','2','3','4','5','6','7','8'].map(v=>'<option value="'+v+'"'+(String(d.ot||'')===v?' selected':'')+'>'+(v?v+' hr'+(v==='1'?'':'s'):'none')+'</option>').join('')+'</select></div>';
+    if(ED.kind==='ACS')h+='<div class="ot"><label>LONG BREAK</label><input data-e="'+ei+'" data-d="'+di+'" data-f="glb" list="r440Lb" value="'+esc(d.lb||'')+'" style="max-width:70px"><label>APPROVED O.T.</label><select data-e="'+ei+'" data-d="'+di+'" data-f="ot">'+['','1','2','3','4','5','6','7','8'].map(v=>'<option value="'+v+'"'+(String(d.ot||'')===v?' selected':'')+'>'+(v?v+' hr'+(v==='1'?'':'s'):'none')+'</option>').join('')+'</select></div>';
     return h+'</div>';
   }
   function empHtml(e,ei){const ok=empDone(e,ED.kind);const changed=ED.kind==='ACS'?e.days.filter(d=>dayStatus(d,'ACS')).length:0;
     return '<div class="emp'+(ED.open[ei]?'':' closed')+'"><div class="emp-h" data-tog="'+ei+'"><div><b>'+esc(e.name)+'</b><small>'+esc(e.code)+' • '+esc(e.pos)+'</small></div><span class="st '+(ED.kind==='ACS'?(changed?'ok':''):(ok?'ok':'no'))+'">'+(ED.kind==='ACS'?(changed?changed+' change(s)':'no change'):(ok?'✓ complete':'incomplete'))+' ▾</span></div>'+
       '<div class="emp-b">'+(ED.kind==='ORIG'?'<div class="tools"><button type="button" class="r399-btn l" data-copy="'+ei+'">COPY MONDAY TO THE OTHER DAYS</button></div>':'')+e.days.map((d,di)=>dayHtml(e,ei,d,di)).join('')+'</div></div>'}
-  function edDraw(){const el=document.getElementById('r399Ed');if(!el||!ED)return;const L=ED.L;const sc=el.querySelector('.ed-b');const top=sc?sc.scrollTop:0;
+  /* R440 — TABLE VIEW: the same layout as the Excel form (EMPCODE • NAME • POSITION, then MONDAY … SUNDAY).
+     ORIGINAL: IN | OUT per day.  ACS: NEW SCHED | LONG BREAK | APRVD O.T. per day.  Type like in Excel: 8, 8:30, 11, 9 PM, DAY OFF, LEAVE, ANGELES … */
+  const G_ST=['DAY OFF','LEAVE','VL','SL','CATERING','ABSENT W/ PERMISSION','SUSPENDED','RESIGNED','TERMINATED','AWOL'];
+  function gTime(v){v=String(v??'').trim().toUpperCase().replace(/\./g,'').replace(/\s+/g,' ');if(!v)return '';const m=/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM|A|P)?$/.exec(v);if(!m)return null;let h=+m[1],mi=+(m[2]||0);if(h>23||mi>59)return null;const ap=m[3]||'';if(ap[0]==='P'&&h<12)h+=12;if(ap[0]==='A'&&h===12)h=0;return pad(h)+':'+pad(mi)}
+  function gFixOut(tin,tout){if(!tin||!tout)return tout;const a=+tin.slice(0,2)*60+ +tin.slice(3),b=+tout.slice(0,2)*60+ +tout.slice(3);if((b<=a||(b-a<480&&b<720))){const t=b+720;if(t<1440&&t>a)return pad(Math.floor(t/60))+':'+pad(t%60)}return tout}
+  function gShow(t){return t?fmtTime(t):''}
+  function gStatus(v){return String(v??'').trim().toUpperCase().replace(/\s+/g,' ')}
+  function gLists(){const tm=[];for(let h=5;h<=23;h++)for(const m of [0,30])tm.push(fmtTime(pad(h)+':'+pad(m)));let br=[];try{br=branches().map(b=>U(b.name).replace(/^RUSTICA\s+/,''))}catch(e){}
+    return '<datalist id="r440In">'+tm.concat(G_ST,br).map(v=>'<option value="'+esc(v)+'">').join('')+'</datalist><datalist id="r440Out">'+tm.map(v=>'<option value="'+esc(v)+'">').join('')+'</datalist>'
+      +'<datalist id="r440Ns">'+['10:00 AM','11:00 AM','8:00 AM - 9:00 PM','10:00 AM - 9:00 PM','11:00 AM - 9:00 PM'].concat(G_ST,br).map(v=>'<option value="'+esc(v)+'">').join('')+'</datalist><datalist id="r440Lb">'+['1','1.5','2','3','4','5',':30'].map(v=>'<option value="'+v+'">').join('')+'</datalist>'}
+  function gridHtml(){const L=ED.L,acs=ED.kind==='ACS',span=acs?3:2;
+    let h=gLists()+'<div class="gw"><table class="g"><thead><tr><th class="s1" rowspan="2">EMPCODE</th><th class="s2" rowspan="2">NAME</th><th rowspan="2">POSITION</th>'+L.days.map((dd,di)=>{const hd=ED.hol&&ED.hol[addD(ED.mon,di)];return '<th class="dh" colspan="'+span+'">'+esc(['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'][di])+'<small>'+esc(dd.date)+'</small>'+(hd?'<span class="r399-hb '+(hd.type==='R'?'r':'s')+'">'+(hd.type==='R'?'REG. HOL.':'SPECIAL')+'</span>':'')+'</th>'}).join('')+'</tr><tr>'
+      +L.days.map(()=>acs?'<th class="sub">New Sched</th><th class="sub">Long Break</th><th class="sub">Aprvd O.T.</th>':'<th class="sub">IN</th><th class="sub">OUT</th>').join('')+'</tr></thead><tbody>';
+    L.emps.forEach((e,ei)=>{const ok=empDone(e,ED.kind);
+      h+='<tr class="'+(acs||ok?'':'inc')+'"><td class="s1">'+esc(e.code)+(acs?'':'<button type="button" class="cp" data-copy="'+ei+'" title="Copy Monday to the other days">⇉</button>')+'</td><td class="s2">'+esc(e.name)+'</td><td class="ps">'+esc(e.pos)+'</td>';
+      e.days.forEach((d,di)=>{const A='data-e="'+ei+'" data-d="'+di+'"';
+        if(acs){const ns=d.st?d.st:(d.in?gShow(d.in)+(d.out?' - '+gShow(d.out):''):'');
+          h+='<td class="c"><input '+A+' data-f="gns" list="r440Ns" value="'+esc(ns)+'" placeholder="no change"></td><td class="c lb"><input '+A+' data-f="glb" list="r440Lb" value="'+esc(d.lb||'')+'"></td><td class="c ot"><select '+A+' data-f="ot">'+['','1','2','3','4','5','6','7','8'].map(v=>'<option value="'+v+'"'+(String(d.ot||'')===v?' selected':'')+'>'+(v||'—')+'</option>').join('')+'</select></td>'}
+        else{h+='<td class="c'+(d.st?' st':'')+'"><input '+A+' data-f="gin" list="r440In" value="'+esc(d.st?d.st:gShow(d.in))+'"></td><td class="c'+(d.st?' st':'')+'"><input '+A+' data-f="gout" list="r440Out" value="'+esc(d.st?'':gShow(d.out))+'"'+(d.st?' disabled':'')+'></td>'}});
+      h+='</tr>'});
+    return h+'</tbody></table></div>'}
+  function gridChange(t){const em=ED.L.emps[+t.dataset.e],d=em.days[+t.dataset.d],f=t.dataset.f,v=t.value;
+    if(f==='gin'){if(!String(v).trim()){d.st='';d.in='';d.out='';return true}const tm=gTime(v);if(tm){d.st='';d.in=tm;if(d.out)d.out=gFixOut(d.in,d.out);return true}d.st=gStatus(v);d.in='';d.out='';return true}
+    if(f==='gout'){if(!String(v).trim()){d.out='';return true}const tm=gTime(v);if(!tm){alert('OUT must be a time, e.g. 9 or 9:00 PM.');return true}d.st='';d.out=gFixOut(d.in,tm);return true}
+    if(f==='gns'){const s=String(v).trim();if(!s){d.st='';d.in='';d.out='';return true}const p=s.split(/\s*[-–—]\s*/);
+      if(p.length>=2&&gTime(p[0])&&gTime(p[1])){d.st='';d.in=gTime(p[0]);d.out=gFixOut(d.in,gTime(p[1]));return true}
+      if(gTime(s)){d.st='';d.in=gTime(s);d.out='';return true}d.st=gStatus(s);d.in='';d.out='';return true}
+    if(f==='glb'){const s=String(v).trim();if(s&&!/^(\d+(\.\d+)?|:\s*\d{1,2}|\d{1,2}:\d{2}|\d+\s*(M|MIN|MINS|MINUTES|H|HR|HRS|HOURS?))$/i.test(s)){alert('LONG BREAK: hours like 1, 1.5, 3, 4 — or :30 for 30 minutes.');t.value=d.lb||'';return false}d.lb=s;return true}
+    return false}
+  /* R440: update ONE row in place (no redraw) so the cell the Head tapped next keeps the focus */
+  function gridRow(ei){const el=document.getElementById('r399Ed');if(!el||!ED)return;const em=ED.L.emps[ei];if(!em)return;
+    em.days.forEach((d,di)=>{const q=f=>el.querySelector('[data-e="'+ei+'"][data-d="'+di+'"][data-f="'+f+'"]');
+      const gi=q('gin'),go=q('gout'),gn=q('gns'),gl=q('glb');
+      if(gi)gi.value=d.st?d.st:gShow(d.in);if(gi)gi.parentElement.classList.toggle('st',!!d.st);
+      if(go){go.value=d.st?'':gShow(d.out);go.disabled=!!d.st;go.parentElement.classList.toggle('st',!!d.st)}
+      if(gn)gn.value=d.st?d.st:(d.in?gShow(d.in)+(d.out?' - '+gShow(d.out):''):'');
+      if(gl)gl.value=d.lb||''});
+    const tr=el.querySelector('[data-e="'+ei+'"]')&&el.querySelector('[data-e="'+ei+'"]').closest('tr');if(tr&&ED.kind!=='ACS')tr.classList.toggle('inc',!empDone(em,ED.kind));
+    const w=el.querySelector('.ed-f .warn');const inc=ED.kind==='ORIG'?ED.L.emps.filter(x=>!empDone(x,'ORIG')).length:0;if(w)w.textContent=inc?'⚠ '+inc+' employee(s) still incomplete.':'';}
+  function edDraw(){const el=document.getElementById('r399Ed');if(!el||!ED)return;const L=ED.L;const sc=el.querySelector('.ed-b');const top=sc?sc.scrollTop:0;const left=sc?sc.scrollLeft:0;if(!ED.view)ED.view='grid';const grid=ED.view==='grid';
     const inc=ED.kind==='ORIG'?L.emps.filter(e=>!empDone(e,'ORIG')).length:0;
-    el.innerHTML='<div class="ed"><div class="ed-h"><b>📝 '+(ED.kind==='ACS'?'ACS — APPROVED O.T. & CHANGE OF SCHEDULE':'WEEKLY SCHEDULE (ORIGINAL)')+'</b><small>'+esc(bName(ED.b))+' • '+esc(ED.dept)+' • '+esc(fmtWk(ED.mon))+' • '+L.emps.length+' employees</small></div>'+
-      '<div class="ed-b"><div class="r399-n">'+(ED.kind==='ACS'?'Fill ONLY the changed days (new TIME, or DAY OFF / LEAVE) and the APPROVED O.T. in whole hours. Leave "no change" for the rest. You can 💾 SAVE DRAFT and add more days during the week — SUBMIT TO HR on the cut-off (10th / 25th).':'Choose TIME and put the time IN and OUT for every day, or DAY OFF / LEAVE. Tap a name to open it.')+'</div>'+holBox(Object.values(ED.hol||{}))+L.emps.map((e,i)=>empHtml(e,i)).join('')+'</div>'+
+    el.innerHTML='<div class="ed'+(grid?' wide':'')+'"><div class="ed-h"><b>📝 '+(ED.kind==='ACS'?'ACS — APPROVED O.T. & CHANGE OF SCHEDULE':'WEEKLY SCHEDULE (ORIGINAL)')+'</b><small>'+esc(bName(ED.b))+' • '+esc(ED.dept)+' • '+esc(fmtWk(ED.mon))+' • '+L.emps.length+' employees</small></div>'+
+      '<div class="ed-b"><div class="r440-v"><button type="button" class="r399-btn'+(grid?'':' l')+'" data-view="grid">▦ TABLE (like the Excel form)</button><button type="button" class="r399-btn'+(grid?' l':'')+'" data-view="card">☰ ONE BY ONE</button></div><div class="r399-n">'+(grid?(ED.kind==='ACS'?'Same as the ACS Excel form. NEW SCHED: the new time (e.g. <b>10:00 AM</b> or <b>10 - 9</b>), or DAY OFF / LEAVE — blank = no change. <b>LONG BREAK</b>: hours (1, 1.5, 3, 4) or <b>:30</b> — write it EVERY working day. <b>APRVD O.T.</b>: whole hours. Swipe sideways to see all days.':'Same as the Excel form. Type the time like in Excel: <b>8</b>, <b>8:30</b>, <b>11</b> (IN) and <b>9</b> (OUT = 9:00 PM), or DAY OFF / LEAVE / the BRANCH (roving). ⇉ copies Monday to the other days. Swipe sideways to see all days.')+'</div>'+holBox(Object.values(ED.hol||{}))+gridHtml()+'</div>':(ED.kind==='ACS'?'Fill ONLY the changed days (new TIME, or DAY OFF / LEAVE) and the APPROVED O.T. in whole hours. Leave "no change" for the rest. You can 💾 SAVE DRAFT and add more days during the week — SUBMIT TO HR on the cut-off (10th / 25th).':'Choose TIME and put the time IN and OUT for every day, or DAY OFF / LEAVE. Tap a name to open it.')+'</div>'+holBox(Object.values(ED.hol||{}))+L.emps.map((e,i)=>empHtml(e,i)).join('')+'</div>')+
       '<div class="ed-f">'+(inc?'<div class="warn">⚠ '+inc+' employee(s) still incomplete.</div>':'')+'<button type="button" class="r399-btn ok" data-act="submit">📤 SUBMIT TO HR</button><button type="button" class="r399-btn l" data-act="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-act="close">✕ CLOSE</button></div></div>';
-    const nb=el.querySelector('.ed-b');if(nb)nb.scrollTop=top}
-  function edChange(e){const t=e.target;if(!ED||!t.dataset||t.dataset.e===undefined)return;const em=ED.L.emps[+t.dataset.e],d=em.days[+t.dataset.d],f=t.dataset.f;
+    const nb=el.querySelector('.ed-b');if(nb){nb.scrollTop=top;nb.scrollLeft=left}}
+  function edChange(e){const t=e.target;if(!ED||!t.dataset||t.dataset.e===undefined)return;if(/^g/.test(t.dataset.f||'')){if(e.type==='change'&&gridChange(t))gridRow(+t.dataset.e);return}const em=ED.L.emps[+t.dataset.e],d=em.days[+t.dataset.d],f=t.dataset.f;
     if(f==='st'){if(t.value==='TIME'){d.st='';if(!d.in&&!d.out){const prev=em.days.slice(0,+t.dataset.d).reverse().find(x=>x.in&&x.out);if(prev){d.in=prev.in;d.out=prev.out}}if(!d.in)d.in='08:00';if(!d.out)d.out='17:00'}else if(t.value===''){d.st='';d.in='';d.out=''}else{d.st=t.value;d.in='';d.out=''}if(e.type==='change')edDraw()}
     else if(f==='in'||f==='out'){d[f]=t.value;d.st=''}
     else if(f==='ot'){d.ot=t.value;if(e.type==='change')edDraw()}}
   function edClick(e){const t=e.target;if(!t.closest||!ED)return;
+    const vw=t.closest('[data-view]');if(vw){ED.view=vw.dataset.view;edDraw();return}
     const tg=t.closest('[data-tog]');if(tg){const i=+tg.dataset.tog;ED.open[i]=!ED.open[i];edDraw();return}
     const cp=t.closest('[data-copy]');if(cp){const em=ED.L.emps[+cp.dataset.copy];const m=em.days[0];if(!dayStatus(m,'ORIG')){alert('Fill MONDAY first.');return}em.days=em.days.map((d,i)=>i===0?d:{st:m.st,in:m.in,out:m.out});edDraw();return}
     const a=t.closest('[data-act]');if(!a)return;const act=a.dataset.act;
-    if(act==='close'){if(confirm('Close? Press 💾 SAVE DRAFT first if you want to continue later.')){document.getElementById('r399Ed').remove();ED=null}return}
-    if(act==='draft'){try{localStorage.setItem(draftKey(),JSON.stringify({at:new Date().toISOString(),emps:ED.L.emps.map(x=>({code:x.code,days:x.days}))}));alert('✓ Draft saved on this phone.')}catch(err){alert(err.message)}return}
+    if(act==='close'){if(confirm('Close? Press 💾 SAVE DRAFT first if you want to continue later.')){document.getElementById('r399Ed').remove();ED=null;R442W=null}return}
+    if(act==='draft'){try{r441LS().setItem(draftKey(),JSON.stringify({at:new Date().toISOString(),emps:ED.L.emps.map(x=>({code:x.code,days:x.days}))}));alert('✓ Draft saved on this phone.')}catch(err){alert(err.message)}return}
     if(act==='submit')submitEd();
   }
   async function submitEd(){
     const L=ED.L,kind=ED.kind;
-    const bad=[];L.emps.forEach(e=>e.days.forEach((d,i)=>{if((d.in&&!d.out)||(!d.in&&d.out))bad.push(e.name+' '+L.days[i].name)}));
+    const bad=[];L.emps.forEach(e=>e.days.forEach((d,i)=>{if(kind==='ACS'?(!d.in&&d.out):((d.in&&!d.out)||(!d.in&&d.out)))bad.push(e.name+' '+L.days[i].name)}));
     if(bad.length){alert('Put BOTH the time IN and OUT:\n• '+bad.slice(0,8).join('\n• ')+(bad.length>8?'\n…':''));return}
     if(kind==='ORIG'){const inc=L.emps.filter(e=>!empDone(e,'ORIG'));if(inc.length&&!confirm(inc.length+' employee(s) still have empty days:\n• '+inc.slice(0,6).map(e=>e.name).join('\n• ')+'\n\nSubmit anyway?'))return}
     else if(!L.emps.some(e=>e.days.some(d=>dayStatus(d,'ACS')))&&!confirm('No change was filled. Submit an EMPTY ACS (no change this week)?'))return;
     {const hs=Object.values(ED.hol||{});if(hs.length){const lines=hs.map(x=>{const i=Math.round((new Date(x.date+'T00:00')-new Date(ED.mon+'T00:00'))/864e5);const n=L.emps.filter(e=>{const d=e.days[i];return d&&d.in&&d.out&&!d.st}).length;return '• '+fmtDay(x.date)+' ('+(x.type==='R'?'REGULAR HOLIDAY, double pay':'SPECIAL DAY, +30%')+'): '+n+' working'});
       if(!confirm('🎌 HOLIDAY CHECK\n\n'+lines.join('\n')+'\n\nOnly the people really needed should work on these days.\nSubmit to HR now?'))return}}
-    const w=ED.w;const by=(w.e&&(w.e.name||w.e.code)||'')+' • '+w.label;
+    if(window.RCADS_PREVIEW){alert('👁 PREVIEW — view only. The Head 1 sends it from his own phone; you approve it in HR → 📥 SCHEDULE / ACS FILLED IN RCADS.');return}
+    const w=ED.w;const by=w.kind==='HR'?'HR':((w.e&&(w.e.name||w.e.code)||'')+' • '+w.label);
     const btn=document.querySelector('#r399Ed [data-act="submit"]');if(btn){btn.disabled=true;btn.textContent='⏳ SENDING…'}
     try{
       const u8=buildFilled(ED.base,L,kind,(w.e&&w.e.name)||w.label);
       const name=fileNameFor(ED.b,ED.dept,kind,ED.mon);
-      await rpc('rustica_sched_filled_put',{p_key:myKey(),p_branch:ED.b,p_dept:ED.dept,p_kind:kind,p_week:ED.mon,p_form_id:+ED.id,p_file_name:name,p_data_b64:b64(u8),p_name:by});
-      // same as the Head's upload: RCADS uses it for late / undertime / overtime right away
-      let libMsg='';await new Promise(res=>{try{if(window.rcadsR215&&window.rcadsR215.upload)window.rcadsR215.upload(new File([u8],name,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),ED.b,ED.dept,kind==='ACS'?'ACS':'ORIGINAL',by,(ok,m)=>{libMsg=ok?'':'\n⚠ Attendance copy: '+m;res()});else res()}catch(e){libMsg='\n⚠ '+e.message;res()}setTimeout(res,15000)});
-      try{localStorage.removeItem(draftKey())}catch(e){}
+      const put=await rpc('rustica_sched_filled_put',{p_key:myKey(),p_branch:ED.b,p_dept:ED.dept,p_kind:kind,p_week:ED.mon,p_form_id:+ED.id,p_file_name:name,p_data_b64:b64(u8),p_name:by});
+      const isHr=w.kind==='HR';if(isHr&&put&&put.id)setOk(put.id,'HR');
+      /* R442: only the HR's own form goes to the attendance now; a Head's form waits for HR ✅ APPROVE */
+      let libMsg=isHr?'':'\n\n⏳ Waiting for HR APPROVAL — it shows in the employees\' apps after HR approves.';await new Promise(res=>{if(!isHr){res();return}try{if(window.rcadsR215&&window.rcadsR215.upload)window.rcadsR215.upload(new File([u8],name,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),ED.b,ED.dept,kind==='ACS'?'ACS':'ORIGINAL',by,(ok,m)=>{libMsg=ok?'':'\n⚠ Attendance copy: '+m;res()});else res()}catch(e){libMsg='\n⚠ '+e.message;res()}setTimeout(res,15000)});
+      try{r441LS().removeItem(draftKey())}catch(e){}
       const keep={b:ED.b,mon:ED.mon,kind,dept:ED.dept,u8,name};document.getElementById('r399Ed').remove();ED=null;
-      HD.at[keep.b]=0;await loadHead(keep.b,true);
+      HD.at[keep.b]=0;await loadHead(keep.b,true);if(w.kind==='HR'){R442W=null;FL.at=0;loadFilled();drawHr()}
       if(confirm('✓ SENT TO HR: '+(kind==='ACS'?'ACS':'SCHEDULE')+' • '+keep.dept+' • '+fmtWk(keep.mon)+libMsg+'\n\nDownload it now for the bulletin board?'))saveU8(keep.u8,keep.name);
     }catch(e){alert('Not sent: '+e.message);if(btn){btn.disabled=false;btn.textContent='📤 SUBMIT TO HR'}}
   }
   function tickHead(){
-    const w=who();let el=document.getElementById('r399Card');
+    const w=who();if(w&&w.kind==='HR')return;let el=document.getElementById('r399Card');
     if(!w){if(el)el.remove();return}
     if(!HD.b||!w.branches.includes(HD.b))HD.b=w.branches[0];
     if(!el){el=document.createElement('div');el.id='r399Card';el.className='r399-card';
