@@ -33707,7 +33707,9 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     return ''}
   function isHrDevice(){try{return !!(R()&&R().role&&R().role()==='HR'&&R().key())}catch(e){return false}}
   async function rpc(name,body){if(window.RCADS_PREVIEW&&/_put$|_apply$|_delete$/i.test(name))throw new Error('👁 PREVIEW MODE — nothing is sent to HR. The real Head 1 phone sends it with 📤 SUBMIT TO HR.');let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}if(!url||!anon)throw new Error('No Supabase settings on this device.');
-    let r;try{r=await fetch(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('No internet connection.')}
+    /* R439: the preview blocks the network; the 3 READ-ONLY form calls go through the HR window instead */
+    let F=fetch;try{if(window.RCADS_PREVIEW&&window.parent!==window&&/^rustica_(rcps_form_latest|sched_filled_mine|sched_filled_get)$/.test(name))F=window.parent.fetch.bind(window.parent)}catch(e){}
+    let r;try{r=await F(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify(body)})}catch(e){throw new Error('No internet connection.')}
     let d=null;try{d=await r.json()}catch(e){}
     if(!r.ok){const m=(d&&(d.message||d.hint))||('Server error '+r.status);if(r.status===404||/Could not find the function|PGRST202/i.test(m))throw new Error('The server is not ready for R399 yet. HR: run RCADS_R399_SCHEDULE_FORMS_SUPABASE.sql once in Supabase → SQL Editor.');throw new Error(m)}
     if(!d||d.ok===false)throw new Error((d&&d.error)||'Server error');return d}
