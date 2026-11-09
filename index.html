@@ -114,9 +114,32 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
   function done(){H.classList.remove('r431-boot')}
   function ready(){const g=document.getElementById('r160Gate');if(g&&getComputedStyle(g).display!=='none')return true;
     const sel=document.getElementById('selectScreen');if(sel&&getComputedStyle(sel).display==='none')return true;
-    const B=document.body&&document.body.classList;if(B&&(B.contains('guard-session-active')||B.contains('employee-session-active')))return true;return false}
-  (function tick(){if(!document.body){return setTimeout(tick,50)}if(Date.now()-t0>4500)return done();if(document.readyState!=='loading'&&ready())return setTimeout(done,150);setTimeout(tick,80)})();
+    const B=document.body&&document.body.classList;if(B&&(B.contains('guard-session-active')||B.contains('employee-session-active')||B.contains('employee-simple-mode')||B.contains('approver-only-mode')||B.contains('r345-guard')))return true;const mh=document.getElementById('managerHomeScreen');if(mh&&!mh.classList.contains('hidden')&&getComputedStyle(mh).display!=='none')return true;return false}
+  (function tick(){if(!document.body){return setTimeout(tick,50)}if(Date.now()-t0>15000)return done();/* R447: wait up to 15 s on slow phones / data */if(document.readyState!=='loading'&&ready())return setTimeout(done,150);setTimeout(tick,80)})();
 }catch(e){try{document.documentElement.classList.remove('r431-boot')}catch(_){}}})();
+</script>
+<script id="rcadsR447KeypadGuard">
+/* R447 — the phone keypad must not disappear while typing.
+   Some RCADS cards refresh themselves every 1–2 seconds by replacing their HTML; if the box you are typing in is inside,
+   the box is re-created and the keypad closes. While someone is typing, such a refresh is held and done right after
+   he/she leaves the box. */
+(function(){try{
+  const D=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');if(!D||!D.set)return;
+  let lastType=0;const held=new Map();let inTick=0;
+  /* only the automatic REFRESH TIMERS are held — never a screen change the user asked for */
+  const SI=window.setInterval;window.setInterval=function(fn,ms){if(typeof fn!=='function')return SI.apply(window,arguments);const rest=[].slice.call(arguments,2);return SI.call(window,function(){inTick++;try{return fn.apply(this,rest)}finally{inTick--}},ms)};
+  const isText=el=>!!el&&((el.tagName==='INPUT'&&!/^(button|submit|checkbox|radio|file|range|color|hidden|reset|image)$/i.test(el.type||''))||el.tagName==='TEXTAREA'||el.isContentEditable);
+  document.addEventListener('input',e=>{if(isText(e.target))lastType=Date.now()},true);
+  document.addEventListener('keydown',e=>{if(isText(e.target))lastType=Date.now()},true);
+  document.addEventListener('focusin',e=>{if(isText(e.target))lastType=Date.now()},true);
+  Object.defineProperty(Element.prototype,'innerHTML',{configurable:true,enumerable:D.enumerable,get:D.get,set:function(v){
+    try{const a=document.activeElement;
+      if(inTick>0&&a&&a!==this&&isText(a)&&this.contains&&this.contains(a)&&Date.now()-lastType<20000&&String(v).indexOf('r447-force')<0){held.set(this,v);return}
+    }catch(e){}
+    held.delete(this);return D.set.call(this,v)}});
+  document.addEventListener('focusout',()=>{setTimeout(()=>{const a=document.activeElement;
+    held.forEach((v,el)=>{if(a&&el.contains(a)&&isText(a))return;held.delete(el);try{D.set.call(el,v)}catch(e){}})},250)},true);
+}catch(e){}})();
 </script>
 
 <script>function rcadsIsGuardLabel(l){return /^Guard \d+$/.test(String(l||""))}</script>
@@ -168,7 +191,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R446 SAVE DRAFT AT THE TOP</title>
+<title>Rustica RCADS App — R447 KEYPAD STAYS + NO HR SCREEN ON PHONES</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
