@@ -106,7 +106,8 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
   const hr=ls('rustica_r167_hrdevice_pin_flag')==='1'||role==='HR';
   const acc=/rcadsAccess=/.test(location.href);
   const mine=!!ls('rustica_r160_mypin_device')||(!!role&&role!=='HR');
-  if(hr&&!acc)return;if(!mine&&!acc)return;
+  const phone=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent||'')||(window.matchMedia&&matchMedia('(max-width: 820px)').matches);
+  if(!phone){if(hr&&!acc)return;if(!mine&&!acc)return;}   /* R448: every phone gets the splash */
   const H=document.documentElement;H.classList.add('r431-boot');
   const st=document.createElement('style');st.textContent='html.r431-boot body{visibility:hidden!important}html.r431-boot::after{content:"RUSTICA\\A RCADS\\A\\A Opening…";white-space:pre;position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;text-align:center;background:#4c2b17;color:#f3e2c4;font:900 22px/1.25 Arial,Helvetica,sans-serif;letter-spacing:2px;visibility:visible}';
   document.head?document.head.appendChild(st):H.appendChild(st);
@@ -127,14 +128,16 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
   const D=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');if(!D||!D.set)return;
   let lastType=0;const held=new Map();let inTick=0;
   /* only the automatic REFRESH TIMERS are held — never a screen change the user asked for */
+  const ST=window.setTimeout;window.setTimeout=function(fn,ms){if(typeof fn!=='function')return ST.apply(window,arguments);const rest=[].slice.call(arguments,2);return ST.call(window,function(){inTick++;try{return fn.apply(this,rest)}finally{inTick--}},ms)};
   const SI=window.setInterval;window.setInterval=function(fn,ms){if(typeof fn!=='function')return SI.apply(window,arguments);const rest=[].slice.call(arguments,2);return SI.call(window,function(){inTick++;try{return fn.apply(this,rest)}finally{inTick--}},ms)};
   const isText=el=>!!el&&((el.tagName==='INPUT'&&!/^(button|submit|checkbox|radio|file|range|color|hidden|reset|image)$/i.test(el.type||''))||el.tagName==='TEXTAREA'||el.isContentEditable);
   document.addEventListener('input',e=>{if(isText(e.target))lastType=Date.now()},true);
-  document.addEventListener('keydown',e=>{if(isText(e.target))lastType=Date.now()},true);
+  document.addEventListener('keydown',e=>{if(isText(e.target))lastType=(e.key==='Enter'?0:Date.now())},true);
   document.addEventListener('focusin',e=>{if(isText(e.target))lastType=Date.now()},true);
   Object.defineProperty(Element.prototype,'innerHTML',{configurable:true,enumerable:D.enumerable,get:D.get,set:function(v){
     try{const a=document.activeElement;
-      if(inTick>0&&a&&a!==this&&isText(a)&&this.contains&&this.contains(a)&&Date.now()-lastType<20000&&String(v).indexOf('r447-force')<0){held.set(this,v);return}
+      const ev=window.event&&window.event.type||'';const auto=inTick>0||/^(resize|scroll|orientationchange|storage|message|visibilitychange|online|offline|focus|blur|pageshow)$/.test(ev);
+      if(auto&&a&&a!==this&&isText(a)&&this.contains&&this.contains(a)&&Date.now()-lastType<8000&&String(v).indexOf('r447-force')<0){held.set(this,v);return}
     }catch(e){}
     held.delete(this);return D.set.call(this,v)}});
   document.addEventListener('focusout',()=>{setTimeout(()=>{const a=document.activeElement;
@@ -191,7 +194,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R447 KEYPAD STAYS + NO HR SCREEN ON PHONES</title>
+<title>Rustica RCADS App — R448 KEYPAD + SPLASH ON EVERY PHONE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
