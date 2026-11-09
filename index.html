@@ -168,7 +168,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R443 MANAGER EDITS DINING SCHEDULE</title>
+<title>Rustica RCADS App — R444 PREVIEW SHOWS THE BOTTOM MENU</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25202,6 +25202,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 #r177Modal.r177dev-desktop .r177-device{width:100%;border-radius:14px;padding:6px;height:100%}#r177Modal.r177dev-desktop .r177-device iframe{border-radius:10px}
 @media(max-width:900px){.r177-pgrid{grid-template-columns:1fr}.r177-hello{font-size:18px}}
 /* inside the preview frame */
+/* R444: leave room under the phone frame so its bottom menu (HOME … MORE) is never hidden behind the Windows taskbar */
+@media(min-width:901px){#r177Modal .r177-stage{padding-bottom:64px;box-sizing:border-box}}
 #r177PreviewBanner{position:fixed;left:0;right:0;top:0;z-index:2147483646;background:#ffd38a;color:#3d2412;font:900 10.5px Arial,sans-serif;text-align:center;padding:3px 6px;letter-spacing:.4px;pointer-events:none;opacity:.92}
 #simpleHrAdminModal .rcads-hr-main.r177-sub #r177Top .r177-kpis,#simpleHrAdminModal .rcads-hr-main.r177-sub #r177Top .r177-links{display:none}
 #simpleHrAdminModal .rcads-hr-main.r177-sub .r177-hero{padding:12px 16px}
