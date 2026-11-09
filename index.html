@@ -168,7 +168,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R444 PREVIEW SHOWS THE BOTTOM MENU</title>
+<title>Rustica RCADS App — R445 SAVE DRAFT ALWAYS VISIBLE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -33645,6 +33645,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 #r399Ed table.g .cp{margin-left:4px;padding:1px 6px;border:1px solid #c8a46a;border-radius:6px;background:#fff;font-weight:900;cursor:pointer}
 
 #r399HrBox .r442-pend{color:#8a5a00;font-weight:800;font-size:12px;margin:3px 0}#r399HrBox .r442-pend button{margin:2px 4px 2px 0}
+
+/* R445 */#r399Ed{height:100vh;height:100dvh}#r399Ed .ed{height:100%}#r399Ed .ed-f{position:sticky;bottom:0;z-index:5;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
 </style>
 <script id="rcadsR399Script">
 /* R399 — RCPS ⇄ RCADS SYNC FOLDER + FILL THE SCHEDULE / ACS INSIDE RCADS + LEGAL SIZE FOR EVERY EXCEL
@@ -34290,7 +34292,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(!L.emps.length){alert('There are no '+dept+' employees in this form. Ask HR to update it in RCPS.');return}
     ED={b,id,mon,kind,dept,base,L,w,open:{},hol:{}};holidaysFor(b,mon,addD(mon,6)).forEach(x=>{ED.hol[x.date]=x});
     try{const d=JSON.parse(r441LS().getItem(draftKey())||'null');if(d&&d.emps&&confirm('You have an unsent draft from '+fmtAt(d.at)+'. Continue it?'))d.emps.forEach(x=>{const e=L.emps.find(y=>y.code===x.code);if(e&&Array.isArray(x.days)&&x.days.length===7)e.days=x.days})}catch(e){}
-    let el=document.getElementById('r399Ed');if(!el){el=document.createElement('div');el.id='r399Ed';document.body.appendChild(el);
+    let el=document.getElementById('r399Ed');if(!el){el=document.createElement('div');el.id='r399Ed';document.documentElement.appendChild(el);/* R445: on <html> so a transformed <body> (HR page) can't push 💾 SAVE DRAFT / SUBMIT off the screen */
       el.addEventListener('change',edChange);el.addEventListener('input',edChange);el.addEventListener('click',edClick)}
     edDraw();
   }
