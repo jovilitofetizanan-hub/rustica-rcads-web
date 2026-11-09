@@ -168,7 +168,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R445 SAVE DRAFT ALWAYS VISIBLE</title>
+<title>Rustica RCADS App — R446 SAVE DRAFT AT THE TOP</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -33647,6 +33647,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 #r399HrBox .r442-pend{color:#8a5a00;font-weight:800;font-size:12px;margin:3px 0}#r399HrBox .r442-pend button{margin:2px 4px 2px 0}
 
 /* R445 */#r399Ed{height:100vh;height:100dvh}#r399Ed .ed{height:100%}#r399Ed .ed-f{position:sticky;bottom:0;z-index:5;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+
+/* R446: the same buttons at the TOP too */#r399Ed .r446-top{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#r399Ed .r446-top .r399-btn{padding:7px 12px;font-size:12px}#r399Ed .ed-h .r446-top .r399-btn.l{background:#fff;color:#3a2210}
 </style>
 <script id="rcadsR399Script">
 /* R399 — RCPS ⇄ RCADS SYNC FOLDER + FILL THE SCHEDULE / ACS INSIDE RCADS + LEGAL SIZE FOR EVERY EXCEL
@@ -34350,7 +34352,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const w=el.querySelector('.ed-f .warn');const inc=ED.kind==='ORIG'?ED.L.emps.filter(x=>!empDone(x,'ORIG')).length:0;if(w)w.textContent=inc?'⚠ '+inc+' employee(s) still incomplete.':'';}
   function edDraw(){const el=document.getElementById('r399Ed');if(!el||!ED)return;const L=ED.L;const sc=el.querySelector('.ed-b');const top=sc?sc.scrollTop:0;const left=sc?sc.scrollLeft:0;if(!ED.view)ED.view='grid';const grid=ED.view==='grid';
     const inc=ED.kind==='ORIG'?L.emps.filter(e=>!empDone(e,'ORIG')).length:0;
-    el.innerHTML='<div class="ed'+(grid?' wide':'')+'"><div class="ed-h"><b>📝 '+(ED.kind==='ACS'?'ACS — APPROVED O.T. & CHANGE OF SCHEDULE':'WEEKLY SCHEDULE (ORIGINAL)')+'</b><small>'+esc(bName(ED.b))+' • '+esc(ED.dept)+' • '+esc(fmtWk(ED.mon))+' • '+L.emps.length+' employees</small></div>'+
+    el.innerHTML='<div class="ed'+(grid?' wide':'')+'"><div class="ed-h"><b>📝 '+(ED.kind==='ACS'?'ACS — APPROVED O.T. & CHANGE OF SCHEDULE':'WEEKLY SCHEDULE (ORIGINAL)')+'</b><small>'+esc(bName(ED.b))+' • '+esc(ED.dept)+' • '+esc(fmtWk(ED.mon))+' • '+L.emps.length+' employees</small><div class="r446-top"><button type="button" class="r399-btn ok" data-act="submit">📤 SUBMIT</button><button type="button" class="r399-btn l" data-act="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-act="close">✕ CLOSE</button></div></div>'+
       '<div class="ed-b"><div class="r440-v"><button type="button" class="r399-btn'+(grid?'':' l')+'" data-view="grid">▦ TABLE (like the Excel form)</button><button type="button" class="r399-btn'+(grid?' l':'')+'" data-view="card">☰ ONE BY ONE</button></div><div class="r399-n">'+(grid?(ED.kind==='ACS'?'Same as the ACS Excel form. NEW SCHED: the new time (e.g. <b>10:00 AM</b> or <b>10 - 9</b>), or DAY OFF / LEAVE — blank = no change. <b>LONG BREAK</b>: hours (1, 1.5, 3, 4) or <b>:30</b> — write it EVERY working day. <b>APRVD O.T.</b>: whole hours. Swipe sideways to see all days.':'Same as the Excel form. Type the time like in Excel: <b>8</b>, <b>8:30</b>, <b>11</b> (IN) and <b>9</b> (OUT = 9:00 PM), or DAY OFF / LEAVE / the BRANCH (roving). ⇉ copies Monday to the other days. Swipe sideways to see all days.')+'</div>'+holBox(Object.values(ED.hol||{}))+gridHtml()+'</div>':(ED.kind==='ACS'?'Fill ONLY the changed days (new TIME, or DAY OFF / LEAVE) and the APPROVED O.T. in whole hours. Leave "no change" for the rest. You can 💾 SAVE DRAFT and add more days during the week — SUBMIT TO HR on the cut-off (10th / 25th).':'Choose TIME and put the time IN and OUT for every day, or DAY OFF / LEAVE. Tap a name to open it.')+'</div>'+holBox(Object.values(ED.hol||{}))+L.emps.map((e,i)=>empHtml(e,i)).join('')+'</div>')+
       '<div class="ed-f">'+(inc?'<div class="warn">⚠ '+inc+' employee(s) still incomplete.</div>':'')+'<button type="button" class="r399-btn ok" data-act="submit">📤 SUBMIT TO HR</button><button type="button" class="r399-btn l" data-act="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-act="close">✕ CLOSE</button></div></div>';
     const nb=el.querySelector('.ed-b');if(nb){nb.scrollTop=top;nb.scrollLeft=left}}
