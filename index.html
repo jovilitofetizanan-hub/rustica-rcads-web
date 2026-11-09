@@ -140,6 +140,21 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
       if(auto&&a&&a!==this&&isText(a)&&this.contains&&this.contains(a)&&Date.now()-lastType<8000&&String(v).indexOf('r447-force')<0){held.set(this,v);return}
     }catch(e){}
     held.delete(this);return D.set.call(this,v)}});
+  /* R449: also never MOVE / REMOVE / REWRITE the box (or the card around it) while typing — on iPhone that closes the keypad */
+  const busy=function(node){try{if(!node||!node.contains)return false;const a=document.activeElement;if(!a||!isText(a)||!node.contains(a))return false;
+      const ev=window.event&&window.event.type||'';const auto=inTick>0||/^(resize|scroll|orientationchange|storage|message|visibilitychange|online|offline|focus|blur|pageshow)$/.test(ev);
+      return auto&&Date.now()-lastType<8000}catch(e){return false}};
+  const N=Node.prototype,E=Element.prototype;
+  const wrap=(o,k,test)=>{const f=o[k];if(typeof f!=='function')return;o[k]=function(){try{if(test.apply(this,arguments))return arguments[0]}catch(e){}return f.apply(this,arguments)}};
+  wrap(N,'appendChild',function(n){return n&&n.parentNode&&busy(n)});
+  wrap(N,'insertBefore',function(n){return n&&n.parentNode&&busy(n)});
+  wrap(N,'removeChild',function(n){return busy(n)});
+  wrap(N,'replaceChild',function(n,old){return busy(old)});
+  wrap(E,'remove',function(){return busy(this)});
+  wrap(E,'replaceWith',function(){return busy(this)});
+  wrap(E,'insertAdjacentElement',function(p,n){return n&&n.parentNode&&busy(n)});
+  wrap(E,'replaceChildren',function(){return busy(this)});
+  ['textContent','outerHTML'].forEach(k=>{const d=Object.getOwnPropertyDescriptor(k==='textContent'?N:E,k);if(!d||!d.set)return;Object.defineProperty(k==='textContent'?N:E,k,{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){if(this.nodeType===1&&busy(this))return;return d.set.call(this,v)}})});
   document.addEventListener('focusout',()=>{setTimeout(()=>{const a=document.activeElement;
     held.forEach((v,el)=>{if(a&&el.contains(a)&&isText(a))return;held.delete(el);try{D.set.call(el,v)}catch(e){}})},250)},true);
 }catch(e){}})();
@@ -194,7 +209,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R448 KEYPAD + SPLASH ON EVERY PHONE</title>
+<title>Rustica RCADS App — R449 KEYPAD STAYS ON IPHONE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
