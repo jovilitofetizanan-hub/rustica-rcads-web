@@ -209,7 +209,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R450 HR MANUAL SCHEDULE UPLOAD</title>
+<title>Rustica RCADS App — R451 HR SEARCH</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -30872,6 +30872,105 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
     });
   };
   setInterval(function(){try{const e=document.getElementById('r450BranchLine');if(!e)return;const t='Saved for: '+bName(cur())+' (the branch selected in HR RCADS). Use this when the branch upload above does not work.';if(e.textContent!==t)e.textContent=t}catch(x){}},1500);
+})();
+</script>
+
+<!-- RCADS PATCH: R451 HR SEARCH — find any menu, section or button in HR RCADS -->
+<style id="rcadsR451Css">
+#r451Btn{position:fixed;right:12px;top:6px;z-index:2147480001;border:0;border-radius:999px;padding:8px 14px;background:#3a2210;color:#f0d9a8;font:900 13px system-ui,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35);cursor:pointer;display:none}
+#r451Box{position:fixed;inset:0;z-index:2147480002;background:rgba(30,16,8,.45);display:none;align-items:flex-start;justify-content:center;padding:60px 12px 12px}
+#r451Box.show{display:flex}
+#r451Card{width:min(640px,100%);max-height:calc(100vh - 80px);display:flex;flex-direction:column;background:#fffaf2;border:2px solid #5b3519;border-radius:16px;box-shadow:0 16px 40px rgba(0,0,0,.35);overflow:hidden;font-family:system-ui,sans-serif}
+#r451In{border:0;border-bottom:2px solid #e6d3b6;padding:14px 16px;font-size:17px;font-weight:700;color:#3a2210;background:#fff;outline:none}
+#r451Hint{padding:6px 16px;font-size:11px;color:#7a6250;background:#f6ecdd}
+#r451List{overflow:auto;padding:6px}
+#r451List button{display:block;width:100%;text-align:left;border:0;border-radius:10px;padding:9px 12px;margin:2px 0;background:transparent;cursor:pointer;color:#3a2210}
+#r451List button:hover,#r451List button.sel{background:#f1dfc3}
+#r451List b{display:block;font-size:14px}#r451List small{display:block;font-size:11px;color:#7a6250;margin-top:2px}
+#r451List mark{background:#ffe08a;color:inherit;border-radius:3px;padding:0 1px}
+#r451List .none{padding:14px;color:#7a6250;font-size:13px}
+.r451-flash{outline:4px solid #f0a020!important;outline-offset:3px;border-radius:8px;transition:outline-color .4s}
+</style>
+<script id="rcadsR451Script">
+/* R451 — 🔎 SEARCH in HR RCADS. Type a word (e.g. archive, PIN, payroll, 201, guard) → the list shows every menu,
+   section and button with that word → tap one and RCADS opens that page, scrolls to it and highlights it.
+   Shortcut on the laptop: Ctrl + K (or / ). Works in the laptop and phone view of HR. */
+(function(){
+  'use strict';
+  const U=s=>String(s||'').toUpperCase();
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  /* Tagalog / short words → words used in RCADS */
+  const SYN={ARCHIVE:['ARCHIVE','ARCHIVES','CALENDAR','SAVED'],ARCHIVES:['ARCHIVE'],ISKEDYUL:['SCHEDULE'],SKED:['SCHEDULE'],SAHOD:['PAYROLL','PAYSLIP'],SWELDO:['PAYROLL','PAYSLIP'],
+    PAYROLL:['PAYROLL','PAYSLIP','RCPS'],LIBAN:['ABSENT'],HULI:['LATE'],UTANG:['LOAN'],LOAN:['LOAN'],BANTAY:['GUARD'],GWARDYA:['GUARD'],GUARDIYA:['GUARD'],
+    EMPLEYADO:['EMPLOYEE'],TAUHAN:['EMPLOYEE','STAFF'],PIN:['PIN','QR','SETUP'],LARAWAN:['PHOTO','PICTURE'],PIRMA:['SIGNATURE'],PAALALA:['NOTICE','REMINDER','MEMO'],
+    MEMO:['MEMO','NOTICE','CIRCULAR'],ID:['RUSTICA ID',' ID'],TRANSFER:['TRANSFER','TEMPORARY','PERMANENT'],LIPAT:['TRANSFER'],BACKUP:['BACKUP','RESTORE'],
+    OT:['OVERTIME','OT'],DTR:['DTR','DAILY TIME'],BIOMETRIC:['BIOMETRIC','SCANNER'],HOLIDAY:['HOLIDAY'],PISTA:['HOLIDAY'],SEPARATED:['SEPARATED','RESIGNED'],RESIGN:['SEPARATED','RESIGN']};
+  function admin(){return document.getElementById('simpleHrAdminModal')}
+  function open(){const a=admin();return !!(a&&!a.classList.contains('hidden')&&getComputedStyle(a).display!=='none')}
+  function mainEl(){return document.querySelector('#simpleHrAdminModal .rcads-hr-main')}
+  function topChild(el){const m=mainEl();if(!m||!el)return null;let x=el;while(x&&x.parentElement!==m)x=x.parentElement;return x}
+  function clean(t){return String(t||'').replace(/\s+/g,' ').trim()}
+  function txt(el){const parts=[];(function w(n){if(n.nodeType===3){parts.push(n.nodeValue)}else if(n.nodeType===1&&!/^(SCRIPT|STYLE|SELECT|OPTION|INPUT|TEXTAREA)$/.test(n.tagName)){parts.push(' ');n.childNodes.forEach(w);parts.push(' ')}})(el);return clean(parts.join(''))}
+  const NAV={};
+  function navLabels(){const a=admin();if(!a)return;a.querySelectorAll('.rcads-hr-nav button').forEach(b=>{const oc=b.getAttribute('onclick')||'';const m=oc.match(/rcadsHrGo\('([^']+)'\)/);let id=m?m[1]:(/rcadsOpenBiometricImport/.test(oc)?'rcadsBiometricHrTopBlock':'');
+      if(!id){const mp={r160HrNavBtn:'r160HrSection',r167HrNavBtn:'r167HrSection',r170HrNavBtn:'r170HrSection',r173HrNavBtn:'r173HrSection',r159HrNavBtn:'r159HrSection'};id=mp[b.id]||''}
+      if(id){const c=topChild(document.getElementById(id));if(c)NAV[c.id||id]=clean(b.textContent)}})}
+  function context(el){const c=topChild(el);if(!c)return '';if(NAV[c.id])return NAV[c.id];const h=c.querySelector('.section,h1,h2,h3,[class$="-h"]');return h?txt(h).slice(0,50):''}
+  let idx=[],idxAt=0;
+  function build(){
+    const a=admin(),m=mainEl();if(!a||!m)return [];navLabels();
+    const out=[],seen=new Set();
+    a.querySelectorAll('.rcads-hr-nav button').forEach(b=>{const t=clean(b.textContent);if(!t)return;const k='NAV|'+U(t);if(seen.has(k))return;seen.add(k);out.push({t,ctx:'MENU',el:b,nav:true,w:3})});
+    const SEL='.section,h1,h2,h3,h4,summary,legend,button,label,[class*="-h"],.r177-links b,[data-r178-sec]';
+    m.querySelectorAll(SEL).forEach(el=>{
+      if(el.closest('#r451Box,script,style'))return;
+      let t=txt(el);if(t.length<3||t.length>90||/^\d+\s/.test(t))return;
+      const ctx=context(el);const k=U(t)+'|'+U(ctx);if(seen.has(k))return;seen.add(k);
+      const isHead=/^(H\d|SUMMARY|LEGEND)$/.test(el.tagName)||el.classList.contains('section')||/-h$/.test([...el.classList].join(' '));
+      out.push({t,ctx,el,w:isHead?2:(el.tagName==='BUTTON'?1.5:1)});
+    });
+    return out}
+  function terms(q){return U(q).split(/\s+/).filter(Boolean).map(w=>[w].concat(SYN[w]||[]))}
+  function score(it,T){const hay=U(it.t+' '+it.ctx);let s=0;for(const alts of T){let hit=0;for(const a of alts){if(U(it.t).includes(a)){hit=Math.max(hit,3)}else if(hay.includes(a))hit=Math.max(hit,1)}if(!hit)return 0;s+=hit}return s*it.w+(U(it.t).startsWith(T[0][0])?2:0)}
+  function hl(t,T){let h=esc(t);const words=[...new Set(T.flat())].filter(w=>w.trim().length>1).sort((a,b)=>b.length-a.length);
+    words.forEach(w=>{const re=new RegExp('('+w.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');h=h.replace(re,'<mark>$1</mark>')});return h.replace(/<mark>([^<]*)<mark>([^<]*)<\/mark>([^<]*)<\/mark>/g,'<mark>$1$2$3</mark>')}
+  let res=[],sel=0;
+  function search(){
+    const q=document.getElementById('r451In').value.trim();const L=document.getElementById('r451List');
+    if(!q){res=[];L.innerHTML='<div class="none">Type what you are looking for — e.g. <b>archive</b>, <b>PIN</b>, <b>payroll</b>, <b>201</b>, <b>guard</b>, <b>holiday</b>, <b>loan</b>.</div>';return}
+    if(Date.now()-idxAt>4000){idx=build();idxAt=Date.now()}
+    const T=terms(q);res=idx.map(it=>({it,s:score(it,T)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,25).map(x=>x.it);sel=0;
+    L.innerHTML=res.length?res.map((it,i)=>'<button type="button" data-i="'+i+'" class="'+(i===0?'sel':'')+'"><b>'+hl(it.t,T)+'</b><small>'+(it.nav?'☰ Main menu':'in: '+esc(it.ctx||'HR RCADS'))+(it.el.tagName==='BUTTON'&&!it.nav?' • button':'')+'</small></button>').join(''):'<div class="none">Nothing found for “'+esc(q)+'”. Try another word.</div>'}
+  function unhide(el){const m=mainEl();let x=el;while(x&&x!==m){if(x.classList&&x.classList.contains('hidden')&&x!==topChild(el))x.classList.remove('hidden');if(x.tagName==='DETAILS')x.open=true;x=x.parentElement}}
+  function flash(el){try{el.classList.add('r451-flash');setTimeout(()=>el.classList.remove('r451-flash'),2600)}catch(e){}}
+  function goTo(it){
+    close();
+    if(it.nav){try{it.el.click()}catch(e){}flash(it.el);return}
+    const el=it.el;if(!el.isConnected){alert('That part was refreshed — please search again.');return}
+    if(!el.id)el.id='r451t'+Math.random().toString(36).slice(2,8);
+    const c=topChild(el);
+    try{const b=c&&c.id&&document.querySelector('[data-r178-sec="'+c.id+'"]');if(b&&!c.offsetParent)b.click()}catch(e){}
+    try{if(typeof rcadsHrGo==='function')rcadsHrGo(c&&c.id?c.id:el.id)}catch(e){}
+    setTimeout(()=>{unhide(el);try{el.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}flash(el)},350);
+  }
+  function close(){const b=document.getElementById('r451Box');if(b)b.classList.remove('show')}
+  function show(){const b=mount();b.classList.add('show');const i=document.getElementById('r451In');i.value='';idx=build();idxAt=Date.now();search();setTimeout(()=>i.focus(),30)}
+  function mount(){let b=document.getElementById('r451Box');if(b)return b;
+    b=document.createElement('div');b.id='r451Box';
+    b.innerHTML='<div id="r451Card"><input id="r451In" type="search" autocomplete="off" placeholder="🔎 Search HR RCADS — archive, PIN, payroll, guard…"><div id="r451Hint">↑ ↓ to choose • Enter to open • Esc to close • Laptop shortcut: Ctrl + K</div><div id="r451List"></div></div>';
+    document.body.appendChild(b);
+    b.addEventListener('click',e=>{if(e.target===b){close();return}const r=e.target.closest('#r451List button');if(r){const it=res[+r.dataset.i];if(it)goTo(it)}});
+    const i=b.querySelector('#r451In');i.addEventListener('input',search);
+    i.addEventListener('keydown',e=>{const L=document.getElementById('r451List');const bs=[...L.querySelectorAll('button')];
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!bs.length)return;sel=(sel+(e.key==='ArrowDown'?1:-1)+bs.length)%bs.length;bs.forEach((x,k)=>x.classList.toggle('sel',k===sel));bs[sel].scrollIntoView({block:'nearest'})}
+      else if(e.key==='Enter'){e.preventDefault();if(res[sel])goTo(res[sel])}else if(e.key==='Escape'){close()}});
+    return b}
+  document.addEventListener('keydown',e=>{if(!open())return;const tag=(e.target&&e.target.tagName)||'';const typing=/INPUT|TEXTAREA|SELECT/.test(tag)||e.target.isContentEditable;
+    if((e.ctrlKey||e.metaKey)&&U(e.key)==='K'){e.preventDefault();show()}else if(e.key==='/'&&!typing){e.preventDefault();show()}else if(e.key==='Escape')close()});
+  setInterval(()=>{try{let b=document.getElementById('r451Btn');const on=open();
+    if(on&&!b){b=document.createElement('button');b.type='button';b.id='r451Btn';b.textContent='🔎 SEARCH';b.onclick=show;document.body.appendChild(b)}
+    if(b)b.style.display=on?'block':'none';if(!on)close()}catch(e){}},700);
+  window.rcadsR451Search=show;
 })();
 </script>
 <!-- RCADS R287: OFFLINE RECORDING + AUTO SYNC -->
