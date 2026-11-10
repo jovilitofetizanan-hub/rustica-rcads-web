@@ -209,7 +209,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R451 HR SEARCH</title>
+<title>Rustica RCADS App — R452 SCHEDULE UPLOAD NO DOWNLOAD</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -5246,7 +5246,7 @@ function loadOriginalScheduleFile(event){
             );
             rcadsPersistCurrentScheduleUpload(file.name,scheduleCategory);
             applyUploadedSchedule();
-            rcadsAutoBackupAfterCriticalImport();
+            /* R452: schedule upload no longer downloads a backup file — only cloud sync */ setTimeout(()=>{try{if(typeof rcadsCloudFlushAllLocal==="function")rcadsCloudFlushAllLocal()}catch(e){}},700);
             return;
           }
         }
@@ -5370,7 +5370,7 @@ function loadOriginalScheduleFile(event){
 
         rcadsPersistCurrentScheduleUpload(file.name,scheduleCategory);
         applyUploadedSchedule();
-        rcadsAutoBackupAfterCriticalImport();
+        /* R452: schedule upload no longer downloads a backup file — only cloud sync */ setTimeout(()=>{try{if(typeof rcadsCloudFlushAllLocal==="function")rcadsCloudFlushAllLocal()}catch(e){}},700);
         return;
       }
 
