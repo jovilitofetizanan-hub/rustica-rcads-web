@@ -209,7 +209,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R449 KEYPAD STAYS ON IPHONE</title>
+<title>Rustica RCADS App — R450 HR MANUAL SCHEDULE UPLOAD</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -13777,15 +13777,47 @@ function rcadsPersistCurrentScheduleUpload(fileName,category=""){
     if(idx>=0) lib[idx]=entry;
     else lib.push(entry);
 
-    rcadsSaveScheduleLibrary(lib.slice(-60));
+    /* R450: a full laptop storage no longer fails silently — compact the stored tables and retry */
+    window.rcadsR450PersistErr="";
+    let toSave=lib.slice(-60);
+    try{ rcadsSaveScheduleLibrary(toSave); }
+    catch(qe){
+      const q=!!qe&&(qe.name==='QuotaExceededError'||qe.name==='NS_ERROR_DOM_QUOTA_REACHED'||qe.code===22||qe.code===1014);
+      if(!q) throw qe;
+      toSave=toSave.map(window.rcadsR450Compact);
+      try{ rcadsSaveScheduleLibrary(toSave); }
+      catch(qe2){
+        /* still full: keep the newest 30 schedules (the new upload is always kept) */
+        try{ rcadsSaveScheduleLibrary(toSave.slice(-30)); }
+        catch(qe3){ window.rcadsR450PersistErr="NOT SAVED — the storage of this browser is FULL. Press BACKUP RCADS DATA, then delete old schedules in WEEKLY SCHEDULE CALENDAR / ARCHIVE and try again."; throw qe3; }
+      }
+    }
     rcadsPurgeExpiredScheduleArchive();
+    try{
+      const still=rcadsGetScheduleLibrary().some(x=>x&&x.branch===branch&&x.fileName===entry.fileName&&x.savedAt===entry.savedAt);
+      if(!still){const d=rcadsScheduleEntryDates(entry);window.rcadsR450PersistErr="NOT SAVED — the dates read from the file ("+(d.length?d[0]+" to "+d[d.length-1]:"none")+") are older than "+RCADS_SCHEDULE_RETENTION_MONTHS+" months. Check the DATE RANGE / year in the file.";}
+      else if(!rcadsScheduleEntryDates(entry).length){window.rcadsR450PersistErr="";}
+    }catch(e){}
     rcadsRebuildLiveSchedulesFromLibrary(branch);
     rcadsUpdatePreserveStatus();
     if(typeof rcadsRenderWeeklyScheduleArchive==="function") rcadsRenderWeeklyScheduleArchive();
   }catch(err){
     console.warn("RCADS schedule preservation failed:",err);
+    if(!window.rcadsR450PersistErr) window.rcadsR450PersistErr="NOT SAVED — "+(err&&err.message?err.message:String(err));
   }
 }
+/* R450: shrink a stored schedule — keep only the rows of each weekly table (row numbers stay the same) */
+window.rcadsR450Compact=function(entry){
+  try{
+    if(!entry||!Array.isArray(entry.weeklyBlocks))return entry;
+    const trim=r=>{if(!Array.isArray(r))return r;let n=r.length;while(n&&(r[n-1]===''||r[n-1]==null))n--;return r.slice(0,n)};
+    return Object.assign({},entry,{weeklyBlocks:entry.weeklyBlocks.map(b=>{
+      if(!b||!Array.isArray(b.matrix))return b;
+      const lo=Math.max(0,(b.headerRow||0)-12),hi=Math.min(b.matrix.length,(b.dataEndRow||b.matrix.length)+2);
+      return Object.assign({},b,{matrix:b.matrix.map((r,i)=>i>=lo&&i<hi?trim(r):[])});
+    })});
+  }catch(e){return entry}
+};
 
 function rcadsRebuildLiveSchedulesFromLibrary(branchCode){
   try{
@@ -14872,25 +14904,26 @@ function rcadsRefreshHrDashboard(){
       <div class="section">TODAY'S SCHEDULE — HR ONLY</div>
 
       <div class="upload-box" style="padding:8px;border-radius:8px">
-        <div style="font-size:12px;font-weight:900;color:#5b3519;margin-bottom:8px">UPLOAD WEEKLY ORIGINAL SCHEDULES</div>
+        <div style="font-size:12px;font-weight:900;color:#5b3519;margin-bottom:4px">HR MANUAL UPLOAD — WEEKLY ORIGINAL SCHEDULES</div>
+        <div id="r450BranchLine" style="font-size:11px;font-weight:800;color:#2d6a36;margin-bottom:8px">Saved for the branch selected in HR RCADS.</div>
 
         <div style="display:grid;gap:7px">
           <div style="padding:8px;border:1px solid #d8c5a7;border-radius:8px;background:#fff">
             <label style="display:block;font-weight:900;margin-bottom:5px">KITCHEN SCHEDULE</label>
             <input id="scheduleFileKitchen" type="file" accept=".xlsx,.xls"
-              data-schedule-category="KITCHEN" onchange="loadOriginalScheduleFile(event)">
+              data-schedule-category="KITCHEN" onchange="rcadsR450Manual(event)">
           </div>
 
           <div style="padding:8px;border:1px solid #d8c5a7;border-radius:8px;background:#fff">
             <label style="display:block;font-weight:900;margin-bottom:5px">DINING SCHEDULE</label>
             <input id="scheduleFileDining" type="file" accept=".xlsx,.xls"
-              data-schedule-category="DINING" onchange="loadOriginalScheduleFile(event)">
+              data-schedule-category="DINING" onchange="rcadsR450Manual(event)">
           </div>
 
           <div style="padding:8px;border:1px solid #d8c5a7;border-radius:8px;background:#fff">
             <label style="display:block;font-weight:900;margin-bottom:5px">ADMIN / MANAGEMENT SCHEDULE</label>
             <input id="scheduleFileAdmin" type="file" accept=".xlsx,.xls"
-              data-schedule-category="ADMIN" onchange="loadOriginalScheduleFile(event)">
+              data-schedule-category="ADMIN" onchange="rcadsR450Manual(event)">
           </div>
         </div>
 
@@ -28903,10 +28936,11 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     const category=kind==='ACS'?dept+' ACS':dept;const before=JSON.stringify(lib()).length;
     const os=window.setUploadStatus;let last='',ok=null;
     window.setUploadStatus=function(m,cls){last=String(m||'');ok=cls==='ok'?true:(cls==='err'?false:ok);try{os.apply(this,arguments)}catch(e){}};
+    window.rcadsR450PersistErr="";
     try{loadOriginalScheduleFile({target:{files:[file],dataset:{scheduleCategory:category}}})}catch(e){window.setUploadStatus=os;done(false,e.message);return}
     const t0=new Date(Date.now()-5000).toISOString();const saved=()=>lib().some(e=>e&&e.branch===b&&cat(e)===category&&e.fileName===file.name&&String(e.savedAt||'')>=t0);
     let n=0;const iv=setInterval(()=>{n++;if(!saved()&&ok!==false&&n<40)return;if(!saved()&&ok===false&&n<8)return;clearInterval(iv);window.setUploadStatus=os;
-      if(!saved()){done(false,(last||'No schedule table found in the file.')+' — use the ⬇ TEMPLATE.');return}
+      if(!saved()){const pe=window.rcadsR450PersistErr;done(false,pe?pe:((ok===false&&last?last:'No schedule table found in the file.')+' — use the ⬇ TEMPLATE.'));return}
       try{const L=lib();const x=L.filter(e=>e&&e.branch===b&&cat(e)===category&&e.fileName===file.name).sort((a,c)=>String(c.savedAt).localeCompare(String(a.savedAt)))[0];
         if(x){x.uploadedBy=by;x.kind=kind;rcadsSaveScheduleLibrary(L);try{rcadsCloudFlushQueue()}catch(e){}}
         // how many of the department's staff are in the file
@@ -30775,8 +30809,8 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
   const SH={ORIGINAL:[['KIT.ORIG.SCHED','KITCHEN'],['DIN.ORIG.SCHED','DINING'],['ADM.ORIG.SCHED','ADMIN']],ACS:[['ACS KITCHEN','KITCHEN'],['ACS DINING','DINING'],['ACS.ADMIN','ADMIN']]};
   const MSG={},BUSY={};
   function deptOfSheet(a){for(const r of a.slice(0,8))for(const c of r){const m=String(c).match(/DEPT:\s*([A-Z]+)/i);if(m){const d=U(m[1]);if(/KIT/.test(d))return 'KITCHEN';if(/DIN/.test(d))return 'DINING';if(/ADM|MAN/.test(d))return 'ADMIN'}}return ''}
-  function filled(a){const h=a.findIndex(r=>U(r[0])==='EMPCODE');if(h<0)return false;
-    return a.slice(h+1).some(r=>/^[A-Z]{2,4}-/.test(U(r[0]))&&r.slice(3).some(c=>String(c??'').trim()!==''))}
+  function filled(a){let h=-1,ci=0;for(let i=0;i<a.length&&h<0;i++){const j=(a[i]||[]).findIndex(c=>/^(EMPCODE|EMP CODE|EMPLOYEE CODE|EMPLOYEE ID|EMP ID)$/.test(U(c).replace(/\s+/g,' ')));if(j>=0){h=i;ci=j}}if(h<0)return false;
+    return a.slice(h+1).some(r=>/^[A-Z]{2,4}-/.test(U(r[ci]))&&r.slice(ci+3).some(c=>String(c??'').trim()!==''))}
   function sheetsOf(wb,kind){const out=[];const names=wb.SheetNames;const has=n=>names.find(x=>U(x)===n);
     const rcps=SH.ORIGINAL.concat(SH.ACS).some(([n])=>has(n));
     if(rcps){SH[kind].forEach(([n,d])=>{const nm=has(n);if(nm)out.push([nm,d])});return out}
@@ -30804,7 +30838,7 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
       +'<label class="acs '+(BUSY[b.code]?'busy':'')+'">'+(BUSY[b.code]==='ACS'?'⏳ SAVING…':'📎 ACS')+'<input type="file" accept=".xlsx,.xls" hidden data-r272="'+b.code+'|ACS"></label>'
       +(m?'<div class="r272-msg'+(m.err?' err':'')+'">'+esc(m.t)+'</div>':'')+'</div>'}).join('')}
   function draw(){const el=document.getElementById('r272Card');if(!el)return;const h=html();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
-  function hideOld(){const k=document.getElementById('scheduleFileKitchen');const g=k&&k.closest('div[style*="grid"]');if(g&&g.style.display!=='none'){g.style.display='none';const t=g.previousElementSibling;if(t&&/UPLOAD WEEKLY ORIGINAL/i.test(t.textContent))t.style.display='none'}}
+  function hideOld(){/* R450: HR manual upload is allowed again — see rcadsR450Manual */}
   function tick(){const p=document.getElementById('hrScheduleUploadPanel');if(!p)return;hideOld();let el=document.getElementById('r272Card');
     if(!el){el=document.createElement('div');el.id='r272Card';el.className='r272-card';
       el.addEventListener('change',e=>{const t=e.target;const a=t.getAttribute&&t.getAttribute('data-r272');if(!a||!t.files||!t.files[0])return;const [b,k]=a.split('|');const f=t.files[0];t.value='';go(b,k,f)})}
@@ -30814,6 +30848,32 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
 })();
 </script>
 
+
+<script id="rcadsR450Manual">
+/* R450 — HR manual upload of the Original Schedule (Kitchen / Dining / Admin) for the branch selected in HR RCADS.
+   No "filled" pre-check: HR decides. Saved straight away as "HR MANUAL" (no Head approval needed). */
+(function(){
+  'use strict';
+  function bName(c){try{const B=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{});return (B[c]&&B[c].name)||c}catch(e){return c}}
+  function cur(){try{return rusticaGetCurrentBranchCode()}catch(e){return 'SAN_RAFAEL'}}
+  window.rcadsR450Manual=function(ev){
+    const t=ev&&ev.target;const file=t&&t.files&&t.files[0];if(!file)return;
+    const dept=String(t.dataset.scheduleCategory||'KITCHEN').toUpperCase();const b=cur();t.value='';
+    const st=document.getElementById('scheduleUploadStatus');
+    const show=(m,c)=>{if(st){st.textContent=m;st.className='upload-status'+(c?' '+c:'')}};
+    if(!confirm('Save this '+dept+' ORIGINAL SCHEDULE for '+bName(b)+'?\n\n'+file.name))return;
+    const R=window.rcadsR215;
+    if(!R||!R.upload){window.rcadsR450PersistErr='';try{loadOriginalScheduleFile({target:{files:[file],dataset:{scheduleCategory:dept}}})}catch(e){show('⚠ '+e.message,'err')}return}
+    const keep=localStorage.getItem('rustica_central_current_branch_v1');
+    show('⏳ Saving '+dept+' schedule for '+bName(b)+'…');
+    R.upload(file,b,dept,'ORIGINAL','HR MANUAL UPLOAD',function(ok,m){
+      try{if(keep===null)localStorage.removeItem('rustica_central_current_branch_v1');else localStorage.setItem('rustica_central_current_branch_v1',keep)}catch(e){}
+      setTimeout(function(){show((ok?'✓ ':'⚠ ')+bName(b)+' '+dept+': '+String(m).replace(/^[✓⚠]\s*/,''),ok?'ok':'err')},50);
+    });
+  };
+  setInterval(function(){try{const e=document.getElementById('r450BranchLine');if(!e)return;const t='Saved for: '+bName(cur())+' (the branch selected in HR RCADS). Use this when the branch upload above does not work.';if(e.textContent!==t)e.textContent=t}catch(x){}},1500);
+})();
+</script>
 <!-- RCADS R287: OFFLINE RECORDING + AUTO SYNC -->
 <style>.r287off{display:block;margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff4d6;border:1px solid #e0b64a;color:#6b4a00;font-weight:800;font-size:12px}
 #r287Badge{position:fixed;left:8px;bottom:8px;z-index:2147483000;background:#6b4a00;color:#fff;font:800 11px system-ui,sans-serif;padding:6px 10px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.25);display:none}</style>
