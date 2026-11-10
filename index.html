@@ -209,7 +209,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R453 DELETE OLD SCHEDULES</title>
+<title>Rustica RCADS App — R454 DELETE WORKS WHEN STORAGE FULL</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -30991,8 +30991,11 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
     const now=new Date().toISOString();gone.forEach(x=>{del[id(x)]=now});
     /* keep the list of deletes small: forget deletes older than 7 months */
     const old=new Date(Date.now()-210*864e5).toISOString();Object.keys(del).forEach(k=>{if(String(del[k])<old)delete del[k]});
-    localStorage.setItem(DK,JSON.stringify(del));
-    rcadsSaveScheduleLibrary(L.filter(x=>!pred(x)));
+    /* R454: save the SMALLER list first — on a full laptop storage the delete still works (it frees space) */
+    const kept=L.filter(x=>!pred(x));
+    try{rcadsSaveScheduleLibrary(kept)}
+    catch(e){try{rcadsSaveScheduleLibrary(kept.map(window.rcadsR450Compact||(x=>x)))}catch(e2){throw new Error('Could not save — '+(e2&&e2.message||e2))}}
+    try{localStorage.setItem(DK,JSON.stringify(del))}catch(e){try{localStorage.setItem(DK,JSON.stringify(Object.fromEntries(gone.map(x=>[id(x),now]))))}catch(e2){}}
     try{rcadsRebuildLiveSchedulesFromLibrary(rcadsPreserveBranchCode())}catch(e){}
     try{if(typeof rcadsCloudFlushAllLocal==='function')rcadsCloudFlushAllLocal()}catch(e){}
     return gone.length}
@@ -31000,13 +31003,15 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
     const L=rcadsGetScheduleLibrary();const e=L[index];if(!e)return;
     const cat=String(e.category||rcadsInferScheduleCategory(e.fileName)||'').toUpperCase();
     if(!confirm('DELETE this schedule?\n\n'+cat+' • '+rcadsFormatScheduleDateRange(e)+'\n'+(e.fileName||'')+'\n\nIt will be removed from RCADS (HR and the branches). You can upload it again later.'))return;
-    const k=id(e),t=e.savedAt;remove(x=>id(x)===k&&x.savedAt===t);rcadsRenderWeeklyScheduleArchive()};
+    const k=id(e),t=e.savedAt;let n=0;try{n=remove(x=>id(x)===k&&x.savedAt===t)}catch(err){alert('⚠ NOT DELETED — '+err.message);return}
+    rcadsRenderWeeklyScheduleArchive();
+    const still=rcadsGetScheduleLibrary().some(x=>id(x)===k&&x.savedAt===t);alert(still||!n?'⚠ NOT DELETED. Please send a screenshot to Jovi / Claude.':'✓ Deleted: '+(e.fileName||''))};
   window.rcadsR453DeleteOld=function(){
     const b=rcadsPreserveBranchCode(),mon=thisMonday();
     const L=rcadsGetScheduleLibrary().filter(x=>x&&x.branch===b&&lastDate(x)&&lastDate(x)<mon);
     if(!L.length){alert('No old schedules for this branch (all are for this week or later).');return}
     if(!confirm('DELETE '+L.length+' OLD schedule(s) of this branch?\n\nOnly weeks that ended before this Monday ('+mon+'). This week and next week are kept.'))return;
-    const n=remove(x=>x&&x.branch===b&&lastDate(x)&&lastDate(x)<mon);rcadsRenderWeeklyScheduleArchive();alert('✓ '+n+' old schedule(s) deleted.')};
+    let n=0;try{n=remove(x=>x&&x.branch===b&&lastDate(x)&&lastDate(x)<mon)}catch(err){alert('⚠ NOT DELETED — '+err.message);return}rcadsRenderWeeklyScheduleArchive();alert('✓ '+n+' old schedule(s) deleted.')};
   window.rcadsRenderWeeklyScheduleArchive=function(){
     const host=document.getElementById('rcadsWeeklyScheduleArchiveList');if(!host)return;
     try{rcadsPurgeExpiredScheduleArchive()}catch(e){}
@@ -31015,7 +31020,10 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
       .sort((a,b)=>String(lastDate(b.entry)||b.entry.savedAt||'').localeCompare(String(lastDate(a.entry)||a.entry.savedAt||'')));
     const E=v=>rcadsEscapeHtml(String(v??''));
     const oldN=entries.filter(x=>lastDate(x.entry)&&lastDate(x.entry)<mon).length;
-    let h='<div style="font-size:10px;font-weight:800;color:#2d6a36">Branch: '+E((window.RUSTICA_BRANCHES&&RUSTICA_BRANCHES[branch]&&RUSTICA_BRANCHES[branch].name)||branch)+' • '+entries.length+' saved</div>';
+    let used=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);used+=(k.length+(localStorage.getItem(k)||'').length)}}catch(e){}
+    const libKb=Math.round((localStorage.getItem('rcads_persistent_schedule_library_v1')||'').length/1024);
+    let h='<div style="font-size:10px;font-weight:800;color:'+(used>4.6e6?'#a1281f':'#6f5a45')+'">Storage of this browser: '+(used/1e6).toFixed(1)+' MB used of about 5 MB • schedules: '+libKb+' KB'+(used>4.6e6?' • ⚠ ALMOST FULL — delete old schedules':'')+'</div>'
+     +'<div style="font-size:10px;font-weight:800;color:#2d6a36">Branch: '+E((window.RUSTICA_BRANCHES&&RUSTICA_BRANCHES[branch]&&RUSTICA_BRANCHES[branch].name)||branch)+' • '+entries.length+' saved</div>';
     if(oldN)h+='<button type="button" onclick="rcadsR453DeleteOld()" style="width:100%;padding:8px;border:0;border-radius:8px;background:#a1281f;color:#fff;font-weight:900;cursor:pointer">🗑 DELETE ALL OLD SCHEDULES ('+oldN+') — before this week</button>';
     if(!entries.length){host.innerHTML=h+'<div style="font-size:10px;color:#765f47">No saved weekly schedules yet.</div>';return}
     h+=entries.map(({entry,index})=>{const cat=String(entry.category||rcadsInferScheduleCategory(entry.fileName)||'UNASSIGNED').toUpperCase();
