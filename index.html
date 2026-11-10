@@ -209,7 +209,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R452 SCHEDULE UPLOAD NO DOWNLOAD</title>
+<title>Rustica RCADS App — R453 DELETE OLD SCHEDULES</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -30971,6 +30971,62 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
     if(on&&!b){b=document.createElement('button');b.type='button';b.id='r451Btn';b.textContent='🔎 SEARCH';b.onclick=show;document.body.appendChild(b)}
     if(b)b.style.display=on?'block':'none';if(!on)close()}catch(e){}},700);
   window.rcadsR451Search=show;
+})();
+</script>
+
+<!-- RCADS PATCH: R453 HR can DELETE old schedules in WEEKLY SCHEDULE CALENDAR / ARCHIVE -->
+<script id="rcadsR453Script">
+/* R453 — every saved schedule in the archive has a 🗑 DELETE button, plus "🗑 DELETE ALL OLD SCHEDULES" (weeks that ended before this Monday).
+   A delete is remembered (rcads_r271_sched_deleted_v1) so the cloud sync does not bring it back. Uploading the same file again later shows it again. */
+(function(){
+  'use strict';
+  const DK='rcads_r271_sched_deleted_v1';
+  const id=x=>[x&&x.branch,String(x&&x.category||'').toUpperCase(),x&&x.fileName].join('|');
+  function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function thisMonday(){const d=new Date();d.setHours(0,0,0,0);const w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return iso(d)}
+  function lastDate(e){try{const d=rcadsScheduleEntryDates(e);return d.length?d[d.length-1]:''}catch(x){return ''}}
+  function remove(pred){
+    const L=rcadsGetScheduleLibrary();const gone=L.filter(pred);if(!gone.length)return 0;
+    let del={};try{del=JSON.parse(localStorage.getItem(DK)||'{}')||{}}catch(e){}
+    const now=new Date().toISOString();gone.forEach(x=>{del[id(x)]=now});
+    /* keep the list of deletes small: forget deletes older than 7 months */
+    const old=new Date(Date.now()-210*864e5).toISOString();Object.keys(del).forEach(k=>{if(String(del[k])<old)delete del[k]});
+    localStorage.setItem(DK,JSON.stringify(del));
+    rcadsSaveScheduleLibrary(L.filter(x=>!pred(x)));
+    try{rcadsRebuildLiveSchedulesFromLibrary(rcadsPreserveBranchCode())}catch(e){}
+    try{if(typeof rcadsCloudFlushAllLocal==='function')rcadsCloudFlushAllLocal()}catch(e){}
+    return gone.length}
+  window.rcadsR453Delete=function(index){
+    const L=rcadsGetScheduleLibrary();const e=L[index];if(!e)return;
+    const cat=String(e.category||rcadsInferScheduleCategory(e.fileName)||'').toUpperCase();
+    if(!confirm('DELETE this schedule?\n\n'+cat+' • '+rcadsFormatScheduleDateRange(e)+'\n'+(e.fileName||'')+'\n\nIt will be removed from RCADS (HR and the branches). You can upload it again later.'))return;
+    const k=id(e),t=e.savedAt;remove(x=>id(x)===k&&x.savedAt===t);rcadsRenderWeeklyScheduleArchive()};
+  window.rcadsR453DeleteOld=function(){
+    const b=rcadsPreserveBranchCode(),mon=thisMonday();
+    const L=rcadsGetScheduleLibrary().filter(x=>x&&x.branch===b&&lastDate(x)&&lastDate(x)<mon);
+    if(!L.length){alert('No old schedules for this branch (all are for this week or later).');return}
+    if(!confirm('DELETE '+L.length+' OLD schedule(s) of this branch?\n\nOnly weeks that ended before this Monday ('+mon+'). This week and next week are kept.'))return;
+    const n=remove(x=>x&&x.branch===b&&lastDate(x)&&lastDate(x)<mon);rcadsRenderWeeklyScheduleArchive();alert('✓ '+n+' old schedule(s) deleted.')};
+  window.rcadsRenderWeeklyScheduleArchive=function(){
+    const host=document.getElementById('rcadsWeeklyScheduleArchiveList');if(!host)return;
+    try{rcadsPurgeExpiredScheduleArchive()}catch(e){}
+    const branch=rcadsPreserveBranchCode(),mon=thisMonday();
+    const entries=rcadsGetScheduleLibrary().map((entry,index)=>({entry,index})).filter(x=>x.entry&&x.entry.branch===branch)
+      .sort((a,b)=>String(lastDate(b.entry)||b.entry.savedAt||'').localeCompare(String(lastDate(a.entry)||a.entry.savedAt||'')));
+    const E=v=>rcadsEscapeHtml(String(v??''));
+    const oldN=entries.filter(x=>lastDate(x.entry)&&lastDate(x.entry)<mon).length;
+    let h='<div style="font-size:10px;font-weight:800;color:#2d6a36">Branch: '+E((window.RUSTICA_BRANCHES&&RUSTICA_BRANCHES[branch]&&RUSTICA_BRANCHES[branch].name)||branch)+' • '+entries.length+' saved</div>';
+    if(oldN)h+='<button type="button" onclick="rcadsR453DeleteOld()" style="width:100%;padding:8px;border:0;border-radius:8px;background:#a1281f;color:#fff;font-weight:900;cursor:pointer">🗑 DELETE ALL OLD SCHEDULES ('+oldN+') — before this week</button>';
+    if(!entries.length){host.innerHTML=h+'<div style="font-size:10px;color:#765f47">No saved weekly schedules yet.</div>';return}
+    h+=entries.map(({entry,index})=>{const cat=String(entry.category||rcadsInferScheduleCategory(entry.fileName)||'UNASSIGNED').toUpperCase();
+      const old=lastDate(entry)&&lastDate(entry)<mon;const saved=entry.savedAt?new Date(entry.savedAt).toLocaleString():'—';
+      return '<div style="display:flex;gap:6px;align-items:stretch">'
+        +'<button type="button" onclick="rcadsOpenArchivedSchedule('+index+')" style="flex:1;text-align:left;padding:8px;border:1px solid #d8c5a7;border-radius:8px;background:'+(old?'#f6f1ea':'#fff')+';cursor:pointer">'
+        +'<div style="font-size:11px;font-weight:900;color:#4f2f18">'+E(cat)+' • '+E(rcadsFormatScheduleDateRange(entry))+(old?' <span style="color:#a1281f">• OLD</span>':'')+'</div>'
+        +'<div style="margin-top:2px;font-size:9px;color:#6f5a45">'+E(entry.fileName||'Schedule.xlsx')+(entry.uploadedBy?' • '+E(entry.uploadedBy):'')+'</div>'
+        +'<div style="margin-top:2px;font-size:9px;color:#8a7764">Saved: '+E(saved)+' • CLICK TO OPEN</div></button>'
+        +'<button type="button" onclick="rcadsR453Delete('+index+')" title="Delete this schedule" style="flex:0 0 auto;padding:0 12px;border:0;border-radius:8px;background:#a1281f;color:#fff;font-weight:900;cursor:pointer">🗑<br><small style="font-size:9px">DELETE</small></button></div>'}).join('');
+    host.innerHTML=h};
 })();
 </script>
 <!-- RCADS R287: OFFLINE RECORDING + AUTO SYNC -->
