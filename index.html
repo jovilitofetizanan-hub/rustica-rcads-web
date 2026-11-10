@@ -112,33 +112,66 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
   const isLS=t=>LS&&t===LS;
   function unpack(raw){if(typeof raw!=='string'||raw.slice(0,5)!==MARK)return raw;try{const v=LZString.decompressFromUTF16(raw.slice(5));return v==null?raw:v}catch(e){return raw}}
   function pack(v){if(v.length<MIN)return v;try{const c=MARK+LZString.compressToUTF16(v);return c.length<v.length?c:v}catch(e){return v}}
+
+  /* R456 — PICTURES GO TO THE BIG STORAGE (IndexedDB, hundreds of MB).
+     Memo / notice attachments, Rustica ID pictures, 201 document pictures, signed agreements, and any other big picture.
+     Only a tiny marker stays in the 5 MB storage, so the list of saved items stays the same for all of RCADS. */
+  const STUB='\u0001IDB1:',HEAVY_PREFIX=['rcads_r159_att_','rcads_r167_idcard_','rcads_r196_doc_','rcads_r194_agree_'];
+  const CORE=/^(rcads_persistent_schedule_library|rcads_r160_emp_access|rustica_srf_local_attendance_|rustica_srf_guard_duty_logs|rustica_guard_duty_logs_|rustica_central_current_branch|rcads_cloud|r425_|rcads_r271_sched_deleted)/;
+  const HM=new Map();let idbOK=true,loaded=false,db=null,readyRes;const ready=new Promise(r=>readyRes=r);
+  function heavy(k,v){if(!idbOK||CORE.test(k))return false;if(HEAVY_PREFIX.some(p=>k.indexOf(p)===0))return v.length>=2048;return v.length>=32768&&/data:(image|application\/pdf)/.test(v.slice(0,200000))}
+  function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('rcads-heavy-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+  function tx(mode,fn){return new Promise((res,rej)=>{if(!db){rej(new Error('IndexedDB not open'));return}const t=db.transaction('kv',mode),st=t.objectStore('kv');const out=fn(st);t.oncomplete=()=>res(out&&out.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error('aborted'))})}
+  const isStub=raw=>typeof raw==='string'&&raw.slice(0,6)===STUB;
+  function putHeavy(k,v){return tx('readwrite',st=>st.put(v,k)).catch(err=>{
+      /* big storage failed — keep it in the small storage instead so nothing is lost */
+      try{if(HM.get(k)===v){NS.call(LS,k,pack(v));HM.delete(k);cache.set(k,v)}}catch(e){console.warn('RCADS R456: could not save',k,err)}})}
+
   P.getItem=function(key){
     if(!isLS(this))return NG.apply(this,arguments);
-    const k=String(key);if(cache.has(k))return cache.get(k);
+    const k=String(key);if(HM.has(k))return HM.get(k);if(cache.has(k))return cache.get(k);
     const raw=NG.call(this,k);if(raw==null)return raw;
+    if(isStub(raw))return null;   /* picture still loading from the big storage (first second after opening) */
     if(raw.slice(0,5)===MARK){const v=unpack(raw);cache.set(k,v);return v}
     return raw};
   P.setItem=function(key,value){
     if(!isLS(this))return NS.apply(this,arguments);
     const k=String(key),v=String(value);
-    if(v.slice(0,5)===MARK){cache.delete(k);return NS.call(this,k,v)}   /* already packed (e.g. copied raw) */
+    if(isStub(v))return;   /* never copy a marker as data */
+    if(heavy(k,v)){NS.call(this,k,STUB+Date.now());HM.set(k,v);cache.delete(k);putHeavy(k,v);return}
+    if(HM.has(k)){HM.delete(k);tx('readwrite',st=>st.delete(k)).catch(()=>{})}
+    if(v.slice(0,5)===MARK){cache.delete(k);return NS.call(this,k,v)}
     const st=pack(v);
     try{NS.call(this,k,st)}catch(e){cache.delete(k);throw e}
     if(st!==v)cache.set(k,v);else cache.delete(k)};
-  P.removeItem=function(key){if(isLS(this))cache.delete(String(key));return NR.apply(this,arguments)};
-  P.clear=function(){if(isLS(this))cache.clear();return NC.apply(this,arguments)};
-  window.addEventListener('storage',e=>{try{if(e.storageArea===LS){if(e.key==null)cache.clear();else cache.delete(e.key)}}catch(x){}});
+  P.removeItem=function(key){if(isLS(this)){const k=String(key);cache.delete(k);if(HM.has(k)||isStub(NG.call(this,k))){HM.delete(k);tx('readwrite',st=>st.delete(k)).catch(()=>{})}}return NR.apply(this,arguments)};
+  P.clear=function(){if(isLS(this)){cache.clear();HM.clear();tx('readwrite',st=>st.clear()).catch(()=>{})}return NC.apply(this,arguments)};
+  window.addEventListener('storage',e=>{try{if(e.storageArea!==LS)return;if(e.key==null){cache.clear();return}cache.delete(e.key);
+      if(isStub(e.newValue)&&db)tx('readonly',st=>st.get(e.key)).then(v=>{if(typeof v==='string')HM.set(e.key,v)}).catch(()=>{});else HM.delete(e.key)}catch(x){}});
+  /* open the big storage, read the pictures into memory, then move any big picture still in the small storage */
+  idb().then(d=>{db=d;return new Promise((res,rej)=>{const t=db.transaction('kv','readonly'),st=t.objectStore('kv');const kr=st.getAllKeys(),vr=st.getAll();
+      t.oncomplete=()=>{(kr.result||[]).forEach((k,i)=>{if(!HM.has(k)&&isStub(NG.call(LS,k)))HM.set(k,vr.result[i])});res()};t.onerror=()=>rej(t.error)})})
+   .catch(err=>{idbOK=false;console.warn('RCADS R456: big storage not available',err)})
+   .then(()=>{loaded=true;readyRes(true);try{window.dispatchEvent(new Event('rcads-heavy-ready'))}catch(e){}setTimeout(moveHeavy,800)});
+  let moved=0;
+  async function moveHeavy(){if(!idbOK||!db)return;try{const ks=[];for(let i=0;i<LS.length;i++)ks.push(LS.key(i));
+      for(const k of ks){try{const raw=NG.call(LS,k);if(!raw||isStub(raw)||raw.length<1024)continue;const v=raw.slice(0,5)===MARK?unpack(raw):raw;if(!heavy(k,v))continue;
+        await tx('readwrite',st=>st.put(v,k));HM.set(k,v);cache.delete(k);NS.call(LS,k,STUB+Date.now());moved++}catch(e){}}}catch(e){}}
   /* sizes as really stored (for 💾 STORAGE CHECK) */
-  function report(){const out=[];let tot=0;try{for(let i=0;i<LS.length;i++){const k=LS.key(i);const raw=NG.call(LS,k)||'';const packed=raw.slice(0,5)===MARK;
+  function report(){const out=[];let tot=0,big=0;try{for(let i=0;i<LS.length;i++){const k=LS.key(i);const raw=NG.call(LS,k)||'';
+      if(isStub(raw)){const n=(HM.get(k)||'').length;big+=n;tot+=k.length+raw.length;out.push({k,stored:k.length+raw.length,plain:n,packed:false,idb:true});continue}
+      const packed=raw.slice(0,5)===MARK;
       const plain=packed?(cache.has(k)?cache.get(k).length:(unpack(raw)||'').length):raw.length;tot+=k.length+raw.length;out.push({k,stored:raw.length+k.length,plain,packed})}}catch(e){}
-    out.sort((a,b)=>b.stored-a.stored);return {total:tot,limit:5e6,items:out}}
+    out.sort((a,b)=>(b.idb?0:b.stored)-(a.idb?0:a.stored)||b.plain-a.plain);return {total:tot,limit:5e6,items:out,big,loaded,idbOK,get moved(){return moved}}}
   /* pack the big values already saved — a few at a time so the page does not freeze */
   let migrated=0;
-  function migrate(){try{const todo=[];for(let i=0;i<LS.length;i++){const k=LS.key(i);const raw=NG.call(LS,k);if(raw&&raw.length>=MIN&&raw.slice(0,5)!==MARK)todo.push(k)}
+  function migrate(){try{const todo=[];for(let i=0;i<LS.length;i++){const k=LS.key(i);const raw=NG.call(LS,k);if(raw&&raw.length>=MIN&&raw.slice(0,5)!==MARK&&!isStub(raw))todo.push(k)}
       todo.sort((a,b)=>(NG.call(LS,b)||'').length-(NG.call(LS,a)||'').length);
-      let i=0;(function step(){const t0=Date.now();while(i<todo.length&&Date.now()-t0<60){const k=todo[i++];try{const raw=NG.call(LS,k);if(raw&&raw.slice(0,5)!==MARK){const st=pack(raw);if(st!==raw){NS.call(LS,k,st);cache.set(k,raw);migrated++}}}catch(e){}}
-        if(i<todo.length)setTimeout(step,30)})()}catch(e){}}
-  window.rcadsR455={report,migrate,get migrated(){return migrated},unpack};
+      let i=0;(function step(){const t0=Date.now();while(i<todo.length&&Date.now()-t0<60){const k=todo[i++];try{const raw=NG.call(LS,k);if(raw&&raw.slice(0,5)!==MARK&&!isStub(raw)){const st=pack(raw);if(st!==raw){NS.call(LS,k,st);cache.set(k,raw);migrated++}}}catch(e){}}
+        if(i<todo.length)setTimeout(step,30)})()}catch(e){}
+    moveHeavy()}
+  window.rcadsR456={ready,isLoaded:()=>loaded,isStubKey:k=>{try{return isStub(NG.call(LS,k))}catch(e){return false}}};
+  window.rcadsR455={report,migrate,get migrated(){return migrated},get moved(){return moved},unpack};
   if(LS){if(document.readyState==='complete')setTimeout(migrate,1500);else window.addEventListener('load',()=>setTimeout(migrate,1500))}
 })();
 </script>
@@ -255,7 +288,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R455 STORAGE PACKED + STORAGE CHECK</title>
+<title>Rustica RCADS App — R456 PICTURES IN BIG STORAGE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31084,6 +31117,22 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
 })();
 </script>
 
+
+<script id="rcadsR456CloudGuard">
+/* R456: if the cloud sync wants to send a picture in the first second (before the big storage is read), wait for it. */
+(function(){
+  'use strict';
+  const H=window.rcadsR456;if(!H)return;
+  function wrap(){const f=window.rcadsCloudRpc;if(typeof f!=='function'||f.__r456)return;
+    const w=async function(name,body){
+      try{if(!H.isLoaded()&&body&&body.p_data_key&&H.isStubKey(String(body.p_data_key))){await H.ready;body=Object.assign({},body,{p_data_value:String(localStorage.getItem(body.p_data_key)??'')})}}catch(e){}
+      return f.apply(this,[name,body].concat([].slice.call(arguments,2)))};
+    w.__r456=true;window.rcadsCloudRpc=w;try{rcadsCloudRpc=w}catch(e){}}
+  wrap();setInterval(wrap,3000);
+  /* refresh the screens that show pictures once they are loaded */
+  window.addEventListener('rcads-heavy-ready',()=>{try{['rcadsR177Render','rcadsR159Render','rcadsR167Render'].forEach(n=>{if(typeof window[n]==='function')try{window[n]()}catch(e){}})}catch(e){}});
+})();
+</script>
 <!-- RCADS PATCH: R455 💾 STORAGE CHECK -->
 <script id="rcadsR455Panel">
 (function(){
@@ -31100,11 +31149,12 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
       box.style.cssText='position:fixed;inset:0;z-index:2147480003;background:rgba(30,16,8,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 10px;font-family:system-ui,sans-serif';
       box.addEventListener('click',e=>{if(e.target===box)box.remove()});document.body.appendChild(box)}
     const r=R.report(),pct=Math.min(100,Math.round(r.total/r.limit*100)),col=pct>=90?'#a1281f':pct>=70?'#c07a10':'#2d6a36';
-    const plainTot=r.items.reduce((a,x)=>a+x.plain,0);
+    const plainTot=r.items.reduce((a,x)=>a+(x.idb?0:x.plain),0);
     box.innerHTML='<div style="width:min(720px,100%);max-height:calc(100vh - 60px);overflow:auto;background:#fffaf2;border:2px solid #5b3519;border-radius:16px;padding:16px;color:#3a2210">'
       +'<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">💾 STORAGE CHECK — this browser</b><button type="button" onclick="document.getElementById(\'r455Box\').remove()" style="border:0;background:#5b3519;color:#fff;border-radius:8px;padding:6px 12px;font-weight:900;cursor:pointer">✕ CLOSE</button></div>'
       +'<div style="margin:10px 0 4px;font-weight:900;color:'+col+'">'+mb(r.total)+' used of about 5 MB ('+pct+'%)</div>'
       +'<div style="height:14px;background:#eadbc4;border-radius:8px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+col+'"></div></div>'
+      +'<div style="font-size:12px;margin:8px 0;color:#2d6a36"><b>Pictures in the BIG storage: '+mb(r.big||0)+'</b>'+(r.idbOK===false?' • ⚠ big storage not available on this browser':'')+'</div>'
       +'<div style="font-size:12px;margin:8px 0">Without packing it would be <b>'+mb(plainTot)+'</b>. '+(R.migrated?'Packed just now: <b>'+R.migrated+'</b> item(s). ':'')+'Big items are packed automatically; nothing is deleted.</div>'
       +'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f1dfc3"><th style="text-align:left;padding:6px">What</th><th style="text-align:right;padding:6px">Stored</th><th style="text-align:right;padding:6px">Real size</th><th style="padding:6px">Packed</th></tr></thead><tbody>'
       +r.items.slice(0,25).map(x=>'<tr style="border-bottom:1px solid #eadbc4"><td style="padding:5px 6px"><b>'+esc(nice(x.k)||x.k)+'</b>'+(nice(x.k)?'<br><small style="color:#7a6250">'+esc(x.k)+'</small>':'')+'</td><td style="text-align:right;padding:5px 6px">'+kb(x.stored)+'</td><td style="text-align:right;padding:5px 6px;color:#7a6250">'+kb(x.plain)+'</td><td style="text-align:center">'+(x.packed?'✓':'')+'</td></tr>').join('')
