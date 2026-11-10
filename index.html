@@ -96,6 +96,52 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <html lang="en">
 <head>
+<script id="rcadsR455Compress">
+/* R455 — SMALLER STORAGE. The browser gives RCADS only about 5 MB on this device.
+   Every saved value bigger than 8 KB (schedules, biometric, DTR, logs) is now kept COMPRESSED (usually 4–10× smaller).
+   All of RCADS still reads and writes normal text — the packing happens only at the storage itself — so the cloud sync,
+   backups and the other phones are unchanged. Values already saved are packed automatically, a few at a time, after the page opens.
+   NOTE: do not go back to a version before R455 on this device (old versions cannot read the packed values). */
+(function(){
+  'use strict';
+  if(window.rcadsR455)return;
+var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",n="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-$",e={};function t(r,o){if(!e[r]){e[r]={};for(var n=0;n<r.length;n++)e[r][r.charAt(n)]=n}return e[r][o]}var i={compressToBase64:function(r){if(null==r)return"";var n=i._compress(r,6,function(r){return o.charAt(r)});switch(n.length%4){default:case 0:return n;case 1:return n+"===";case 2:return n+"==";case 3:return n+"="}},decompressFromBase64:function(r){return null==r?"":""==r?null:i._decompress(r.length,32,function(n){return t(o,r.charAt(n))})},compressToUTF16:function(o){return null==o?"":i._compress(o,15,function(o){return r(o+32)})+" "},decompressFromUTF16:function(r){return null==r?"":""==r?null:i._decompress(r.length,16384,function(o){return r.charCodeAt(o)-32})},compressToUint8Array:function(r){for(var o=i.compress(r),n=new Uint8Array(2*o.length),e=0,t=o.length;e<t;e++){var s=o.charCodeAt(e);n[2*e]=s>>>8,n[2*e+1]=s%256}return n},decompressFromUint8Array:function(o){if(null==o)return i.decompress(o);for(var n=new Array(o.length/2),e=0,t=n.length;e<t;e++)n[e]=256*o[2*e]+o[2*e+1];var s=[];return n.forEach(function(o){s.push(r(o))}),i.decompress(s.join(""))},compressToEncodedURIComponent:function(r){return null==r?"":i._compress(r,6,function(r){return n.charAt(r)})},decompressFromEncodedURIComponent:function(r){return null==r?"":""==r?null:(r=r.replace(/ /g,"+"),i._decompress(r.length,32,function(o){return t(n,r.charAt(o))}))},compress:function(o){return i._compress(o,16,function(o){return r(o)})},_compress:function(r,o,n){if(null==r)return"";var e,t,i,s={},u={},a="",p="",c="",l=2,f=3,h=2,d=[],m=0,v=0;for(i=0;i<r.length;i+=1)if(a=r.charAt(i),Object.prototype.hasOwnProperty.call(s,a)||(s[a]=f++,u[a]=!0),p=c+a,Object.prototype.hasOwnProperty.call(s,p))c=p;else{if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++),s[p]=f++,c=String(a)}if(""!==c){if(Object.prototype.hasOwnProperty.call(u,c)){if(c.charCodeAt(0)<256){for(e=0;e<h;e++)m<<=1,v==o-1?(v=0,d.push(n(m)),m=0):v++;for(t=c.charCodeAt(0),e=0;e<8;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}else{for(t=1,e=0;e<h;e++)m=m<<1|t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t=0;for(t=c.charCodeAt(0),e=0;e<16;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1}0==--l&&(l=Math.pow(2,h),h++),delete u[c]}else for(t=s[c],e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;0==--l&&(l=Math.pow(2,h),h++)}for(t=2,e=0;e<h;e++)m=m<<1|1&t,v==o-1?(v=0,d.push(n(m)),m=0):v++,t>>=1;for(;;){if(m<<=1,v==o-1){d.push(n(m));break}v++}return d.join("")},decompress:function(r){return null==r?"":""==r?null:i._decompress(r.length,32768,function(o){return r.charCodeAt(o)})},_decompress:function(o,n,e){var t,i,s,u,a,p,c,l=[],f=4,h=4,d=3,m="",v=[],g={val:e(0),position:n,index:1};for(t=0;t<3;t+=1)l[t]=t;for(s=0,a=Math.pow(2,2),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;c=r(s);break;case 2:return""}for(l[3]=c,i=c,v.push(c);;){if(g.index>o)return"";for(s=0,a=Math.pow(2,d),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;switch(c=s){case 0:for(s=0,a=Math.pow(2,8),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 1:for(s=0,a=Math.pow(2,16),p=1;p!=a;)u=g.val&g.position,g.position>>=1,0==g.position&&(g.position=n,g.val=e(g.index++)),s|=(u>0?1:0)*p,p<<=1;l[h++]=r(s),c=h-1,f--;break;case 2:return v.join("")}if(0==f&&(f=Math.pow(2,d),d++),l[c])m=l[c];else{if(c!==h)return null;m=i+i.charAt(0)}v.push(m),l[h++]=i+m.charAt(0),i=m,0==--f&&(f=Math.pow(2,d),d++)}}};return i}();"function"==typeof define&&define.amd?define(function(){return LZString}):"undefined"!=typeof module&&null!=module?module.exports=LZString:"undefined"!=typeof angular&&null!=angular&&angular.module("LZString",[]).factory("LZString",function(){return LZString});
+  const P=Storage.prototype,NG=P.getItem,NS=P.setItem,NR=P.removeItem,NC=P.clear;
+  const MARK='\u0001LZ1:',MIN=8192,cache=new Map();
+  let LS=null;try{LS=window.localStorage}catch(e){}
+  const isLS=t=>LS&&t===LS;
+  function unpack(raw){if(typeof raw!=='string'||raw.slice(0,5)!==MARK)return raw;try{const v=LZString.decompressFromUTF16(raw.slice(5));return v==null?raw:v}catch(e){return raw}}
+  function pack(v){if(v.length<MIN)return v;try{const c=MARK+LZString.compressToUTF16(v);return c.length<v.length?c:v}catch(e){return v}}
+  P.getItem=function(key){
+    if(!isLS(this))return NG.apply(this,arguments);
+    const k=String(key);if(cache.has(k))return cache.get(k);
+    const raw=NG.call(this,k);if(raw==null)return raw;
+    if(raw.slice(0,5)===MARK){const v=unpack(raw);cache.set(k,v);return v}
+    return raw};
+  P.setItem=function(key,value){
+    if(!isLS(this))return NS.apply(this,arguments);
+    const k=String(key),v=String(value);
+    if(v.slice(0,5)===MARK){cache.delete(k);return NS.call(this,k,v)}   /* already packed (e.g. copied raw) */
+    const st=pack(v);
+    try{NS.call(this,k,st)}catch(e){cache.delete(k);throw e}
+    if(st!==v)cache.set(k,v);else cache.delete(k)};
+  P.removeItem=function(key){if(isLS(this))cache.delete(String(key));return NR.apply(this,arguments)};
+  P.clear=function(){if(isLS(this))cache.clear();return NC.apply(this,arguments)};
+  window.addEventListener('storage',e=>{try{if(e.storageArea===LS){if(e.key==null)cache.clear();else cache.delete(e.key)}}catch(x){}});
+  /* sizes as really stored (for 💾 STORAGE CHECK) */
+  function report(){const out=[];let tot=0;try{for(let i=0;i<LS.length;i++){const k=LS.key(i);const raw=NG.call(LS,k)||'';const packed=raw.slice(0,5)===MARK;
+      const plain=packed?(cache.has(k)?cache.get(k).length:(unpack(raw)||'').length):raw.length;tot+=k.length+raw.length;out.push({k,stored:raw.length+k.length,plain,packed})}}catch(e){}
+    out.sort((a,b)=>b.stored-a.stored);return {total:tot,limit:5e6,items:out}}
+  /* pack the big values already saved — a few at a time so the page does not freeze */
+  let migrated=0;
+  function migrate(){try{const todo=[];for(let i=0;i<LS.length;i++){const k=LS.key(i);const raw=NG.call(LS,k);if(raw&&raw.length>=MIN&&raw.slice(0,5)!==MARK)todo.push(k)}
+      todo.sort((a,b)=>(NG.call(LS,b)||'').length-(NG.call(LS,a)||'').length);
+      let i=0;(function step(){const t0=Date.now();while(i<todo.length&&Date.now()-t0<60){const k=todo[i++];try{const raw=NG.call(LS,k);if(raw&&raw.slice(0,5)!==MARK){const st=pack(raw);if(st!==raw){NS.call(LS,k,st);cache.set(k,raw);migrated++}}}catch(e){}}
+        if(i<todo.length)setTimeout(step,30)})()}catch(e){}}
+  window.rcadsR455={report,migrate,get migrated(){return migrated},unpack};
+  if(LS){if(document.readyState==='complete')setTimeout(migrate,1500);else window.addEventListener('load',()=>setTimeout(migrate,1500))}
+})();
+</script>
 <script id="rcadsR431Boot">
 /* R431: phones of employees / owners / guards never show the HR screen first.
    Until RCADS has opened the right screen, a plain RUSTICA splash is shown. HR devices are not affected. */
@@ -209,7 +255,7 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R454 DELETE WORKS WHEN STORAGE FULL</title>
+<title>Rustica RCADS App — R455 STORAGE PACKED + STORAGE CHECK</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -31020,7 +31066,7 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
       .sort((a,b)=>String(lastDate(b.entry)||b.entry.savedAt||'').localeCompare(String(lastDate(a.entry)||a.entry.savedAt||'')));
     const E=v=>rcadsEscapeHtml(String(v??''));
     const oldN=entries.filter(x=>lastDate(x.entry)&&lastDate(x.entry)<mon).length;
-    let used=0;try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);used+=(k.length+(localStorage.getItem(k)||'').length)}}catch(e){}
+    let used=0;try{used=window.rcadsR455?rcadsR455.report().total:0;if(!used)for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);used+=(k.length+(localStorage.getItem(k)||'').length)}}catch(e){}
     const libKb=Math.round((localStorage.getItem('rcads_persistent_schedule_library_v1')||'').length/1024);
     let h='<div style="font-size:10px;font-weight:800;color:'+(used>4.6e6?'#a1281f':'#6f5a45')+'">Storage of this browser: '+(used/1e6).toFixed(1)+' MB used of about 5 MB • schedules: '+libKb+' KB'+(used>4.6e6?' • ⚠ ALMOST FULL — delete old schedules':'')+'</div>'
      +'<div style="font-size:10px;font-weight:800;color:#2d6a36">Branch: '+E((window.RUSTICA_BRANCHES&&RUSTICA_BRANCHES[branch]&&RUSTICA_BRANCHES[branch].name)||branch)+' • '+entries.length+' saved</div>';
@@ -31035,6 +31081,38 @@ window.rcadsR272Branch=async function(file){try{const wb=XLSX.read(new Uint8Arra
         +'<div style="margin-top:2px;font-size:9px;color:#8a7764">Saved: '+E(saved)+' • CLICK TO OPEN</div></button>'
         +'<button type="button" onclick="rcadsR453Delete('+index+')" title="Delete this schedule" style="flex:0 0 auto;padding:0 12px;border:0;border-radius:8px;background:#a1281f;color:#fff;font-weight:900;cursor:pointer">🗑<br><small style="font-size:9px">DELETE</small></button></div>'}).join('');
     host.innerHTML=h};
+})();
+</script>
+
+<!-- RCADS PATCH: R455 💾 STORAGE CHECK -->
+<script id="rcadsR455Panel">
+(function(){
+  'use strict';
+  const NAMES=[[/^rcads_persistent_schedule_library/,'Saved schedules / ACS (all branches)'],[/^rcads_persistent_biometric_library/,'Biometric files'],[/^rcads_r160_emp_access/,'Employee PIN / access list'],
+    [/^rustica_srf_local_attendance_/,'DTR of one employee'],[/guard_duty_logs/,'Guard duty logs'],[/cloud.*meta|_meta/i,'Cloud sync notes'],[/backup/i,'Backup copy'],[/memo|notice|circular/i,'Memos / notices'],
+    [/201|doc|file/i,'201 files / documents'],[/schedule/i,'Schedule data'],[/payroll|payslip|rcps/i,'Payroll from RCPS']];
+  const nice=k=>{for(const [re,n] of NAMES)if(re.test(k))return n;return ''};
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const mb=n=>(n/1e6).toFixed(2)+' MB',kb=n=>n>=1e5?mb(n):Math.round(n/1000)+' KB';
+  window.rcadsR455Open=function(){
+    const R=window.rcadsR455;if(!R){alert('Storage check is not available.');return}
+    let box=document.getElementById('r455Box');if(!box){box=document.createElement('div');box.id='r455Box';
+      box.style.cssText='position:fixed;inset:0;z-index:2147480003;background:rgba(30,16,8,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 10px;font-family:system-ui,sans-serif';
+      box.addEventListener('click',e=>{if(e.target===box)box.remove()});document.body.appendChild(box)}
+    const r=R.report(),pct=Math.min(100,Math.round(r.total/r.limit*100)),col=pct>=90?'#a1281f':pct>=70?'#c07a10':'#2d6a36';
+    const plainTot=r.items.reduce((a,x)=>a+x.plain,0);
+    box.innerHTML='<div style="width:min(720px,100%);max-height:calc(100vh - 60px);overflow:auto;background:#fffaf2;border:2px solid #5b3519;border-radius:16px;padding:16px;color:#3a2210">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">💾 STORAGE CHECK — this browser</b><button type="button" onclick="document.getElementById(\'r455Box\').remove()" style="border:0;background:#5b3519;color:#fff;border-radius:8px;padding:6px 12px;font-weight:900;cursor:pointer">✕ CLOSE</button></div>'
+      +'<div style="margin:10px 0 4px;font-weight:900;color:'+col+'">'+mb(r.total)+' used of about 5 MB ('+pct+'%)</div>'
+      +'<div style="height:14px;background:#eadbc4;border-radius:8px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+col+'"></div></div>'
+      +'<div style="font-size:12px;margin:8px 0">Without packing it would be <b>'+mb(plainTot)+'</b>. '+(R.migrated?'Packed just now: <b>'+R.migrated+'</b> item(s). ':'')+'Big items are packed automatically; nothing is deleted.</div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f1dfc3"><th style="text-align:left;padding:6px">What</th><th style="text-align:right;padding:6px">Stored</th><th style="text-align:right;padding:6px">Real size</th><th style="padding:6px">Packed</th></tr></thead><tbody>'
+      +r.items.slice(0,25).map(x=>'<tr style="border-bottom:1px solid #eadbc4"><td style="padding:5px 6px"><b>'+esc(nice(x.k)||x.k)+'</b>'+(nice(x.k)?'<br><small style="color:#7a6250">'+esc(x.k)+'</small>':'')+'</td><td style="text-align:right;padding:5px 6px">'+kb(x.stored)+'</td><td style="text-align:right;padding:5px 6px;color:#7a6250">'+kb(x.plain)+'</td><td style="text-align:center">'+(x.packed?'✓':'')+'</td></tr>').join('')
+      +'</tbody></table><div style="font-size:11px;color:#7a6250;margin-top:8px">Showing the 25 biggest of '+r.items.length+' items. Take a screenshot and send it to Claude if it is still above 80%.</div>'
+      +'<div style="display:flex;gap:8px;margin-top:10px"><button type="button" onclick="rcadsR455.migrate();setTimeout(rcadsR455Open,2500)" style="flex:1;border:0;border-radius:10px;padding:10px;background:#2d6a36;color:#fff;font-weight:900;cursor:pointer">🗜 PACK NOW</button><button type="button" onclick="rcadsR455Open()" style="flex:1;border:0;border-radius:10px;padding:10px;background:#5b3519;color:#fff;font-weight:900;cursor:pointer">↻ REFRESH</button></div></div>'};
+  /* button beside BACKUP RCADS DATA */
+  setInterval(()=>{try{const t=document.getElementById('rcadsHrStickyTools');if(t&&!document.getElementById('r455Btn')){const b=document.createElement('button');b.type='button';b.id='r455Btn';b.textContent='💾 STORAGE CHECK';b.onclick=window.rcadsR455Open;
+      const ref=t.querySelector('button');if(ref){b.className=ref.className;b.style.cssText=ref.style.cssText}t.insertBefore(b,t.firstChild)}}catch(e){}},1500);
 })();
 </script>
 <!-- RCADS R287: OFFLINE RECORDING + AUTO SYNC -->
