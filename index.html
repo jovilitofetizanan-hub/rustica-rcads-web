@@ -288,7 +288,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R459 ROVING IN BUTTON</title>
+<title>Rustica RCADS App — R460 ROVING MOVES THE GPS BRANCH</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -29870,7 +29870,12 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   // branch where this Manager is on duty right now ('' = not on duty)
   window.rcadsMgrDutyBranch=function(x){const e=empOf(x);if(!MGR(e))return '';let s=null;try{s=JSON.parse(localStorage.getItem('rustica_srf_local_attendance_'+U(e.code))||'null')}catch(_){}
     const t=dk(new Date());const R=((s&&s.records)||[]).filter(r=>dk(r.date)===t);let br='';
-    R.forEach(r=>{if(r.type==='IN'&&r.kind==='Start'&&r.dutyBranch)br=U(r.dutyBranch);else if(r.type==='OUT'&&!/break/i.test(r.kind||'')&&!/break/i.test(r.reason||''))br=''});return br};
+    R.sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)).forEach(r=>{
+      /* R460: ROVING / ASSIGNED DUTY TO → the duty branch becomes the branch he is going to (GPS checks that branch) */
+      if(r.type==='OUT'&&r.roving&&r.rovingTo)br=U(r.rovingTo);
+      else if(r.type==='IN'&&(r.rovingArrive||r.rovingArriveClaim||r.attendanceAction==='ROVING_IN')&&(r.dutyBranch||r.branch))br=U(r.dutyBranch||r.branch);
+      else if(r.type==='IN'&&r.kind==='Start'&&r.dutyBranch)br=U(r.dutyBranch);
+      else if(r.type==='OUT'&&!/break/i.test(r.kind||'')&&!/break/i.test(r.reason||''))br=''});return br};
   // the branch a Head works for today (Manager on duty → that branch)
   window.rcadsHeadBranch=function(x){return window.rcadsMgrDutyBranch(x)||''};
   window.rcadsMgrIsManager=function(x){return MGR(empOf(x))};
@@ -35043,7 +35048,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function saved(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
   function chosen(e){const s=saved();return (e&&s&&U(s.c)===U(e.code)&&s.d===today()&&options(e).includes(s.b))?s.b:''}
   /* the branch for today: TIME IN branch first (Managers), then the button */
-  window.rcadsR409Duty=function(e){e=e||cur();if(!e||!options(e).length)return '';let t='';try{t=window.rcadsMgrDutyBranch?window.rcadsMgrDutyBranch(e):''}catch(x){}return t||chosen(e)};
+  function rovingNow(e){try{const s=JSON.parse(localStorage.getItem('rustica_srf_local_attendance_'+U(e.code))||'null');const t=today();let br='';
+      ((s&&s.records)||[]).filter(r=>{const d=new Date(r.date);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')===t}).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date)).forEach(r=>{
+        if(r.type==='OUT'&&r.roving&&r.rovingTo)br=U(r.rovingTo);else if(r.type==='IN'&&(r.rovingArrive||r.rovingArriveClaim||r.attendanceAction==='ROVING_IN')&&(r.dutyBranch||r.branch))br=U(r.dutyBranch||r.branch);else if(r.type==='OUT'&&!/break/i.test(r.kind||''))br=''});return br}catch(x){return ''}}
+  window.rcadsR409Duty=function(e){e=e||cur();if(!e||!options(e).length)return '';const rv=rovingNow(e);if(rv&&options(e).includes(rv))return rv;let t='';try{t=window.rcadsMgrDutyBranch?window.rcadsMgrDutyBranch(e):''}catch(x){}return t||chosen(e)};
   (function(){const o=window.rcadsHeadBranch;window.rcadsHeadBranch=function(x){let r='';try{r=o?o.apply(this,arguments):''}catch(e){}if(r)return r;try{const e=(x&&typeof x==='object')?x:cur();if(e&&(!x||typeof x!=='object'||U(x.code)===U(e.code)))return chosen(e)}catch(e){}return ''}})();
   function say(t){let m=document.getElementById('r409Msg');if(!m){m=document.createElement('div');m.id='r409Msg';document.body.appendChild(m)}m.textContent=t;clearTimeout(say.t);say.t=setTimeout(()=>m.remove(),3500)}
   function apply(b){
@@ -35071,7 +35079,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const L=loanOf(e.code),home=homeBranch(e.code);
     const sel=duty||curBranch()||home;   /* R418: compact dropdown */
     const html='<div class="row"><b>📍 DUTY BRANCH</b><select id="r409Sel"'+(timedIn?' disabled':'')+'>'+opts.map(b=>'<option value="'+esc(b)+'"'+(b===sel?' selected':'')+'>'+esc(bName(b))+(b===home?' (home)':'')+'</option>').join('')+'</select></div>'
-      +'<div class="s2">'+(timedIn?'✓ Timed in at '+esc(bName(timedIn))+' — you can change it after TIME OUT.':(L&&!roving(e)?'Temporary transfer to '+esc(bName(L.to))+'. ':'')+'Choose where you are on duty, then scan that branch’s Guard QR.')+'</div>';
+      +'<div class="s2">'+(timedIn?'✓ On duty at '+esc(bName(timedIn))+' — it changes by itself when the Guard records 🚗 ROVING / ASSIGNED DUTY TO.':(L&&!roving(e)?'Temporary transfer to '+esc(bName(L.to))+'. ':'')+'Choose where you are on duty, then scan that branch’s Guard QR.')+'</div>';
     if(!card){card=document.createElement('div');card.id='r409Duty';card.setAttribute('data-r162-tab','home');card.addEventListener('change',ev=>{if(ev.target&&ev.target.id==='r409Sel'&&!ev.target.disabled)choose(ev.target.value,false)})}
     if(h.after&&h.after.parentElement===h.el){if(h.after.nextElementSibling!==card)h.after.insertAdjacentElement('afterend',card)}else if(card.parentElement!==h.el)h.el.insertBefore(card,h.el.firstChild);
     if(card.contains(document.activeElement)&&!force)return;if(force||card.dataset.h!==html){card.dataset.h=html;card.innerHTML=html}
