@@ -288,7 +288,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R456 PICTURES IN BIG STORAGE</title>
+<title>Rustica RCADS App — R458 ROVING / ASSIGNED DUTY FOR ALL</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -25845,8 +25845,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(!window.rcadsSyncClock||!(await window.rcadsSyncClock())){alert('NOT RECORDED: Philippine server time could not be verified. Connect and scan again.');return false}
     const verified=nowStampLocal();rec=Object.assign({},rec,{date:verified.date.toISOString(),time:verified.time,timeSource:'official-server',timeZone:'Asia/Manila'});
     if(rec.attendanceAction){
-      const expected={TIME_IN:['IN','Start'],BREAK_IN:['IN','Return'],ERRAND_IN:['IN','Return'],BREAK_OUT:['OUT','Break'],ERRAND_OUT:['OUT','Break'],TIME_OUT:['OUT','End Shift']}[rec.attendanceAction];
-      if(!expected||rec.type!==expected[0]||rec.kind!==expected[1]||!!rec.errand!==(rec.attendanceAction==='ERRAND_OUT')||!!rec.errandReturn!==(rec.attendanceAction==='ERRAND_IN')||!canGuardAction(rec.attendanceAction,shiftState(c))){alert('NOT RECORDED: action/status changed. Scan again and choose the actual action.');return false}
+      const expected={TIME_IN:['IN','Start'],BREAK_IN:['IN','Return'],ERRAND_IN:['IN','Return'],BREAK_OUT:['OUT','Break'],ERRAND_OUT:['OUT','Break'],ROVING_OUT:['OUT','Break'],TIME_OUT:['OUT','End Shift']}[rec.attendanceAction];
+      if(!expected||rec.type!==expected[0]||rec.kind!==expected[1]||!!rec.errand!==(rec.attendanceAction==='ERRAND_OUT'||rec.attendanceAction==='ROVING_OUT')||!!rec.errandReturn!==(rec.attendanceAction==='ERRAND_IN')||!canGuardAction(rec.attendanceAction,shiftState(c))){alert('NOT RECORDED: action/status changed. Scan again and choose the actual action.');return false}
       rec.actionSelectedAt=rec.date;if(rec.dutyType)rec.dutyTypeSetAt=rec.date;
     }
     if(!rec.attendanceAction&&rec.type==='OUT'&&rec.kind==='Break'&&!rec.errand&&storeClosedTime()){rec=Object.assign({},rec,{kind:'End Shift',reason:'TIME OUT / CLOSING',reasonApproved:'N/A'});delete rec.errand;delete rec.errandBy;delete rec.errandWhat}
@@ -26097,17 +26097,24 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     resultBox('r181GuardRes',guardActionMenu(head,st),'');
   }
   // Injected inside the existing verified Guard scanner closure.
-  const guardActions=['TIME_IN','ERRAND_IN','BREAK_IN','BREAK_OUT','ERRAND_OUT','TIME_OUT'];
-  const actionLabel=a=>a.replace(/_/g,' ');
+  const guardActions=['TIME_IN','ERRAND_IN','BREAK_IN','BREAK_OUT','ERRAND_OUT','ROVING_OUT','TIME_OUT'];
+  const actionLabel=a=>a==='ROVING_OUT'?'🚗 ROVING / ASSIGNED DUTY TO':a.replace(/_/g,' ');
+  /* R457: ROVING — Managers / Asst. Managers / Deputy Chef (roving) may leave for another branch and TIME IN again there */
+  function rovingEligible(code){try{const U=x=>String(x||'').toUpperCase();const c=U(code);let pos='';
+      try{const e=(typeof getEmployeeByCode==='function'&&getEmployeeByCode(c))||null;pos=e&&(e.position||e.pos)||''}catch(x){}
+      if(!pos&&pendingOut&&pendingOut.emp)pos=pendingOut.emp.position||'';
+      if(!pos)try{const l=JSON.parse(localStorage.getItem('rcads_r175_201staff_v1')||'[]')||[];const r=l.find(x=>U(x.code)===c);pos=r&&(r.position||r.role)||''}catch(x){}
+      return true /* R458: every employee may be sent to another branch (roving / assigned duty) */}catch(e){return true}}
   function canGuardAction(action,st){
     if(st.unverified)return false;
     if(action==='TIME_IN')return st.state==='NONE';
     if(action==='BREAK_IN')return st.state==='BREAK'&&!st.last.errand;
     if(action==='ERRAND_IN')return st.state==='BREAK'&&!!st.last.errand;
     if(action==='TIME_OUT')return st.state==='WORKING'||st.state==='BREAK';
+    if(action==='ROVING_OUT')return st.state==='WORKING'&&!storeClosedTime()&&!!pendingOut&&rovingEligible(pendingOut.p.c);
     return ['BREAK_OUT','ERRAND_OUT'].includes(action)&&st.state==='WORKING'&&!storeClosedTime();
   }
-  function guardActionMenu(head,st){return head+'<b>CHOOSE THE ACTUAL ATTENDANCE ACTION</b><p>Check with the employee. No punch is recorded until you choose and confirm.</p><div class="r181-acts">'+guardActions.map((a,i)=>(i===0?'<b style="width:100%">IN</b>':i===3?'<b style="width:100%">OUT</b>':'')+'<button type="button" class="r181-btn" data-r391-action="'+a+'" '+(canGuardAction(a,st)?'':'disabled style="opacity:.45"')+'>'+actionLabel(a)+'</button>').join('')+'</div><p>Current status: '+esc(st.state)+(st.last&&st.last.errand?' (ERRAND)':'')+'. Unavailable actions need a matching prior punch or HR review. After 9 PM, use TIME OUT for end of duty.</p><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button>';}
+  function guardActionMenu(head,st){return head+'<b>CHOOSE THE ACTUAL ATTENDANCE ACTION</b><p>Check with the employee. No punch is recorded until you choose and confirm.</p><div class="r181-acts">'+guardActions.filter(a=>a!=='ROVING_OUT'||(pendingOut&&rovingEligible(pendingOut.p.c))).map((a,i)=>(i===0?'<b style="width:100%">IN</b>':i===3?'<b style="width:100%">OUT</b>':'')+'<button type="button" class="r181-btn" data-r391-action="'+a+'" '+(canGuardAction(a,st)?'':'disabled style="opacity:.45"')+'>'+actionLabel(a)+'</button>').join('')+'</div><p>Current status: '+esc(st.state)+(st.last&&st.last.errand?' (ERRAND)':'')+'. Unavailable actions need a matching prior punch or HR review. After 9 PM, use TIME OUT for end of duty.'+(pendingOut&&rovingEligible(pendingOut.p.c)?' 🚗 ROVING / ASSIGNED DUTY TO = going to another branch for duty; TIME IN again at that branch.':'')+'</p><button type="button" class="r181-btn ghost" data-r181-cancel>CANCEL</button>';}
   let guardChoiceBusy=false;
   const guardOutReasons=['End of scheduled duty','Sent home by the Head / Manager','Store closed / end of operations','No guest / slow business','Sick / not feeling well','Family emergency','Transferred to another branch','Other'];
   function showTimeOutForm(){
@@ -26127,10 +26134,19 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(!pendingOut){resultBox('r181GuardRes','<b>SCAN AGAIN</b><span>No active employee scan. Nothing recorded.</span>','warn');return;}
     resultBox('r181GuardRes',pendingOut.head+'<form id="r395ErrandForm"><h3>ERRAND OUT</h3><p>Enter the approval and errand details, then confirm.</p><label>Authorized by<input name="errandBy" required maxlength="150" autocomplete="off" style="display:block;width:100%;box-sizing:border-box;padding:12px;font-size:16px"></label><label>Purpose / destination<textarea name="errandWhat" required maxlength="500" style="display:block;width:100%;box-sizing:border-box;padding:12px;font-size:16px"></textarea></label><button type="submit" class="r181-btn">CONFIRM ERRAND OUT</button><button type="button" class="r181-btn ghost" data-r395-back>BACK — NOT RECORDED</button><p id="r395ErrandStatus" role="status"></p></form>','');
   }
+  function showRovingForm(){
+    if(guardChoiceBusy)return;
+    if(!pendingOut){resultBox('r181GuardRes','<b>SCAN AGAIN</b><span>No active employee scan. Nothing recorded.</span>','warn');return;}
+    let here='';try{here=rusticaGetCurrentBranchCode()}catch(e){}
+    let B={};try{B=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}
+    const opts=Object.values(B||{}).filter(b=>b&&b.code&&b.code!==here).map(b=>'<option value="'+esc(b.code)+'">'+esc(b.name||b.code)+'</option>').join('');
+    resultBox('r181GuardRes',pendingOut.head+'<form id="r457RovingForm"><h3>🚗 ROVING / ASSIGNED DUTY TO</h3><p>Leaving this branch for duty at another branch. Travel time counts as working hours. At that branch the Guard does <b>TIME IN</b> again.</p><label>Assigned to which branch?<select name="to" required style="display:block;width:100%;padding:12px;font-size:16px"><option value="">Choose branch</option>'+opts+'</select></label><button type="submit" class="r181-btn">CONFIRM — GO TO THAT BRANCH</button><button type="button" class="r181-btn ghost" data-r395-back>BACK — NOT RECORDED</button><p role="status"></p></form>','');
+  }
   async function commitGuardAction(action,details){
     if(guardChoiceBusy||!guardActions.includes(action))return false;
     if(!pendingOut){resultBox('r181GuardRes','<b>SCAN AGAIN</b><span>No active employee scan. Nothing recorded.</span>','warn');return false;}
     if(action==='ERRAND_OUT'&&(!details?.by?.trim()||!details?.what?.trim())){showErrandForm();return false;}
+    if(action==='ROVING_OUT'&&!String(details?.to||'').trim()){showRovingForm();return false;}
     if(action==='TIME_OUT'&&!storeClosedTime()&&!guardOutReasons.includes(details?.reason)){showTimeOutForm();return false;}
     if(action==='BREAK_OUT'&&(!guardBreakReasons.includes(details?.reason)||(details.reason==='Other'&&!details.note?.trim()))){showBreakForm();return false;}
     guardChoiceBusy=true;const context=pendingOut,{p,name,base,emp}=context;
@@ -26146,6 +26162,11 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
         const by=details.by,what=details.what;
         Object.assign(extra,{errand:true,errandBy:by.trim(),errandWhat:what.trim(),reason:'Work errand: '+what.trim(),reasonApproved:'YES'});
       }
+      if(action==='ROVING_OUT'){
+        let B={},here='';try{B=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}try{here=rusticaGetCurrentBranchCode()}catch(e){}
+        const to=String(details.to),toName=(B[to]&&B[to].name)||to.replace(/_/g,' ');
+        Object.assign(extra,{errand:true,roving:true,rovingTo:to,rovingFrom:here,errandBy:'ROVING',errandWhat:'ROVING / ASSIGNED DUTY to '+toName,reason:'Roving / assigned duty to '+toName+' (counted as working hours)',reasonApproved:'YES'});
+      }
       if(action==='ERRAND_IN')Object.assign(extra,{errandReturn:true,errandMinutes:Math.max(0,Math.round((nowStampLocal().date-Date.parse(st.last.date))/60000))});
       if(action==='TIME_OUT'){
         if(storeClosedTime()){
@@ -26160,9 +26181,9 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
         Object.assign(extra,{reason:details.reason+(note?' — '+note:''),reasonApproved:details.verbal&&by?'YES':'N/A',approvedBy:by,approvalMethod:details.verbal&&by?'VERBAL — recorded by Guard':'',requiresHrReview:early||st.state==='BREAK',approvedEarlyLeave:early&&workedInfo(p.c).worked<NEED});
         }
       }
-      if(!['BREAK_OUT','ERRAND_OUT','TIME_OUT'].includes(action)&&!confirm(actionLabel(action)+' — '+name+' ('+p.c+')\n\nRecord this exact action in the employee DTR?'))return false;
+      if(!['BREAK_OUT','ERRAND_OUT','ROVING_OUT','TIME_OUT'].includes(action)&&!confirm(actionLabel(action)+' — '+name+' ('+p.c+')\n\nRecord this exact action in the employee DTR?'))return false;
       if(!(await refreshBeforeBreak('r181GuardRes'))||!choiceFresh(p,base)||!canGuardAction(action,shiftState(p.c))){resultBox('r181GuardRes','<b>NOT RECORDED</b><span>Status/session changed. Scan again.</span>','bad');return false;}
-      const stamp=nowStampLocal();const mapping={TIME_IN:['IN','Start'],BREAK_IN:['IN','Return'],ERRAND_IN:['IN','Return'],BREAK_OUT:['OUT','Break'],ERRAND_OUT:['OUT','Break'],TIME_OUT:['OUT','End Shift']};
+      const stamp=nowStampLocal();const mapping={TIME_IN:['IN','Start'],BREAK_IN:['IN','Return'],ERRAND_IN:['IN','Return'],BREAK_OUT:['OUT','Break'],ERRAND_OUT:['OUT','Break'],ROVING_OUT:['OUT','Break'],TIME_OUT:['OUT','End Shift']};
       const [type,kind]=mapping[action];const rec=Object.assign({},base,extra,{type,kind,date:stamp.date.toISOString(),time:stamp.time,actionSelectedAt:stamp.date.toISOString()});
       if(!(await appendRecord(p.c,name,rec)))return false;
       if(extra.approvedEarlyLeave)flagUtApproved(p.c,extra.reason,extra.approvedBy||base.authorizedBy);
@@ -26174,10 +26195,12 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(e.target.closest?.('[data-r395-back]')){if(!guardChoiceBusy&&pendingOut)resultBox('r181GuardRes',guardActionMenu(pendingOut.head,shiftState(pendingOut.p.c)),'');return;}
     const button=e.target.closest?.('[data-r391-action]');if(!button||button.disabled)return;
     if(button.dataset.r391Action==='ERRAND_OUT'){showErrandForm();return;}
+    if(button.dataset.r391Action==='ROVING_OUT'){showRovingForm();return;}
     if(button.dataset.r391Action==='TIME_OUT'){showTimeOutForm();return;}
     if(button.dataset.r391Action==='BREAK_OUT'){showBreakForm();return;}
     if(!guardChoiceBusy){button.textContent='CHECKING…';void commitGuardAction(button.dataset.r391Action).catch(guardActionError).finally(()=>{if(button.isConnected)button.textContent=actionLabel(button.dataset.r391Action)})}
   });
+  document.addEventListener('submit',e=>{if(e.target.id!=='r457RovingForm')return;e.preventDefault();if(guardChoiceBusy)return;const form=e.target,to=form.elements.to.value;const status=form.querySelector('[role="status"]');if(!to){status.textContent='Choose the branch. Nothing recorded.';return;}status.textContent='Checking attendance and saving… Please wait.';const button=form.querySelector('[type="submit"]');button.disabled=true;void commitGuardAction('ROVING_OUT',{to}).catch(guardActionError).finally(()=>{button.disabled=false;if(status.isConnected)status.textContent='Not recorded. Check the message above or scan again.'})});
   document.addEventListener('submit',e=>{if(e.target.id!=='r395ErrandForm')return;e.preventDefault();if(guardChoiceBusy)return;const form=e.target,by=form.elements.errandBy.value.trim(),what=form.elements.errandWhat.value.trim();const status=form.querySelector('[role="status"]');if(!by||!what){status.textContent='Enter the authorizer and purpose. Nothing recorded.';return;}status.textContent='Checking attendance and saving… Please wait.';const button=form.querySelector('[type="submit"]');button.disabled=true;void commitGuardAction('ERRAND_OUT',{by,what}).catch(guardActionError).finally(()=>{button.disabled=false;if(status.isConnected)status.textContent='Not recorded. Check the message above or scan again.'})});
   document.addEventListener('submit',e=>{if(e.target.id!=='r396OutForm')return;e.preventDefault();if(guardChoiceBusy)return;const form=e.target,details={reason:form.elements.reason.value,approvedBy:form.elements.approvedBy.value,verbal:form.elements.verbal.checked,note:form.elements.note.value};const status=form.querySelector('[role="status"]'),button=form.querySelector('[type="submit"]');status.textContent='Checking attendance and saving…';button.disabled=true;void commitGuardAction('TIME_OUT',details).catch(guardActionError).finally(()=>{button.disabled=false;if(status.isConnected&&status.textContent==='Checking attendance and saving…')status.textContent='Not recorded. Please scan again.'})});
   document.addEventListener('submit',e=>{if(e.target.id!=='r397BreakForm')return;e.preventDefault();if(guardChoiceBusy)return;const form=e.target,details={reason:form.elements.reason.value,note:form.elements.note.value},status=form.querySelector('[role="status"]'),button=form.querySelector('[type="submit"]');status.textContent='Checking attendance and saving…';button.disabled=true;void commitGuardAction('BREAK_OUT',details).catch(guardActionError).finally(()=>{button.disabled=false;if(status.isConnected)status.textContent='Not recorded. Check the selected reason or scan again.'})});
@@ -32160,7 +32183,7 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   function empPunches(code){const x=ctx();const from=x&&x.cutoff.from,to=x&&x.cutoff.to;const e=staff(x&&x.branch).find(y=>U(y.code)===code)||{name:code};
     const R=recs(code).filter(r=>{const d=new Date(r.date);if(isNaN(d))return false;const k=dk(d);return (!from||k>=from)&&(!to||k<=to)}).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));
     const days={};R.forEach(r=>{const k=dk(new Date(r.date));(days[k]=days[k]||[]).push(r)});
-    const label=r=>r.type==='IN'?(r.kind==='Return'?(r.errandReturn?'🛵 BACK FROM ERRAND':'☕ BREAK IN'):'🟢 TIME IN'):(r.kind==='Break'?(r.errand?'🛵 ERRAND OUT':'☕ BREAK OUT'):'🔴 TIME OUT');
+    const label=r=>r.type==='IN'?(r.kind==='Return'?(r.rovingArrive?'🚗 ROVING IN • '+String(r.branch||'').replace(/_/g,' '):r.errandReturn?'🛵 BACK FROM ERRAND':'☕ BREAK IN'):'🟢 TIME IN'):(r.kind==='Break'?(r.roving?'🚗 ROVING / ASSIGNED DUTY TO → '+String(r.rovingTo||'').replace(/_/g,' '):r.errand?'🛵 ERRAND OUT':'☕ BREAK OUT'):'🔴 TIME OUT');
     const flags=r=>[r.handshake?'✓ '+r.handshake:'',r.geo==='OK'?'GPS ✓':(r.geo?'⚠ GPS '+r.geo:''),r.offline?'📴 saved offline':'',r.clockCorrected?'⏰ phone clock corrected':'',String(r.phone||'').indexOf('BORROWED')===0?'👥 borrowed phone':'',r.dutyBranch&&x&&r.dutyBranch!==x.branch?'⚠ at '+r.dutyBranch:'',r.reason&&r.reason!=='—'?r.reason:''].filter(Boolean).join(' • ');
     const body='<button type="button" class="r334-back" data-r334-back>← ALL EMPLOYEES</button><div class="r334-emp" data-r334-code="'+esc(code)+'"><b>'+esc(e.name)+'</b> • '+esc(code)+'</div>'
       +(Object.keys(days).length?Object.keys(days).sort().map(k=>{const d=new Date(k+'T00:00:00');return '<div class="r334-day" data-r334-dk="'+esc(k)+'"><div class="r334-dh">'+esc(d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}))+'</div>'+days[k].map(r=>'<div class="r334-p"><span class="t">'+esc(r.time||new Date(r.date).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}))+'</span><span class="k">'+label(r)+'</span><span class="b">by '+esc(r.authorizedBy||r.approvedBy||'—')+'</span><small>'+esc(flags(r))+'</small></div>').join('')+'</div>'}).join(''):'<div class="r334-empty">No TIME IN / OUT in this cutoff on this device. Press ↻ / GET THE DATA (cloud) if it was recorded on another phone.</div>');
@@ -33642,6 +33665,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const rows=(Array.isArray(input)?input:[]).map(r=>({...r})).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));
     let previous=null;
     for(const r of rows){const date=day(r.date);if(!date)continue;
+      /* R457: TIME IN at another branch right after a ROVING OUT (same day) = ROVING ARRIVAL — travel counted as work, the first TIME IN stays the real TIME IN */
+      if(r.type==='IN'&&r.kind==='Start'&&previous&&previous.type==='OUT'&&previous.roving&&day(previous.date)===date){
+        r.rcadsClassification={version:'R457',originalKind:'Start',reason:'ROVING IN at '+String(r.branch||'another branch').replace(/_/g,' ')+' — TIME IN after ROVING OUT; travel counted as working hours.'};
+        r.kind='Return';r.errandReturn=true;r.rovingArrive=true;previous=r;continue}
       if(r.attendanceAction){if(['IN','OUT'].includes(r.type))previous=r;continue;}
       let reason='';const original=r.kind;
       if(date>='2026-11-02'&&r.type==='OUT'&&r.kind==='Break'&&!r.errand&&hour(r.date)>=21){r.kind='End Shift';reason='Store closing rule: OUT at/after 9 PM Philippine time is TIME OUT.';}
