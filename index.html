@@ -288,7 +288,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R461 FILL SUMMARY LOG (DTR) IN RCADS</title>
+<title>Rustica RCADS App — R462 HR EDITS DTR LOG BEFORE APPROVAL</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34663,6 +34663,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
         const ok=t.closest('[data-r442-ok]');if(ok){const id=ok.getAttribute('data-r442-ok');const r=(FL.rows||[]).find(x=>String(x.id)===String(id));
           if(!confirm('✅ APPROVE '+(r?(r.kind==='ACS'?'ACS':'SCHEDULE')+' • '+bName(r.branch)+' • '+r.dept+' • '+fmtWk(String(r.week).slice(0,10)):'this form')+'?\n\nAfter approval it shows in the employees\' apps and is used for the DTR.'))return;
           setOk(id,'HR');ok.disabled=true;ok.textContent='⏳ APPLYING…';autoApply().then(()=>drawHr());drawHr();return}
+        const dh=t.closest('[data-r461-hr]');if(dh){openDtrHr(dh.getAttribute('data-r461-hr'));return}
         const dz=t.closest('[data-r461-ok]');if(dz){const id=dz.getAttribute('data-r461-ok');if(confirm('✅ APPROVE this DTR Summary Log? Its corrections go into your DTR Summary Log for payroll.')){dz.disabled=true;approveDtr(id)}return}
         const ld=t.closest('[data-r442-load]');if(ld){const b=ld.getAttribute('data-r442-load');HD.at[b]=0;loadHead(b,true).then(()=>drawHr());drawHr();return}
         const fl=t.closest('[data-r442-fill]');if(fl){const p=fl.getAttribute('data-r442-fill').split('|');const b=p.shift();HD.b=b;R442W=hrW(b);openEditor(p.join('|'));if(!document.getElementById('r399Ed'))R442W=null;return}});
@@ -34823,36 +34824,47 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(isTime(h)){const m=/^(\d+):([0-5]\d)$/.exec(s);if(!m)throw Error(h+': use hours:minutes, e.g. 1:30');return (+m[1]*60+(+m[2]))/1440}
     if(!/^\d+(\.\d+)?$/.test(s))throw Error(h+': enter a number (e.g. 1 or 0.5)');return Number(s)}
   let DE=null;
-  const dDraftKey=()=>'r461draft_'+DE.b+'_'+DE.from+'_'+DE.dept;
-  async function openDtrFill(id,w){const b=HD.b;const f=formById(b,id);if(!f)return;
-    const from=String(f.from).slice(0,10),to=String(f.to).slice(0,10),dept=w.forms[0];const all=dept==='DINING';
-    let wb;try{wb=withCtx(ctxFor(b,from,to),()=>window.buildEditableDTRWorkbook())}catch(e){alert('Could not prepare the DTR Summary Log: '+e.message);return}
-    if(!wb){alert('Could not prepare the DTR Summary Log.');return}
-    const sheets=[];wb.SheetNames.forEach(n=>{const t=tagOf(n);if(!t)return;if(!all&&DTAG[t]!==dept)return;
+  const dDraftKey=()=>'r461draft_'+(DE.hr?'HR_':'')+DE.b+'_'+DE.from+'_'+DE.dept;
+  function dSheets(b,from,to,only){let wb;try{wb=withCtx(ctxFor(b,from,to),()=>window.buildEditableDTRWorkbook())}catch(e){alert('Could not prepare the DTR Summary Log: '+e.message);return null}
+    if(!wb){alert('Could not prepare the DTR Summary Log.');return null}
+    const sheets=[];wb.SheetNames.forEach(n=>{const t=tagOf(n);if(!t)return;if(only&&DTAG[t]!==only)return;
       const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true});const h=a.findIndex(r=>U(r[0])==='EMPCODE');if(h<0)return;
       const rows=[];for(let i=h+1;i<a.length;i++){const c=U(a[i][0]);if(/^[A-Z0-9]+-[A-Z0-9-]+$/.test(c))rows.push(a[i].slice())}
       sheets.push({tag:t,name:n,headers:a[h].map(x=>String(x)),rows})});
-    if(!sheets.length){alert('No DTR Summary Log rows for this branch yet.');return}
+    if(!sheets.length){alert('No DTR Summary Log rows for this branch yet.');return null}return sheets}
+  function cutTo(from){const [y,m,dd]=from.split('-').map(Number);if(dd===11)return from.slice(0,8)+'25';const t=new Date(y,m,10);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-10'}
+  function dEnsureEl(){let el=document.getElementById('r461Ed');if(!el){el=document.createElement('div');el.id='r461Ed';document.documentElement.appendChild(el);el.addEventListener('change',dChange);el.addEventListener('click',dClick)}return el}
+  /* HR: ✏ CHECK & EDIT what the Head sent, then ✅ APPROVE from inside the table */
+  async function openDtrHr(id){const r=(FL.rows||[]).find(x=>String(x.id)===String(id));if(!r)return;
+    let edits={};try{const d=await rpc('rustica_sched_filled_get',{p_key:myKey(),p_id:+id});const x=XLSX.read(unb64(d.data_b64),{type:'array'});const ws=x.Sheets.R461_EDITS;if(ws&&ws.A1)edits=JSON.parse(String(ws.A1.v)||'{}')||{}}catch(e){alert('Could not open: '+e.message);return}
+    const from=String(r.week).slice(0,10),to=cutTo(from);const only=U(r.dept)==='KITCHEN'?'KITCHEN':'';
+    const sheets=dSheets(r.branch,from,to,only);if(!sheets)return;
+    DE={b:r.branch,from,to,id:r.id,dept:U(r.dept),w:{kind:'HR'},hr:true,by:r.by||'',sheets,tab:0,edits,dirty:false};
+    try{const dr=JSON.parse(localStorage.getItem(dDraftKey())||'null');if(dr&&dr.edits&&confirm('Continue your saved HR draft of this DTR Summary Log?'))DE.edits=dr.edits}catch(e){}
+    dEnsureEl();dDraw()}
+  async function openDtrFill(id,w){const b=HD.b;const f=formById(b,id);if(!f)return;
+    const from=String(f.from).slice(0,10),to=String(f.to).slice(0,10),dept=w.forms[0];const all=dept==='DINING';
+    const sheets=dSheets(b,from,to,all?'':dept);if(!sheets)return;
+    let wb=null;
+
     let edits={};   /* JSON[tag,code,header] → value */
     try{const d=await rpc('rustica_sched_filled_mine',{p_key:myKey(),p_branch:b,p_week:from});const r=(d.rows||[]).find(x=>x.kind==='DTR'&&U(x.dept)===dept&&x.data_b64);
       if(r){const x=XLSX.read(unb64(r.data_b64),{type:'array'});const ws=x.Sheets.R461_EDITS;if(ws&&ws.A1)edits=JSON.parse(String(ws.A1.v)||'{}')||{}}}catch(e){}
     DE={b,from,to,id:f.id,dept,w,sheets,tab:0,edits,dirty:false};
     try{const dr=JSON.parse(localStorage.getItem(dDraftKey())||'null');if(dr&&dr.edits&&confirm('Continue your saved draft of the DTR Summary Log?'))DE.edits=dr.edits}catch(e){}
-    let el=document.getElementById('r461Ed');if(!el){el=document.createElement('div');el.id='r461Ed';document.documentElement.appendChild(el);
-      el.addEventListener('change',dChange);el.addEventListener('click',dClick)}
-    dDraw()}
+    dEnsureEl();dDraw()}
   function dVal(sh,row,h,col){const k=JSON.stringify([sh.tag,U(row[0]),U(h)]);return Object.prototype.hasOwnProperty.call(DE.edits,k)?{v:DE.edits[k],ed:true}:{v:row[col],ed:false}}
   function dDraw(){const el=document.getElementById('r461Ed');if(!el||!DE)return;const sh=DE.sheets[DE.tab];const sc=el.querySelector('.gw');const top=sc?sc.scrollTop:0,left=sc?sc.scrollLeft:0;
     const n=Object.keys(DE.edits).length;
     let t='<div class="ed"><div class="ed-h"><b>📝 DTR SUMMARY LOG — '+esc(bName(DE.b))+'</b><small>'+esc(fmtD(DE.from)+' – '+fmtD(DE.to)+', '+DE.to.slice(0,4))+' • '+n+' correction(s)</small>'+
-      '<div class="r446-top"><button type="button" class="r399-btn ok" data-d="submit">📤 SUBMIT TO HR</button><button type="button" class="r399-btn l" data-d="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-d="close">✕ CLOSE</button></div></div>'+
+      '<div class="r446-top">'+(DE.hr?'<button type="button" class="r399-btn ok" data-d="approve">✅ APPROVE</button>':'<button type="button" class="r399-btn ok" data-d="submit">📤 SUBMIT TO HR</button>')+'<button type="button" class="r399-btn l" data-d="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-d="close">✕ CLOSE</button></div></div>'+
       '<div class="ed-b"><div class="r440-v">'+DE.sheets.map((s,i)=>'<button type="button" class="r399-btn'+(i===DE.tab?'':' l')+'" data-tab="'+i+'">'+DTAG[s.tag]+'</button>').join('')+'</div>'+
-      '<div class="r399-n">Numbers come from RCADS (punches + approved schedule). Change only what is wrong. LATE / UNDERTIME as hours:minutes (e.g. <b>1:30</b>). Changed cells are yellow. HR approves before it goes to payroll.</div>'+
+      (DE.hr?'<div class="r442-pend">HR CHECK — sent by '+esc(DE.by)+'. Yellow = changed by the Head or by you. Correct anything, then ✅ APPROVE.</div>':'')+'<div class="r399-n">Numbers come from RCADS (punches + approved schedule). Change only what is wrong. LATE / UNDERTIME as hours:minutes (e.g. <b>1:30</b>). Changed cells are yellow. HR approves before it goes to payroll.</div>'+
       '<div class="gw"><table class="g"><thead><tr>'+sh.headers.map((h,c)=>'<th class="'+(c===0?'s1':c===1?'s2':'sub')+'">'+esc(h)+'</th>').join('')+'</tr></thead><tbody>';
     sh.rows.forEach((row,ri)=>{t+='<tr>'+sh.headers.map((h,c)=>{if(c===0)return '<td class="s1">'+esc(row[0])+'</td>';if(c===1)return '<td class="s2">'+esc(row[1])+'</td>';
         if(!dEdit(h,c))return '<td class="ps">'+esc(dShow(row[c],h))+'</td>';const x=dVal(sh,row,h,c);
         return '<td class="c'+(x.ed?' st':'')+'"><input data-r="'+ri+'" data-c="'+c+'" value="'+esc(dShow(x.v,h))+'"'+(U(h)==='REMARKS'?' style="width:160px"':'')+'></td>'}).join('')+'</tr>'});
-    t+='</tbody></table></div></div><div class="ed-f"><button type="button" class="r399-btn ok" data-d="submit">📤 SUBMIT TO HR</button><button type="button" class="r399-btn l" data-d="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-d="close">✕ CLOSE</button></div></div>';
+    t+='</tbody></table></div></div><div class="ed-f">'+(DE.hr?'<button type="button" class="r399-btn ok" data-d="approve">✅ APPROVE</button>':'<button type="button" class="r399-btn ok" data-d="submit">📤 SUBMIT TO HR</button>')+'<button type="button" class="r399-btn l" data-d="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-d="close">✕ CLOSE</button></div></div>';
     el.innerHTML=t;const g=el.querySelector('.gw');if(g){g.scrollTop=top;g.scrollLeft=left}}
   function dChange(e){const t=e.target;if(!DE||t.dataset.r===undefined)return;const sh=DE.sheets[DE.tab],row=sh.rows[+t.dataset.r],c=+t.dataset.c,h=sh.headers[c];
     let v;try{v=dParse(t.value,h)}catch(err){alert(err.message);t.value=dShow(dVal(sh,row,h,c).v,h);return}
@@ -34864,6 +34876,9 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const a=t.closest('[data-d]');if(!a)return;const act=a.dataset.d;
     if(act==='close'){if(DE.dirty&&!confirm('Close? Press 💾 SAVE DRAFT first if you want to continue later.'))return;document.getElementById('r461Ed').remove();DE=null;return}
     if(act==='draft'){try{localStorage.setItem(dDraftKey(),JSON.stringify({at:Date.now(),edits:DE.edits}));DE.dirty=false;alert('💾 Draft saved on this phone.')}catch(err){alert('Could not save the draft: '+err.message)}return}
+    if(act==='approve'){if(!confirm('✅ APPROVE the DTR Summary Log of '+bName(DE.b)+' with '+Object.keys(DE.edits).length+' correction(s)?'))return;a.disabled=true;
+      const n=applyDtrEdits(DE.b,DE.from,DE.to,DE.edits,DE.by);setOk(DE.id,'HR');try{localStorage.removeItem(dDraftKey())}catch(err){}
+      document.getElementById('r461Ed').remove();DE=null;alert('✅ APPROVED — '+n+' correction(s) are now in your DTR Summary Log.\nOpen the DTR Summary Log of that branch + cut-off and press 📤 SEND TO RCPS as usual.');drawHr();return}
     if(act==='submit'){if(window.RCADS_PREVIEW){alert('👁 PREVIEW — view only.');return}
       if(!confirm('Send the DTR SUMMARY LOG of '+bName(DE.b)+' ('+Object.keys(DE.edits).length+' correction(s)) to HR?\nHR approves it before it goes to payroll.'))return;
       a.disabled=true;try{const out=XLSX.utils.book_new();DE.sheets.forEach(sh=>{const aoa=[sh.headers].concat(sh.rows.map(row=>sh.headers.map((h,c)=>dEdit(h,c)?dVal(sh,row,h,c).v:row[c])));
@@ -34879,16 +34894,16 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   async function approveDtr(id){const r=(FL.rows||[]).find(x=>String(x.id)===String(id));if(!r)return;
     try{const d=await rpc('rustica_sched_filled_get',{p_key:myKey(),p_id:+id});const x=XLSX.read(unb64(d.data_b64),{type:'array'});const ws=x.Sheets.R461_EDITS;
       const edits=ws&&ws.A1?JSON.parse(String(ws.A1.v)||'{}'):{};const from=String(r.week).slice(0,10);
-      const [y,m,dd]=from.split('-').map(Number);const to=dd===11?from.slice(0,8)+'25':(()=>{const t=new Date(y,m,10);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-10'})();
-      const c=ctxFor(r.branch,from,to);const K='rcads_r371_dtr_edits_'+encodeURIComponent([c.branch,from,to].join('|'));
-      let st={cells:{}};try{st=JSON.parse(localStorage.getItem(K)||'null')||{cells:{}};if(!st.cells)st.cells={}}catch(e){}
-      let n=0;Object.keys(edits).forEach(k=>{const [tag,code,h]=JSON.parse(k);const sheet=c.month+'_DTR Log ('+tag+' '+c.type+')';st.cells[JSON.stringify([sheet,U(code),U(h)])]={value:edits[k],by:r.by||'HEAD',at:new Date().toISOString()};n++});
-      localStorage.setItem(K,JSON.stringify(st));try{rcadsCloudFlushQueue()}catch(e){}setOk(id,'HR');
+      const to=cutTo(from);const n=applyDtrEdits(r.branch,from,to,edits,r.by);setOk(id,'HR');
       alert('✅ APPROVED — '+n+' correction(s) of '+bName(r.branch)+' ('+fmtD(from)+' – '+fmtD(to)+') are now in your DTR Summary Log.\nOpen the DTR Summary Log of that branch + cut-off and press 📤 SEND TO RCPS as usual.');drawHr()}
     catch(e){alert('Could not approve: '+e.message)}}
+  function applyDtrEdits(b,from,to,edits,by){const c=ctxFor(b,from,to);const K='rcads_r371_dtr_edits_'+encodeURIComponent([c.branch,from,to].join('|'));
+    let st={cells:{}};try{st=JSON.parse(localStorage.getItem(K)||'null')||{cells:{}};if(!st.cells)st.cells={}}catch(e){}
+    let n=0;Object.keys(edits).forEach(k=>{const [tag,code,h]=JSON.parse(k);const sheet=c.month+'_DTR Log ('+tag+' '+c.type+')';st.cells[JSON.stringify([sheet,U(code),U(h)])]={value:edits[k],by:by||'HEAD',at:new Date().toISOString()};n++});
+    localStorage.setItem(K,JSON.stringify(st));try{rcadsCloudFlushQueue()}catch(e){}return n}
   function dtrHrHtml(){const L=(FL.rows||[]).filter(x=>x.kind==='DTR');if(!L.length)return '';
     return '<div class="r399-sec">📊 DTR SUMMARY LOG — SENT BY THE BRANCHES</div>'+L.map(r=>'<div class="'+(isOk(r.id)?'r399-ok':'r442-pend')+'">'+(isOk(r.id)?'✅ ':'🟡 ')+esc(bName(r.branch))+' • '+esc(r.dept)+' • cut-off from '+esc(fmtD(String(r.week).slice(0,10)))+' • '+esc(r.by||'')+' • '+esc(fmtAt(r.at))+
-      ' <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇ VIEW</button>'+(isOk(r.id)?' approved':' <button type="button" class="r399-btn ok" data-r461-ok="'+r.id+'">✅ APPROVE</button>')+'</div>').join('')}
+      ' <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇ VIEW</button>'+(isOk(r.id)?' approved':' <button type="button" class="r399-btn ok" data-r461-hr="'+r.id+'">✏ CHECK & EDIT</button> <button type="button" class="r399-btn l" data-r461-ok="'+r.id+'">✅ APPROVE as sent</button>')+'</div>').join('')}
   function drawHead(){const el=document.getElementById('r399Card');const w=who();if(!el||!w)return;const h=headHtml(w);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
   function formById(b,id){return (HD.forms[b]||[]).find(x=>String(x.id)===String(id))}
   function sourceU8(b,id,mon,kind,dept){const done=(HD.filled[b]||{})[mon+'|'+dept+'|'+kind];if(done&&done.data_b64)return {u8:unb64(done.data_b64),filled:true};const f=formById(b,id);if(!f)throw new Error('Form not found. Press ↻ REFRESH.');return {u8:unb64(f.data_b64),filled:false}}
