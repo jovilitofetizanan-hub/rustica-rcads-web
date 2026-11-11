@@ -288,7 +288,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R460 ROVING MOVES THE GPS BRANCH</title>
+<title>Rustica RCADS App — R461 FILL SUMMARY LOG (DTR) IN RCADS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34079,6 +34079,112 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 /* R445 */#r399Ed{height:100vh;height:100dvh}#r399Ed .ed{height:100%}#r399Ed .ed-f{position:sticky;bottom:0;z-index:5;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
 
 /* R446: the same buttons at the TOP too */#r399Ed .r446-top{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#r399Ed .r446-top .r399-btn{padding:7px 12px;font-size:12px}#r399Ed .ed-h .r446-top .r399-btn.l{background:#fff;color:#3a2210}
+
+/* R461 */
+
+#r461Ed{position:fixed;inset:0;z-index:2147483000;background:rgba(30,18,8,.55);display:flex;align-items:stretch;justify-content:center}
+
+#r461Ed .ed{background:#fffaf2;width:100%;max-width:760px;display:flex;flex-direction:column;max-height:100%}
+
+#r461Ed .ed-h{padding:12px 14px;background:#3a2210;color:#fff}
+#r461Ed .ed-h b{display:block;font-size:15px}
+#r461Ed .ed-h small{display:block;font-size:11px;opacity:.85;margin-top:2px}
+
+#r461Ed .ed-b{flex:1;overflow:auto;padding:10px 12px;-webkit-overflow-scrolling:touch}
+
+#r461Ed .ed-f{padding:10px 12px;border-top:2px solid #c8a46a;background:#fff;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+#r461Ed .emp{background:#fff;border:1px solid #e3cfb2;border-radius:12px;margin:8px 0;overflow:hidden}
+
+#r461Ed .emp-h{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;background:#f6ead8;cursor:pointer}
+
+#r461Ed .emp-h b{font-size:13px;color:#3a2210}
+#r461Ed .emp-h small{display:block;font-size:10.5px;color:#7a6250}
+
+#r461Ed .emp-h .st{font-size:10.5px;font-weight:900;white-space:nowrap}
+#r461Ed .emp-h .st.ok{color:#2d6a36}
+#r461Ed .emp-h .st.no{color:#a1281f}
+
+#r461Ed .emp-b{padding:6px 8px}
+#r461Ed .emp.closed .emp-b{display:none}
+
+#r461Ed .day{display:grid;grid-template-columns:74px 92px 1fr;gap:6px;align-items:center;padding:5px 0;border-top:1px dashed #eadbc6}
+
+#r461Ed .day:first-child{border-top:0}
+#r461Ed .day .dl{font-size:11px;font-weight:900;color:#5b3519;line-height:1.2}
+#r461Ed .day .dl small{display:block;font-weight:700;color:#8c7a68}
+
+#r461Ed .day select,#r461Ed .day input{width:100%;box-sizing:border-box;padding:7px 5px;border:1px solid #d8bfa1;border-radius:8px;font-size:13px;background:#fff;margin:0}
+
+#r461Ed .day .tm{display:flex;gap:4px;align-items:center}
+#r461Ed .day .tm span{font-size:11px;color:#8c7a68}
+
+#r461Ed .day .tm.off{visibility:hidden}
+#r461Ed .day .ot{display:flex;gap:4px;align-items:center;margin-top:4px;grid-column:2/4}
+
+#r461Ed .day .ot label{font-size:10.5px;font-weight:900;color:#5b3519;white-space:nowrap}
+#r461Ed .day .ot select{max-width:110px}
+
+#r461Ed .tools{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px}
+
+#r461Ed .warn{font-size:11.5px;color:#a1281f;font-weight:800;flex-basis:100%}
+#r461Ed .day{grid-template-columns:60px 84px 1fr}
+#r461Ed .day select,#r461Ed .day input{font-size:12px;padding:6px 3px}
+
+
+/* R440 TABLE VIEW */
+#r461Ed .ed.wide{max-width:100%}
+
+#r461Ed .r440-v{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+
+#r461Ed .gw{overflow:auto;max-height:calc(100vh - 230px);border:1px solid #d8bfa1;border-radius:8px;background:#fff;-webkit-overflow-scrolling:touch}
+
+#r461Ed table.g{border-collapse:separate;border-spacing:0;font-size:11.5px;min-width:max-content}
+
+#r461Ed table.g th,#r461Ed table.g td{border-right:1px solid #e3cfb2;border-bottom:1px solid #e3cfb2;padding:2px 3px;white-space:nowrap;background:#fff}
+
+#r461Ed table.g thead th{position:sticky;top:0;z-index:3;background:#f3e4cd;color:#3a2210;font-weight:900;text-align:center}
+
+#r461Ed table.g thead tr:nth-child(2) th{top:34px}
+
+#r461Ed table.g th.dh small{display:block;font-weight:700;color:#7a6250;font-size:10px}
+
+#r461Ed table.g th.sub{font-size:10px;padding:3px 4px}
+
+#r461Ed table.g .s1{position:sticky;left:0;z-index:2;min-width:86px;font-weight:900}
+
+#r461Ed table.g .s2{position:sticky;left:86px;z-index:2;min-width:150px;max-width:190px;overflow:hidden;text-overflow:ellipsis;font-weight:800;color:#3a2210;border-right:2px solid #c8a46a}
+
+#r461Ed table.g thead .s1,#r461Ed table.g thead .s2{z-index:4}
+
+#r461Ed table.g td.ps{font-size:10.5px;color:#7a6250}
+
+#r461Ed table.g tr.inc td.s2{color:#a1281f}
+
+#r461Ed table.g td.c input,#r461Ed table.g td.c select{width:86px;box-sizing:border-box;padding:6px 4px;border:1px solid #d8bfa1;border-radius:6px;font-size:12px;background:#fffdf8}
+
+#r461Ed table.g td.lb input{width:52px}
+#r461Ed table.g td.ot select{width:52px}
+
+#r461Ed table.g td.st input{background:#fdeee9;color:#a1281f;font-weight:800}
+
+#r461Ed table.g td.c input:disabled{background:#f2ebe2}
+#r461Ed table.g .s1{position:static;min-width:0;font-size:10px}
+#r461Ed table.g .s2{left:0;min-width:104px;max-width:112px;font-size:10.5px;white-space:normal;line-height:1.15}
+#r461Ed table.g td.c input,#r461Ed table.g td.c select{width:74px;font-size:11.5px}
+#r461Ed table.g td.lb input,#r461Ed table.g td.ot select{width:46px}
+
+#r461Ed table.g .cp{margin-left:4px;padding:1px 6px;border:1px solid #c8a46a;border-radius:6px;background:#fff;font-weight:900;cursor:pointer}
+
+
+/* R445 */#r461Ed{height:100vh;height:100dvh}
+#r461Ed .ed{height:100%}
+#r461Ed .ed-f{position:sticky;bottom:0;z-index:5;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+
+
+/* R446: the same buttons at the TOP too */#r461Ed .r446-top{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+#r461Ed .r446-top .r399-btn{padding:7px 12px;font-size:12px}
+#r461Ed .ed-h .r446-top .r399-btn.l{background:#fff;color:#3a2210}
 </style>
 <script id="rcadsR399Script">
 /* R399 — RCPS ⇄ RCADS SYNC FOLDER + FILL THE SCHEDULE / ACS INSIDE RCADS + LEGAL SIZE FOR EVERY EXCEL
@@ -34510,7 +34616,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       (folderOK()?' <br>Folder: <b>'+esc(GL.folder||'(chosen on the first press)')+'</b> • <a href="#" id="r399Change">change folder</a> • <a href="#" id="r399PickL">or choose the files</a>':' <br>This browser cannot open a folder — you will choose the files.')+'</div>'+
       '<input type="file" id="r399Pick" accept=".xlsx,.json" multiple hidden>'+
       (GL.msg?'<div class="r399-msg'+(GL.err?' err':'')+'">'+esc(GL.msg)+'</div>':'')+res+
-      '<div class="r399-sec">📥 SCHEDULE / ACS FILLED IN RCADS BY THE BRANCHES <button type="button" class="r399-btn l" id="r399Ref">↻</button></div>'+filledHtml()+hrFillHtml()+holHrHtml();
+      '<div class="r399-sec">📥 SCHEDULE / ACS FILLED IN RCADS BY THE BRANCHES <button type="button" class="r399-btn l" id="r399Ref">↻</button></div>'+filledHtml()+dtrHrHtml()+hrFillHtml()+holHrHtml();
   }
   /* R442: HR makes the ADMIN schedule / ACS of San Rafael (approved at once) */
   function hrFillHtml(){let h='';Object.keys(HR_FILL).forEach(b=>{
@@ -34557,6 +34663,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
         const ok=t.closest('[data-r442-ok]');if(ok){const id=ok.getAttribute('data-r442-ok');const r=(FL.rows||[]).find(x=>String(x.id)===String(id));
           if(!confirm('✅ APPROVE '+(r?(r.kind==='ACS'?'ACS':'SCHEDULE')+' • '+bName(r.branch)+' • '+r.dept+' • '+fmtWk(String(r.week).slice(0,10)):'this form')+'?\n\nAfter approval it shows in the employees\' apps and is used for the DTR.'))return;
           setOk(id,'HR');ok.disabled=true;ok.textContent='⏳ APPLYING…';autoApply().then(()=>drawHr());drawHr();return}
+        const dz=t.closest('[data-r461-ok]');if(dz){const id=dz.getAttribute('data-r461-ok');if(confirm('✅ APPROVE this DTR Summary Log? Its corrections go into your DTR Summary Log for payroll.')){dz.disabled=true;approveDtr(id)}return}
         const ld=t.closest('[data-r442-load]');if(ld){const b=ld.getAttribute('data-r442-load');HD.at[b]=0;loadHead(b,true).then(()=>drawHr());drawHr();return}
         const fl=t.closest('[data-r442-fill]');if(fl){const p=fl.getAttribute('data-r442-fill').split('|');const b=p.shift();HD.b=b;R442W=hrW(b);openEditor(p.join('|'));if(!document.getElementById('r399Ed'))R442W=null;return}});
       box.addEventListener('change',e=>{if(e.target.id==='r399Pick'){const fs=[...(e.target.files||[])];e.target.value='';fromPickedFiles(fs)}});
@@ -34694,12 +34801,94 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
         h+='<div class="r399-item"><b>'+esc(x.label)+(w.forms.length>1||x.dept==='ADMIN'?' • '+esc(x.dept):'')+'</b><small>'+esc(fmtWk(x.mon))+' • '+(x.done&&isMgrEdit(x.done)?(w.kind==='MGR'?'<span class="r399-no">✏ SENT TO THE DINING HEAD 1 FOR CONFIRMATION • '+esc(fmtAt(x.done.at))+'</span>':'<span class="r399-no">✏ THE MANAGER EDITED THIS ('+esc(fmtAt(x.done.at))+') — please CHECK and press 📤 SUBMIT to CONFIRM. Then it goes to HR.</span>'):x.done?(isOk(x.done.id)?'<span class="r399-ok">✅ APPROVED BY HR • sent '+esc(fmtAt(x.done.at))+'</span>':'<span class="r399-ok">📤 SENT TO HR '+esc(fmtAt(x.done.at))+' • HR approves it before it shows in the employees’ apps</span>'):'<span class="r399-no">'+esc(x.due||'')+(x.again?' • last sent '+esc(fmtAt(x.again.at)):'')+'</span>')+'</small>'+
           '<div class="r399-row"><button type="button" class="r399-btn ok" data-r399-fill="'+id+'">'+(x.done&&isMgrEdit(x.done)&&w.kind!=='MGR'?'✅ CHECK & CONFIRM':'📝 '+(x.done||x.again?'EDIT':'FILL'))+' '+(x.kind==='ACS'?'ACS':'SCHEDULE')+'</button><button type="button" class="r399-btn l" data-r399-dl="'+id+'">⬇ DOWNLOAD'+(x.done||x.again?'':' (blank)')+'</button></div></div>'});
       const dtr=(HD.forms[b]||[]).find(x=>x.kind==='DTR');
-      if(dtr&&w.kind==='HEAD')h+='<div class="r399-item"><b>DTR SUMMARY LOG • '+(w.forms[0]==='DINING'?'ALL DEPARTMENTS (Management, Kitchen, Dining, Extra)':esc(w.forms[0]))+'</b><small>'+esc(fmtD(dtr.from)+' – '+fmtD(dtr.to)+', '+String(dtr.to).slice(0,4))+' • editable during the pilot — check it; send corrections to HR</small><div class="r399-row"><button type="button" class="r399-btn l" data-r399-dtr="'+dtr.id+'">⬇ DOWNLOAD DTR SUMMARY LOG</button></div></div>';
+      if(dtr&&w.kind==='HEAD')h+='<div class="r399-item"><b>DTR SUMMARY LOG • '+(w.forms[0]==='DINING'?'ALL DEPARTMENTS (Management, Kitchen, Dining, Extra)':esc(w.forms[0]))+'</b><small>'+esc(fmtD(dtr.from)+' – '+fmtD(dtr.to)+', '+String(dtr.to).slice(0,4))+' • check it and correct it in RCADS, then 📤 SUBMIT TO HR'+(function(){const dn=(HD.dtrSent||{})[b];return dn?' • <b>sent '+esc(fmtAt(dn.at))+'</b>':''})()+'</small><div class="r399-row"><button type="button" class="r399-btn ok" data-r461-fill="'+dtr.id+'">📝 FILL SUMMARY LOG</button><button type="button" class="r399-btn l" data-r399-dtr="'+dtr.id+'">⬇ DOWNLOAD</button></div></div>';
     }
     h+='<div class="r399-row"><button type="button" class="r399-btn l" id="r399HRef"'+(HD.busy?' disabled':'')+'>↻ REFRESH</button></div>';
     if(HD.msg)h+='<div class="r399-msg'+(HD.err?' err':'')+'">'+esc(HD.msg)+'</div>';
     return h;
   }
+  /* ============ R461 — 📝 FILL SUMMARY LOG: the Head 1 checks / corrects the DTR SUMMARY LOG in RCADS ============
+     • Starts from what RCADS computed (same as HR's DTR Summary Log), then the Head corrects cells.
+     • 💾 SAVE DRAFT (this phone) • 📤 SUBMIT TO HR → HR ✅ APPROVE → the corrections go into HR's DTR Summary Log
+       (the same corrections HR can make himself), so 📤 SEND TO RCPS carries them to payroll / payslip. */
+  const DTAG={Mgmt:'MANAGEMENT',Kitc:'KITCHEN',Dini:'DINING',Extra:'EXTRA'};
+  const tagOf=n=>{const m=/\((Mgmt|Kitc|Dini|Extra)/i.exec(String(n||''));return m?Object.keys(DTAG).find(k=>k.toLowerCase()===m[1].toLowerCase()):''};
+  function ctxFor(b,from,to){const c={from,to};const type=Number(String(from).slice(8,10))===11?'11-25':'26-10';let m=Number(String(to).slice(5,7));if(type==='11-25')m+=1;if(m>12)m-=12;
+    return {cutoff:c,type,month:'M'+String(m).padStart(2,'0'),branch:b,branchName:bName(b)}}
+  function withCtx(c,fn){const o=window.rcadsR158DtrExportContext;window.rcadsR158DtrExportContext=function(){return c};try{return fn()}finally{window.rcadsR158DtrExportContext=o}}
+  const dEdit=(h,c)=>c>=3&&!!U(h)&&U(h)!=='SIGNATURE';
+  const isTime=h=>/\[h\]:mm/i.test(h);
+  function dShow(v,h){if(v===''||v==null)return '';if(typeof v==='number'&&isTime(h)){const m=Math.round(v*1440);return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')}return String(v)}
+  function dParse(s,h){s=String(s==null?'':s).trim();if(!s)return '';if(U(h)==='REMARKS')return s;if(U(s)==='FOR REVIEW')return 'FOR REVIEW';
+    if(isTime(h)){const m=/^(\d+):([0-5]\d)$/.exec(s);if(!m)throw Error(h+': use hours:minutes, e.g. 1:30');return (+m[1]*60+(+m[2]))/1440}
+    if(!/^\d+(\.\d+)?$/.test(s))throw Error(h+': enter a number (e.g. 1 or 0.5)');return Number(s)}
+  let DE=null;
+  const dDraftKey=()=>'r461draft_'+DE.b+'_'+DE.from+'_'+DE.dept;
+  async function openDtrFill(id,w){const b=HD.b;const f=formById(b,id);if(!f)return;
+    const from=String(f.from).slice(0,10),to=String(f.to).slice(0,10),dept=w.forms[0];const all=dept==='DINING';
+    let wb;try{wb=withCtx(ctxFor(b,from,to),()=>window.buildEditableDTRWorkbook())}catch(e){alert('Could not prepare the DTR Summary Log: '+e.message);return}
+    if(!wb){alert('Could not prepare the DTR Summary Log.');return}
+    const sheets=[];wb.SheetNames.forEach(n=>{const t=tagOf(n);if(!t)return;if(!all&&DTAG[t]!==dept)return;
+      const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true});const h=a.findIndex(r=>U(r[0])==='EMPCODE');if(h<0)return;
+      const rows=[];for(let i=h+1;i<a.length;i++){const c=U(a[i][0]);if(/^[A-Z0-9]+-[A-Z0-9-]+$/.test(c))rows.push(a[i].slice())}
+      sheets.push({tag:t,name:n,headers:a[h].map(x=>String(x)),rows})});
+    if(!sheets.length){alert('No DTR Summary Log rows for this branch yet.');return}
+    let edits={};   /* JSON[tag,code,header] → value */
+    try{const d=await rpc('rustica_sched_filled_mine',{p_key:myKey(),p_branch:b,p_week:from});const r=(d.rows||[]).find(x=>x.kind==='DTR'&&U(x.dept)===dept&&x.data_b64);
+      if(r){const x=XLSX.read(unb64(r.data_b64),{type:'array'});const ws=x.Sheets.R461_EDITS;if(ws&&ws.A1)edits=JSON.parse(String(ws.A1.v)||'{}')||{}}}catch(e){}
+    DE={b,from,to,id:f.id,dept,w,sheets,tab:0,edits,dirty:false};
+    try{const dr=JSON.parse(localStorage.getItem(dDraftKey())||'null');if(dr&&dr.edits&&confirm('Continue your saved draft of the DTR Summary Log?'))DE.edits=dr.edits}catch(e){}
+    let el=document.getElementById('r461Ed');if(!el){el=document.createElement('div');el.id='r461Ed';document.documentElement.appendChild(el);
+      el.addEventListener('change',dChange);el.addEventListener('click',dClick)}
+    dDraw()}
+  function dVal(sh,row,h,col){const k=JSON.stringify([sh.tag,U(row[0]),U(h)]);return Object.prototype.hasOwnProperty.call(DE.edits,k)?{v:DE.edits[k],ed:true}:{v:row[col],ed:false}}
+  function dDraw(){const el=document.getElementById('r461Ed');if(!el||!DE)return;const sh=DE.sheets[DE.tab];const sc=el.querySelector('.gw');const top=sc?sc.scrollTop:0,left=sc?sc.scrollLeft:0;
+    const n=Object.keys(DE.edits).length;
+    let t='<div class="ed"><div class="ed-h"><b>📝 DTR SUMMARY LOG — '+esc(bName(DE.b))+'</b><small>'+esc(fmtD(DE.from)+' – '+fmtD(DE.to)+', '+DE.to.slice(0,4))+' • '+n+' correction(s)</small>'+
+      '<div class="r446-top"><button type="button" class="r399-btn ok" data-d="submit">📤 SUBMIT TO HR</button><button type="button" class="r399-btn l" data-d="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-d="close">✕ CLOSE</button></div></div>'+
+      '<div class="ed-b"><div class="r440-v">'+DE.sheets.map((s,i)=>'<button type="button" class="r399-btn'+(i===DE.tab?'':' l')+'" data-tab="'+i+'">'+DTAG[s.tag]+'</button>').join('')+'</div>'+
+      '<div class="r399-n">Numbers come from RCADS (punches + approved schedule). Change only what is wrong. LATE / UNDERTIME as hours:minutes (e.g. <b>1:30</b>). Changed cells are yellow. HR approves before it goes to payroll.</div>'+
+      '<div class="gw"><table class="g"><thead><tr>'+sh.headers.map((h,c)=>'<th class="'+(c===0?'s1':c===1?'s2':'sub')+'">'+esc(h)+'</th>').join('')+'</tr></thead><tbody>';
+    sh.rows.forEach((row,ri)=>{t+='<tr>'+sh.headers.map((h,c)=>{if(c===0)return '<td class="s1">'+esc(row[0])+'</td>';if(c===1)return '<td class="s2">'+esc(row[1])+'</td>';
+        if(!dEdit(h,c))return '<td class="ps">'+esc(dShow(row[c],h))+'</td>';const x=dVal(sh,row,h,c);
+        return '<td class="c'+(x.ed?' st':'')+'"><input data-r="'+ri+'" data-c="'+c+'" value="'+esc(dShow(x.v,h))+'"'+(U(h)==='REMARKS'?' style="width:160px"':'')+'></td>'}).join('')+'</tr>'});
+    t+='</tbody></table></div></div><div class="ed-f"><button type="button" class="r399-btn ok" data-d="submit">📤 SUBMIT TO HR</button><button type="button" class="r399-btn l" data-d="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-d="close">✕ CLOSE</button></div></div>';
+    el.innerHTML=t;const g=el.querySelector('.gw');if(g){g.scrollTop=top;g.scrollLeft=left}}
+  function dChange(e){const t=e.target;if(!DE||t.dataset.r===undefined)return;const sh=DE.sheets[DE.tab],row=sh.rows[+t.dataset.r],c=+t.dataset.c,h=sh.headers[c];
+    let v;try{v=dParse(t.value,h)}catch(err){alert(err.message);t.value=dShow(dVal(sh,row,h,c).v,h);return}
+    const k=JSON.stringify([sh.tag,U(row[0]),U(h)]);const orig=row[c];
+    const same=(v===''&&(orig===''||orig==null))||(typeof v==='number'&&typeof orig==='number'&&Math.abs(v-orig)<1e-9)||String(v)===String(orig);
+    if(same)delete DE.edits[k];else DE.edits[k]=v;DE.dirty=true;t.parentElement.classList.toggle('st',!same);
+    const s=document.querySelector('#r461Ed .ed-h small');if(s)s.textContent=fmtD(DE.from)+' – '+fmtD(DE.to)+', '+DE.to.slice(0,4)+' • '+Object.keys(DE.edits).length+' correction(s)'}
+  async function dClick(e){const t=e.target;if(!DE||!t.closest)return;const tb=t.closest('[data-tab]');if(tb){DE.tab=+tb.dataset.tab;dDraw();return}
+    const a=t.closest('[data-d]');if(!a)return;const act=a.dataset.d;
+    if(act==='close'){if(DE.dirty&&!confirm('Close? Press 💾 SAVE DRAFT first if you want to continue later.'))return;document.getElementById('r461Ed').remove();DE=null;return}
+    if(act==='draft'){try{localStorage.setItem(dDraftKey(),JSON.stringify({at:Date.now(),edits:DE.edits}));DE.dirty=false;alert('💾 Draft saved on this phone.')}catch(err){alert('Could not save the draft: '+err.message)}return}
+    if(act==='submit'){if(window.RCADS_PREVIEW){alert('👁 PREVIEW — view only.');return}
+      if(!confirm('Send the DTR SUMMARY LOG of '+bName(DE.b)+' ('+Object.keys(DE.edits).length+' correction(s)) to HR?\nHR approves it before it goes to payroll.'))return;
+      a.disabled=true;try{const out=XLSX.utils.book_new();DE.sheets.forEach(sh=>{const aoa=[sh.headers].concat(sh.rows.map(row=>sh.headers.map((h,c)=>dEdit(h,c)?dVal(sh,row,h,c).v:row[c])));
+          const ws=XLSX.utils.aoa_to_sheet(aoa);for(let r=1;r<aoa.length;r++)sh.headers.forEach((h,c)=>{if(!isTime(h))return;const ref=XLSX.utils.encode_cell({r,c});if(ws[ref]&&typeof ws[ref].v==='number')ws[ref].z='[h]:mm'});
+          XLSX.utils.book_append_sheet(out,ws,'DTR Log ('+sh.tag+')')});
+        XLSX.utils.book_append_sheet(out,XLSX.utils.aoa_to_sheet([[JSON.stringify(DE.edits)]]),'R461_EDITS');
+        const u8=new Uint8Array(XLSX.write(out,{type:'array',bookType:'xlsx'}));const w=DE.w;const by=(w.e&&(w.e.name||w.e.code)||'')+' • '+w.label;
+        const name='DTR_SUMMARY_'+U(bName(DE.b)).replace(/[^A-Z]+/g,'_')+'_'+DE.dept+'_'+DE.from+'_to_'+DE.to+'.xlsx';
+        await rpc('rustica_sched_filled_put',{p_key:myKey(),p_branch:DE.b,p_dept:DE.dept,p_kind:'DTR',p_week:DE.from,p_form_id:+DE.id,p_file_name:name,p_data_b64:b64(u8),p_name:by});
+        try{localStorage.removeItem(dDraftKey())}catch(err){}HD.dtrSent=HD.dtrSent||{};HD.dtrSent[DE.b]={at:new Date().toISOString(),id:0};DE.dirty=false;alert('✓ SENT TO HR: DTR Summary Log of '+bName(DE.b)+'.\nHR approves it before it goes to payroll.');
+        document.getElementById('r461Ed').remove();DE=null;HD.at[HD.b]=0;loadHead(HD.b,true)}catch(err){a.disabled=false;alert('Not sent: '+err.message+(/MISSING|FORM \/ WEEK/i.test(err.message)?'\n\n(HR: run the R461 SQL in Supabase first.)':''))}}}
+  /* HR: ✅ APPROVE → the Head's corrections become HR DTR corrections (R371) for that branch + cut-off */
+  async function approveDtr(id){const r=(FL.rows||[]).find(x=>String(x.id)===String(id));if(!r)return;
+    try{const d=await rpc('rustica_sched_filled_get',{p_key:myKey(),p_id:+id});const x=XLSX.read(unb64(d.data_b64),{type:'array'});const ws=x.Sheets.R461_EDITS;
+      const edits=ws&&ws.A1?JSON.parse(String(ws.A1.v)||'{}'):{};const from=String(r.week).slice(0,10);
+      const [y,m,dd]=from.split('-').map(Number);const to=dd===11?from.slice(0,8)+'25':(()=>{const t=new Date(y,m,10);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-10'})();
+      const c=ctxFor(r.branch,from,to);const K='rcads_r371_dtr_edits_'+encodeURIComponent([c.branch,from,to].join('|'));
+      let st={cells:{}};try{st=JSON.parse(localStorage.getItem(K)||'null')||{cells:{}};if(!st.cells)st.cells={}}catch(e){}
+      let n=0;Object.keys(edits).forEach(k=>{const [tag,code,h]=JSON.parse(k);const sheet=c.month+'_DTR Log ('+tag+' '+c.type+')';st.cells[JSON.stringify([sheet,U(code),U(h)])]={value:edits[k],by:r.by||'HEAD',at:new Date().toISOString()};n++});
+      localStorage.setItem(K,JSON.stringify(st));try{rcadsCloudFlushQueue()}catch(e){}setOk(id,'HR');
+      alert('✅ APPROVED — '+n+' correction(s) of '+bName(r.branch)+' ('+fmtD(from)+' – '+fmtD(to)+') are now in your DTR Summary Log.\nOpen the DTR Summary Log of that branch + cut-off and press 📤 SEND TO RCPS as usual.');drawHr()}
+    catch(e){alert('Could not approve: '+e.message)}}
+  function dtrHrHtml(){const L=(FL.rows||[]).filter(x=>x.kind==='DTR');if(!L.length)return '';
+    return '<div class="r399-sec">📊 DTR SUMMARY LOG — SENT BY THE BRANCHES</div>'+L.map(r=>'<div class="'+(isOk(r.id)?'r399-ok':'r442-pend')+'">'+(isOk(r.id)?'✅ ':'🟡 ')+esc(bName(r.branch))+' • '+esc(r.dept)+' • cut-off from '+esc(fmtD(String(r.week).slice(0,10)))+' • '+esc(r.by||'')+' • '+esc(fmtAt(r.at))+
+      ' <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇ VIEW</button>'+(isOk(r.id)?' approved':' <button type="button" class="r399-btn ok" data-r461-ok="'+r.id+'">✅ APPROVE</button>')+'</div>').join('')}
   function drawHead(){const el=document.getElementById('r399Card');const w=who();if(!el||!w)return;const h=headHtml(w);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}}
   function formById(b,id){return (HD.forms[b]||[]).find(x=>String(x.id)===String(id))}
   function sourceU8(b,id,mon,kind,dept){const done=(HD.filled[b]||{})[mon+'|'+dept+'|'+kind];if(done&&done.data_b64)return {u8:unb64(done.data_b64),filled:true};const f=formById(b,id);if(!f)throw new Error('Form not found. Press ↻ REFRESH.');return {u8:unb64(f.data_b64),filled:false}}
@@ -34833,7 +35022,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
         if(t.closest('#r399HRef')){loadHead(HD.b,true);return}
         const f=t.closest('[data-r399-fill]');if(f){openEditor(f.getAttribute('data-r399-fill'));return}
         const d=t.closest('[data-r399-dl]');if(d){headDownload(d.getAttribute('data-r399-dl'));return}
-        const x=t.closest('[data-r399-dtr]');if(x){dtrDownload(x.getAttribute('data-r399-dtr'),ww)}});
+        const x=t.closest('[data-r399-dtr]');if(x){dtrDownload(x.getAttribute('data-r399-dtr'),ww);return}
+        const fz=t.closest('[data-r461-fill]');if(fz){openDtrFill(fz.getAttribute('data-r461-fill'),ww)}});
       el.addEventListener('change',e=>{if(e.target.id==='r399B'){HD.b=e.target.value;HD.msg='';drawHead();loadHead(HD.b,false)}});
     }
     const r215=document.getElementById('r215Card');
