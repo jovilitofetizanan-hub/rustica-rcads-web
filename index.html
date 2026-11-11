@@ -288,7 +288,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R462 HR EDITS DTR LOG BEFORE APPROVAL</title>
+<title>Rustica RCADS App — R463 LOANS IN DTR LOG = HR ONLY</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34817,7 +34817,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function ctxFor(b,from,to){const c={from,to};const type=Number(String(from).slice(8,10))===11?'11-25':'26-10';let m=Number(String(to).slice(5,7));if(type==='11-25')m+=1;if(m>12)m-=12;
     return {cutoff:c,type,month:'M'+String(m).padStart(2,'0'),branch:b,branchName:bName(b)}}
   function withCtx(c,fn){const o=window.rcadsR158DtrExportContext;window.rcadsR158DtrExportContext=function(){return c};try{return fn()}finally{window.rcadsR158DtrExportContext=o}}
-  const dEdit=(h,c)=>c>=3&&!!U(h)&&U(h)!=='SIGNATURE';
+  const HR_ONLY=/^(SSS LOAN|PAG-IBIG LOAN|COMPANY LOAN & OTHERS|MONTHLY RATE)$/;   /* R463: loans / rate = HR only */
+  const dEdit=(h,c)=>c>=3&&!!U(h)&&U(h)!=='SIGNATURE'&&(!HR_ONLY.test(U(h))||!!(DE&&DE.hr));
   const isTime=h=>/\[h\]:mm/i.test(h);
   function dShow(v,h){if(v===''||v==null)return '';if(typeof v==='number'&&isTime(h)){const m=Math.round(v*1440);return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')}return String(v)}
   function dParse(s,h){s=String(s==null?'':s).trim();if(!s)return '';if(U(h)==='REMARKS')return s;if(U(s)==='FOR REVIEW')return 'FOR REVIEW';
