@@ -288,7 +288,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R463 LOANS IN DTR LOG = HR ONLY</title>
+<title>Rustica RCADS App — R464 DTR LOG: 0:00 INSTEAD OF FOR REVIEW</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -32993,10 +32993,10 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
         const out=a.map((r,i)=>{r=r.slice();if(i===hi){r.splice(cR,0,COL);return r}
           const code=U(r[0]);if(i>hi&&code&&/^[A-Z0-9]+-/.test(code)){while(r.length<cR)r.push('');const A=analyse({code},c.from,c.to);
             r.splice(cR,0,A.shortMin?A.shortMin/1440:'');
-            if(A.review.length){
-              H.forEach((h,j)=>{const col=j>=cR?j+1:j;if(/^LATE\b/.test(h)&&A.review.some(x=>x.late))r[col]='FOR REVIEW';if(/^UNDERTIME\b/.test(h)&&A.review.some(x=>x.ut))r[col]='FOR REVIEW'});
-              if(A.review.some(x=>x.short))r[cR]='FOR REVIEW';
-            }
+            /* R464: no more "FOR REVIEW" in LATE / UNDERTIME / SHORT-DAY HOURS — HR does not have to erase anything.
+               These cells keep what RCADS computed from the complete days, or 0:00 when there is none.
+               The day with a missing punch is still written in REMARKS ("FOR REVIEW — Nov 9: missing …"); HR types a time only if there really was late / undertime. */
+            H.forEach((h,j)=>{const col=j>=cR?j+1:j;if((/^LATE\b/.test(h)||/^UNDERTIME\b/.test(h))&&(r[col]===''||r[col]==null||U(r[col])==='FOR REVIEW'))r[col]=0});
             const notes=[];if(A.review.length)notes.push('FOR REVIEW — '+A.review.map(x=>dLabel(x.k)+': '+x.reason).join('; '));if(A.short.length)notes.push('SHORT DAY (under 5 hrs): '+A.short.map(x=>dLabel(x.k)+' '+hm(x.w)).join(', '));
             if(A.ob.length)notes.push('APPROVED LATE (company errand, no memo): '+A.ob.map(x=>dLabel(x.k)).join(', '));
             if(notes.length){const o=String(r[cR+1]||'');r[cR+1]=o?o+' • '+notes.join(' • '):notes.join(' • ')}
