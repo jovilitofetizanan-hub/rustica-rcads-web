@@ -288,7 +288,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R464 DTR LOG: 0:00 INSTEAD OF FOR REVIEW</title>
+<title>Rustica RCADS App — R467 TEXT MEMOS (LOW DATA)</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21510,14 +21510,14 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
         +'</div>';
     }).join('');
   }
-  function docButtonsHtml(){
+  function docButtonsHtml(v){
     const b=board();
     return '<div class="r159-docbtns">'
       +'<button type="button" class="r159-docbtn" data-r159-doc="COD">📘 CODE OF DISCIPLINE'+(b.cod||(window.rcadsR328&&window.rcadsR328.count('COD'))?'':' <small>(not yet posted)</small>')+'</button>'
       +'<button type="button" class="r159-docbtn" data-r159-doc="MC">📄 MEMO CIRCULARS <small>('+(b.circulars.length+(window.rcadsR328?window.rcadsR328.count('MC'):0))+')</small></button>'
       +'<button type="button" class="r159-docbtn wide" data-r159-doc="ORG">🏢 ORGANIZATIONAL CHART</button>'
       +'<button type="button" class="r159-docbtn wide" data-r159-doc="CV">⭐ RUSTICA CORE VALUES'+(b.cv?'':' <small>(not yet posted)</small>')+'</button>'
-      +'</div><div class="r159-docnote">VIEW ONLY • Each document can be opened once a week. Downloading, copying, printing and screenshots are not allowed. Your name is watermarked.</div>';
+      +'</div><div class="r159-docnote">'+esc(window.rcadsR465DocNote?window.rcadsR465DocNote(v):'VIEW ONLY • Each document can be opened once a week. Downloading, copying, printing and screenshots are not allowed. Your name is watermarked.')+'</div>';
   }
   function boardPanelHtml(v){
     const list=board().notices.filter(n=>noticeFor(n,v)).sort((a,b)=>String(b.postedAt).localeCompare(String(a.postedAt)));
@@ -21526,9 +21526,10 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
       +'<div class="r159-sub">'+esc(v.name)+(v.code&&v.role!=='OWNER'?' • '+esc(v.code):'')+(rustId(v.code)?' • '+esc(rustId(v.code)):'')+'</div>'
       +(window.rcadsR328?window.rcadsR328.mineButton(v):'')
       +noticeCardsHtml(v,list)
-      +docButtonsHtml();
+      +(window.rcadsR465BulletinHtml?window.rcadsR465BulletinHtml(v):'')
+      +docButtonsHtml(v);
   }
-  function boardSignature(v){return JSON.stringify([v.id,board().updatedAt||'',Object.keys(readsOf(v.id)).length,window.rcadsR328?window.rcadsR328.sig():''])}
+  function boardSignature(v){return JSON.stringify([v.id,board().updatedAt||'',Object.keys(readsOf(v.id)).length,window.rcadsR328?window.rcadsR328.sig():'',window.rcadsR465Sig?window.rcadsR465Sig():''])}
   function ensureBoard(hostEl,id,v,where){
     if(!hostEl||!v)return;
     let el=document.getElementById(id);
@@ -21592,6 +21593,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
   /* R417: HR chooses how often a document can be opened again (0 = anytime) */
   function VDAYS(){const r=(function(){try{return JSON.parse(localStorage.getItem('rcads_r417_docrule_v1')||'null')||{}}catch(e){return {}}})();const n=Number(r.days);return isFinite(n)&&r.days!==undefined&&r.days!==''?n:7}
   function viewGate(v,docKey){
+    {const G=window.rcadsR465Gate&&window.rcadsR465Gate(v,docKey);if(G)return G} /* R465: Monday rule + Management any day */
     if(!v||v.role==='HR'||v.role==='OWNER'||!docKey)return {ok:true}; // R167: Owners have no weekly limit
     const m=read(VIEW_PREFIX+v.id,{})||{};const last=m[docKey];
     if(!last)return {ok:true,first:true};
@@ -21603,6 +21605,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
   }
   function noteView(v,docKey,title){const k=VIEW_PREFIX+v.id;const m=read(k,{})||{};m[docKey]={first:new Date().toISOString(),title:title||'',name:v.name,code:v.code||'',role:v.role||''};write(k,m)}
   function lockedHtml(g){
+    if(g&&g.html)return g.html; /* R465 */
     const d=x=>new Date(x).toLocaleDateString([], {weekday:'long',month:'long',day:'numeric',year:'numeric'})+' '+new Date(x).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     return '<div class="r159-locked-doc"><div class="i">🔒</div><b>YOU HAVE ALREADY READ THIS</b><p>You opened this on <b>'+esc(d(g.last))+'</b>.</p><p>You can open it again on <b>'+esc(d(g.next))+'</b>.</p><small>Each document can be opened only once every '+(VDAYS()===1?'day':VDAYS()+' days')+'. If HR posts a new version, you can open it right away. If you need to read it again now, see HR.</small></div>';
   }
@@ -31387,7 +31390,9 @@ body.r328-open{overflow:hidden}
   const PG=new Map();
   async function page(id,n,emp){const k=id+'|'+n;if(PG.has(k))return PG.get(k);
     const d=emp?await rpc('rustica_pmemo_page',Object.assign({p_code:emp.code,p_pin:emp.pin||''},auth(),{p_id:id,p_page:n})):await rpc('rustica_doc_page',Object.assign(auth(),{p_id:id,p_page:n}));
-    const u='data:image/jpeg;base64,'+d.data_b64;PG.set(k,u);return u}
+    let u='data:image/jpeg;base64,'+d.data_b64;
+    if(window.rcadsR467&&window.rcadsR467.isText(d.data_b64))u=await window.rcadsR467.render(d.data_b64); /* R467: text memo → drawn on this phone */
+    PG.set(k,u);return u}
   /* ---------- file → page images ---------- */
   function canvasJpeg(c,q){return c.toDataURL('image/jpeg',q||JPEG_Q)}
   function readImg(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error(file.name+': cannot read the picture.'));im.src=fr.result};fr.onerror=()=>rej(fr.error);fr.readAsDataURL(file)})}
@@ -31480,8 +31485,10 @@ body.r328-open{overflow:hidden}
     catch(e){if(e.code==='PIN'||e.code==='DENIED'||e.code==='LOCKED'){pinForm(e.code==='PIN'?'':e.message)}else body('<div class="r328-err">⚠ '+esc(e.message)+'</div>')}}
   function pinForm(msg){PM.pin='';body('<div class="r328-pin"><b>Enter your 4-digit RCADS PIN</b><small>Needed because this is not your own RCADS phone.</small><input type="password" inputmode="numeric" maxlength="6" id="r328Pin" autocomplete="off"><button type="button" class="r328-btn" data-r328-pin>OPEN MY MEMOS</button>'+(msg?'<div class="r328-err">'+esc(msg)+'</div>':'')+'</div>');setTimeout(()=>{const i=document.getElementById('r328Pin');if(i)i.focus()},80)}
   function listMine(){
-    const rows=PM.rows.slice().sort((a,b)=>(a.signed_at?1:0)-(b.signed_at?1:0)||String(b.created_at).localeCompare(String(a.created_at)));
-    body(rows.length?'<div class="r328-note">Read each memo, then SIGN to confirm that you received it. The signed copy is saved automatically in your <b>201 FILES</b>.</div>'+rows.map(r=>'<button type="button" class="r328-row'+(r.signed_at?' done':' due')+'" data-r328-pm="'+esc(r.id)+'"><b>'+(r.signed_at?'✓ SIGNED':'🔴 TO SIGN')+' • '+esc(label(r))+'</b><small>Sent '+esc(fmtDT(r.created_at))+(r.signed_at?' • Signed '+esc(fmtDT(r.signed_at)):'')+'</small></button>').join(''):'<div class="r159-empty">You have no personal memo. 👍</div>');bump()}
+    /* R466: a signed personal memo stays 5 days here (time to write the NTE explanation), then only in the 201 */
+    const DAY=5*864e5,old=PM.rows.filter(r=>r.signed_at&&Date.now()-Date.parse(r.signed_at)>DAY).length;
+    const rows=PM.rows.filter(r=>!(r.signed_at&&Date.now()-Date.parse(r.signed_at)>DAY)).slice().sort((a,b)=>(a.signed_at?1:0)-(b.signed_at?1:0)||String(b.created_at).localeCompare(String(a.created_at)));
+    body((rows.length?'<div class="r328-note">Read each memo, then SIGN to confirm that you received it. The signed copy is saved automatically in your <b>201 FILES</b>.</div>'+rows.map(r=>'<button type="button" class="r328-row'+(r.signed_at?' done':' due')+'" data-r328-pm="'+esc(r.id)+'"><b>'+(r.signed_at?'✓ SIGNED':'🔴 TO SIGN')+' • '+esc(label(r))+'</b><small>Sent '+esc(fmtDT(r.created_at))+(r.signed_at?' • Signed '+esc(fmtDT(r.signed_at)):'')+'</small></button>').join(''):'<div class="r159-empty">You have no personal memo. 👍</div>')+(old?'<div class="r328-note">'+old+' signed memo(s) older than 5 days are in your <b>201 FILES</b>.</div>':''));bump()}
   function idSig(){try{const r=window.rcadsR167&&window.rcadsR167.rec(PM.code);return r&&r.sig||''}catch(e){return ''}}
   async function openPm(id){
     const r=PM.rows.find(x=>x.id===id);if(!r)return;PM.cur=r;PM.sig=null;const t=++TOK;
@@ -35714,17 +35721,19 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   function say(t,bad){const m=document.getElementById('r426Msg');if(m){m.textContent=t;m.className='r426-msg'+(bad?' bad':'')}}
   async function build(){const m=memoMeta();if(!m.title)throw Error('Type the SUBJECT / TITLE.');const ed=document.getElementById('r426Ed');const body=clean(ed.innerHTML);if(!ed.textContent.trim())throw Error('Type or paste the memo.');
     if(m.kind==='PM'&&!m.emp)throw Error('Type a valid EMPCODE.');if(m.kind==='MC'&&!chosen('mc').length)throw Error('Choose the branch(es).');
+    /* R467: saved as TEXT (small) — every phone draws the Legal page itself */
+    if(window.rcadsR467){const h=hrSig();const r=await window.rcadsR467.make(m,body,{img:h.img||'',name:h.name||'',title:h.title||''});return {m,pages:r.pages,store:r.store}}
     const pages=await paginate(m,body);return {m,pages}}
   let SENDING=false;
   async function send(){if(SENDING)return;const x=X();if(!x){say('⚠ Memo storage not ready (R328).',true);return}
     let built;try{say('Preparing the Legal pages…');built=await build()}catch(e){say('⚠ '+e.message,true);return}
-    const {m,pages}=built;
+    const {m,pages}=built;const STORE=built.store||pages;
     if(m.kind==='PM'){if(!confirm('Send "'+(m.no?m.no+' — ':'')+m.title+'" ('+pages.length+' Legal page(s)) to '+m.emp.emp.name+'?\n\nThe employee must tap ✍ RECEIVE & OPEN. The signed copy goes to the 201 automatically.'))return;
-      SENDING=true;try{await x.uploadDoc({kind:'PM',no:m.no,title:m.title,emp:U(m.emp.emp.code),empName:m.emp.emp.name,branch:m.emp.branch&&m.emp.branch.code},pages,(a,b)=>say('Uploading page '+a+' of '+b+'…'));say('✓ Sent to '+m.emp.emp.name+'. Waiting for RECEIVE & OPEN.');clearEd()}catch(e){say('⚠ NOT SENT: '+e.message,true)}finally{SENDING=false}return}
+      SENDING=true;try{await x.uploadDoc({kind:'PM',no:m.no,title:m.title,emp:U(m.emp.emp.code),empName:m.emp.emp.name,branch:m.emp.branch&&m.emp.branch.code},STORE,(a,b)=>say('Uploading page '+a+' of '+b+'…'));say('✓ Sent to '+m.emp.emp.name+'. Waiting for RECEIVE & OPEN.');clearEd()}catch(e){say('⚠ NOT SENT: '+e.message,true)}finally{SENDING=false}return}
     const brs=chosen('mc');if(!confirm('Post "'+(m.no?m.no+' — ':'')+m.title+'" ('+pages.length+' Legal page(s)) to MEMO CIRCULARS of: '+brs.map(bName).join(', ')+'?'))return;
     SENDING=true;const done=[],bad=[];let firstId=null,global=false;
     try{for(const b of brs){if(global){done.push(b);continue}
-        try{const id=await x.uploadDoc({kind:'MC',no:m.no,title:m.title,date:m.date||null,branch:b},pages,(a,c)=>say(bName(b)+': uploading page '+a+' of '+c+'…'));done.push(b);
+        try{const id=await x.uploadDoc({kind:'MC',no:m.no,title:m.title,date:m.date||null,branch:b},STORE,(a,c)=>say(bName(b)+': uploading page '+a+' of '+c+'…'));done.push(b);
           if(!firstId){firstId=id;const other=brs.find(o=>o!==b);if(other){try{const d=await x.rpc('rustica_doc_list',Object.assign(x.auth(),{p_branch_code:other,p_kind:'MC'}));if((d&&d.rows||[]).some(r=>r.id===id))global=true}catch(e){}}}}
         catch(e){bad.push(bName(b)+': '+e.message)}}
       try{await x.libRefresh('MC')}catch(e){}
@@ -35938,6 +35947,531 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
 
 
 <!-- RCADS PATCH: R438 ROVING MANAGERS / DEPUTY CHEF 1 — a BRANCH NAME in the schedule = duty day at that branch -->
+<style id="rcadsR465Css">
+.r465-card{margin:10px 0;padding:12px;border:2px solid #a1281f;border-radius:16px;background:#fff8f3;box-shadow:0 2px 6px rgba(80,20,0,.08)}
+.r465-card h4{margin:0 0 8px;font-size:13.5px;font-weight:900;color:#7a1d14;letter-spacing:.2px}
+.r465-card .r465-btns{display:grid;grid-template-columns:1fr;gap:8px}
+.r465-b{position:relative;display:block;width:100%;padding:12px 12px;border:2px solid #b07a3c;border-radius:13px;background:#fff;color:#5b3519;font-weight:900;font-size:13px;text-align:left;cursor:pointer;min-height:auto!important}
+.r465-b small{display:block;font-weight:700;font-size:10.5px;color:#7a5a3d;margin-top:2px}
+.r465-b.red{background:#a1281f;border-color:#a1281f;color:#fff}.r465-b.red small{color:#ffe3a6}
+.r465-n{position:absolute;top:-9px;right:-6px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#e00000;color:#fff;font:900 12px/22px Arial,sans-serif;text-align:center;box-shadow:0 0 0 2px #fff}
+.r465-nav-n{display:inline-block;margin-left:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#e00000;color:#fff;font:900 11.5px/20px Arial,sans-serif;text-align:center;vertical-align:middle}
+#r465M{position:fixed;inset:0;z-index:2147483200;background:rgba(30,12,4,.82);display:flex;align-items:stretch;justify-content:center}
+#r465M .r465-box{background:#fffaf4;width:100%;max-width:760px;display:flex;flex-direction:column;max-height:100vh;max-height:100dvh}
+#r465M .r465-hd{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#5b3519;color:#fff}
+#r465M .r465-hd b{flex:1;font-size:14px}
+#r465M .r465-hd button{padding:8px 12px;border:0;border-radius:10px;background:#fff;color:#5b3519;font-weight:900;cursor:pointer}
+#r465M .r465-bd{flex:1;overflow:auto;padding:12px;-webkit-overflow-scrolling:touch}
+.r465-f label{display:block;margin:10px 0 3px;font-weight:900;font-size:11.5px;color:#5b3519}
+.r465-f input,.r465-f select,.r465-f textarea{width:100%;box-sizing:border-box;padding:10px;border:1.5px solid #c9a274;border-radius:10px;font-size:15px;background:#fff;color:#2b190c;font-family:inherit}
+.r465-f textarea{min-height:110px;resize:vertical}
+.r465-f .r465-chk{display:flex;gap:8px;align-items:flex-start;font-weight:800;font-size:12.5px;margin:12px 0;color:#3d2615}
+.r465-f .r465-chk input{width:auto;margin-top:2px}
+.r465-row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.r465-go{display:block;width:100%;margin:12px 0 4px;padding:14px;border:0;border-radius:13px;background:#2f6b3a;color:#fff;font-weight:900;font-size:14px;cursor:pointer}
+.r465-go.l{background:#fff;color:#5b3519;border:2px solid #b07a3c}.r465-go.r{background:#a1281f}
+.r465-go:disabled{opacity:.5}
+.r465-msg{margin-top:6px;font-weight:800;font-size:12.5px;color:#2f6b3a}.r465-msg.bad{color:#a1281f}
+.r465-item{display:block;width:100%;text-align:left;margin:0 0 8px;padding:10px 12px;border:1.5px solid #d8b892;border-radius:12px;background:#fff;cursor:pointer;color:#3d2615;font-size:12.5px}
+.r465-item b{display:block;font-size:13px;color:#5b3519}.r465-item small{display:block;color:#7a5a3d;font-size:11px;margin-top:2px}
+.r465-item.new{border-color:#e00000;background:#fff1ee}.r465-item.new b::before{content:'🔴 NEW • '}
+.r465-doc{background:#fff;border:1px solid #d8b892;border-radius:10px;padding:18px 16px;color:#1e1208;font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.5}
+.r465-doc h3{margin:0 0 2px;text-align:center;font-size:16px;letter-spacing:.5px}.r465-doc .c{text-align:center;font-size:12px;margin-bottom:12px}
+.r465-doc table{width:100%;border-collapse:collapse;margin:6px 0 10px;font-size:13px}.r465-doc td{padding:3px 4px;vertical-align:top}.r465-doc td:first-child{width:34%;font-weight:bold}
+.r465-doc p{margin:8px 0;white-space:pre-wrap}.r465-doc .sig{margin-top:18px}.r465-doc .sig img{max-height:60px;display:block}
+.r465-doc .ph img{max-width:100%;margin:6px 0;border:1px solid #ccc}
+.r465-st{margin:10px 0;padding:10px;border-radius:10px;background:#f4ecdf;font-weight:800;font-size:12px;color:#3d2615;line-height:1.6}
+.r465-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}.r465-tabs button{position:relative;padding:9px 12px;border:2px solid #b07a3c;border-radius:11px;background:#fff;color:#5b3519;font-weight:900;cursor:pointer}
+.r465-tabs button.on{background:#5b3519;color:#fff;border-color:#5b3519}
+.r465-hr{padding:12px;border:2px solid #a1281f;border-radius:14px;background:#fff8f3;margin:0 0 14px}
+.r465-hr h3{margin:0 0 6px;color:#7a1d14;font-size:15px}
+.r465-hr .r465-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.r465-hr .r465-tools select,.r465-hr .r465-tools button{padding:8px 10px;border-radius:10px;border:1.5px solid #c9a274;background:#fff;font-weight:800;color:#5b3519;cursor:pointer}
+.r465-hr .r465-tools .g{background:#2f6b3a;color:#fff;border-color:#2f6b3a}
+.r465-bull{margin:10px 0;padding:10px;border:2px solid #2f6b3a;border-radius:14px;background:#f2fbf3}
+.r465-bull b.h{display:block;color:#1f4a28;font-size:13px;margin-bottom:6px}
+.r465-bull button{display:block;width:100%;text-align:left;margin:0 0 6px;padding:9px 10px;border:1.5px solid #8cc79a;border-radius:10px;background:#fff;color:#1f4a28;font-weight:800;font-size:12.5px;cursor:pointer;min-height:auto!important}
+.r465-bull button small{display:block;font-weight:700;font-size:10.5px;color:#4b6b52}
+.r465-lock{text-align:center;padding:26px 12px;color:#3d2615}.r465-lock .i{font-size:44px}.r465-lock b{display:block;font-size:16px;margin:8px 0}
+@media print{body.r465-printing>*:not(#r465Print){display:none!important}#r465Print{display:block!important}}
+</style>
+<script id="rcadsR465Script">
+/* R465 — Nov 12, 2026
+   1) DOCUMENTS: Top Management, Managers and Approvers (Heads) open Memo Circulars, Code of Discipline,
+      Organizational Chart and Core Values ANY DAY. Employees: on MONDAYS only, each document ONCE a week.
+      New Memo Circulars stay 7 days on the 📌 RCADS BULLETIN (any day), then go to MEMO CIRCULARS.
+      Personal memos: after signing they stay 5 days in MY MEMOS (R466), then only in the 201.
+   2) 📝 INCIDENT REPORT: Approvers fill it in RCADS → SUBMIT TO HR.
+   3) HR: 🚨 INCIDENT REPORT & NOTICE TO EXPLAIN with red numbers.
+   4) NOTICE TO EXPLAIN: HR → Head 1 / Head 2 → SEND TO EMPLOYEE (read in front of the Head, 5 days on the employee's RCADS).
+   5) ✍ EXPLANATION template for every employee → SUBMIT TO HR.
+   Needs RCADS_R465_IR_NTE_SUPABASE.sql (run once). */
+(function(){
+  'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const J=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v}catch(e){return d}};
+  const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}};
+  function now(){try{const t=window.rcadsTrueNow&&window.rcadsTrueNow();if(t)return new Date(t)}catch(e){}return new Date()}
+  const fmtD=s=>{const d=new Date(String(s||'').length===10?s+'T00:00:00':s);return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})};
+  const fmtDT=s=>{const d=new Date(s);return !s||isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})};
+  const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const NUMW=['zero','one','two','three','four','five','six','seven','eight','nine','ten'];
+  const X=()=>(window.rcadsR328&&window.rcadsR328._x)||null;
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code)}
+  function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
+  function curBranch(){try{return U(rusticaGetCurrentBranchCode())||'SAN_RAFAEL'}catch(e){return 'SAN_RAFAEL'}}
+  function staff(b){const x=X();try{return (x&&x.staff(b)||[]).filter(e=>e&&e.code&&!/TOPMGNT/i.test(e.code)&&!e.separated)}catch(e){return []}}
+  function empOf(code){const x=X();const f=x&&x.findEmp(code);return f?f.emp:null}
+  function HEADS(){return J('rcads_r231_branch_heads_v1',{})||{}}
+  function hrSig(){return J('rcads_r171_hr_signature_v1',{})||{}}
+  function idSig(code){try{const r=window.rcadsR167&&window.rcadsR167.rec(U(code));return r&&r.sig||''}catch(e){return ''}}
+  function isHr(){const m=document.getElementById('simpleHrAdminModal');return !!(m&&getComputedStyle(m).display!=='none')}
+
+  /* ===================== 1) DOCUMENT RULES ===================== */
+  function privileged(v){return !!(v&&(v.role==='HR'||v.role==='OWNER'||v.role==='MANAGER'||v.role==='APPROVER'||v.management))}
+  function mcList(){const x=X();try{return (x&&x.lib('MC'))||[]}catch(e){return []}}
+  const BULL_MS=7*864e5;
+  function bulletin(){const t=now().getTime();return mcList().filter(m=>{const c=Date.parse(m.created_at||m.doc_date||'');return isFinite(c)&&t-c>=0&&t-c<BULL_MS}).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at)))}
+  function weekStart(d){const x=new Date(d);x.setHours(0,0,0,0);const k=(x.getDay()+6)%7;x.setDate(x.getDate()-k);return x}
+  function nextMonday(d){const x=weekStart(d);x.setDate(x.getDate()+7);return x}
+  const longD=x=>new Date(x).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  function lockPage(title,lines){return '<div class="r465-lock"><div class="i">🔒</div><b>'+esc(title)+'</b>'+lines.map(l=>'<p>'+l+'</p>').join('')+'<small>Top Management, Managers and Approvers can open these any day. If you need it now, see your Head or HR.</small></div>'}
+  /* called by the R159 reader (viewGate). null = no opinion (old rule) */
+  window.rcadsR465Gate=function(v,docKey){
+    if(!v||!docKey)return null;
+    if(privileged(v))return {ok:true};
+    if(!/^(ORG|CV|COD|MC)_/.test(docKey))return null;
+    if(/^MC_/.test(docKey)){const id=docKey.slice(3);if(bulletin().some(m=>String(m.id)===id))return {ok:true}}
+    const t=now(),ws=weekStart(t).getTime();
+    const m=J('rcads_r159_views_'+v.id,{})||{};const last=m[docKey];const lt=last?Date.parse(last.first):NaN;
+    if(isFinite(lt)&&lt>=ws){
+      if(t.getTime()-lt<10*60000)return {ok:true};
+      return {ok:false,html:lockPage('YOU ALREADY OPENED THIS THIS WEEK',['You opened it on <b>'+esc(longD(lt))+'</b>.','You can open it again on <b>'+esc(longD(nextMonday(t)))+'</b> (Monday).'])};
+    }
+    if(t.getDay()!==1)return {ok:false,html:lockPage('DOCUMENTS OPEN ON MONDAYS',['Memo Circulars, Code of Discipline, Organizational Chart and Core Values can be opened <b>every Monday</b> — each one once a week.','Next Monday: <b>'+esc(longD(nextMonday(t)))+'</b>.','New Memo Circulars are on the <b>📌 RCADS BULLETIN</b> for 7 days — you can open those any day.'])};
+    return {ok:true,first:true};
+  };
+  window.rcadsR465DocNote=function(v){return privileged(v)?'VIEW ONLY • You can open these documents any day. Downloading, copying, printing and screenshots are not allowed. Your name is watermarked.':'VIEW ONLY • Open on MONDAYS — each document once a week. New Memo Circulars stay on the 📌 RCADS BULLETIN for 7 days. Downloading, copying, printing and screenshots are not allowed. Your name is watermarked.'};
+  window.rcadsR465BulletinHtml=function(v){
+    const L=bulletin();if(!L.length)return '';
+    return '<div class="r465-bull"><b class="h">📌 RCADS BULLETIN — NEW MEMO CIRCULARS (7 days)</b>'+L.map(m=>{const left=Math.max(1,Math.ceil((Date.parse(m.created_at)+BULL_MS-now().getTime())/864e5));
+      return '<button type="button" data-r465-bull="'+esc(m.id)+'">📄 '+esc((m.doc_no?m.doc_no+' — ':'')+(m.title||'Memo Circular'))+'<small>Posted '+esc(fmtD(m.created_at))+' • on the bulletin '+left+' more day(s), then in MEMO CIRCULARS</small></button>'}).join('')+'</div>'};
+  window.rcadsR465Sig=()=>bulletin().map(m=>m.id).join(',')+'|'+now().getDay();
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-r465-bull]');if(!b)return;e.preventDefault();
+    const id=b.getAttribute('data-r465-bull');const board=b.closest('.r159-board');const v=board&&board._r159viewer;const R=window.rcadsR328;if(!R||!v)return;
+    R.openLib('MC',v,true);setTimeout(()=>{const o=document.querySelector('#r159ReaderDoc [data-r328-open="'+(window.CSS&&CSS.escape?CSS.escape(id):id)+'"]');if(o)o.click()},60)});
+
+  /* ===================== server ===================== */
+  function R(){return window.rcadsR182}
+  function key(){try{const k=R()&&R().key&&R().key();if(k)return k}catch(e){}
+    try{if(window.RCADS_PREVIEW&&window.parent!==window){const P=window.parent.rcadsR182;if(P&&P.role&&P.role()==='HR')return P.key()||''}}catch(e){}return ''}
+  function hrDevice(){try{return !!(R()&&R().role&&R().role()==='HR'&&R().key())}catch(e){return false}}
+  async function rpc(name,body){
+    if(window.RCADS_PREVIEW&&/_put$|_act$/.test(name))throw new Error('👁 PREVIEW MODE — nothing is sent. The real phone sends it.');
+    let url='',anon='';try{url=RUSTICA_CENTRAL_DB.url;anon=RUSTICA_CENTRAL_DB.anonKey}catch(e){}if(!url||!anon)throw new Error('No Supabase settings on this device.');
+    let F=fetch;try{if(window.RCADS_PREVIEW&&window.parent!==window)F=window.parent.fetch.bind(window.parent)}catch(e){}
+    let r;try{r=await F(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:anon,Authorization:'Bearer '+anon,'Content-Type':'application/json'},body:JSON.stringify(Object.assign({p_key:key()},body))})}catch(e){throw new Error('No internet connection.')}
+    let d=null;try{d=await r.json()}catch(e){}
+    if(!r.ok){const m=(d&&(d.message||d.hint))||('Server error '+r.status);if(r.status===404||/Could not find the function|PGRST202/i.test(m))throw new Error('The server is not ready yet. HR: run RCADS_R465_IR_NTE_SUPABASE.sql once in Supabase → SQL Editor.');throw new Error(m)}
+    if(!d||d.ok===false)throw new Error((d&&d.error)||'Server error');return d}
+
+  /* ===================== who am I (phones) ===================== */
+  function me(){
+    let e=null;try{e=currentEmployee}catch(_){}if(!e||!e.code||isHr())return null;
+    const app=document.getElementById('rcadsR131ApproverApp'),shell=app&&app.querySelector('.r131-shell');
+    const appr=!!(shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none');
+    const panel=document.getElementById('employeeSimplePanel');
+    const host=appr?shell:(panel&&document.body.classList.contains('employee-simple-mode')?panel:null);if(!host)return null;
+    const code=U(e.code);let hb='',hk='';const H=HEADS();Object.keys(H).forEach(b=>{const x=H[b]||{};['kitchenHead1','diningHead1','kitchenHead2','diningHead2'].forEach(k=>{if(U(x[k])===code){hb=b;hk=k}})});
+    let mgr=false;try{mgr=!!(window.rcadsMgrIsManager&&window.rcadsMgrIsManager(e))}catch(_){}
+    let isAp=false;try{isAp=!!rcadsEmployeeIsApprover()}catch(_){}
+    let home='';for(const b of branches()){if(staff(b.code).some(q=>U(q.code)===code)){home=b.code;break}}
+    return {code,name:U(e.name||code),pos:String(e.position||'').toUpperCase(),dept:U(e.dept||e.department),approver:appr||isAp||!!hk||mgr,mgr,hk,
+      branch:hb||home||curBranch(),host};
+  }
+
+  /* ===================== red numbers ===================== */
+  const CNT={me:{head:0,emp:0,at:0,code:''},hr:{ir:0,nte:0,at:0}};
+  let polling=false;
+  async function poll(force){if(polling||!navigator.onLine||!key())return;if(document.visibilityState==='hidden'&&!force)return;polling=true;
+    try{
+      if(isHr()&&hrDevice()){if(force||Date.now()-CNT.hr.at>150000){const d=await rpc('rustica_case_counts',{p_code:''});CNT.hr={ir:+d.ir||0,nte:+d.nte||0,at:Date.now()}}}
+      else{const m=me();if(m&&(force||m.code!==CNT.me.code||Date.now()-CNT.me.at>180000)){const d=await rpc('rustica_case_counts',{p_code:m.code});CNT.me={head:+d.head||0,emp:+d.emp||0,at:Date.now(),code:m.code}}}
+    }catch(e){}finally{polling=false}tick()}
+  setInterval(()=>poll(false),30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(()=>poll(false),1500)});
+  const badge=n=>n?'<span class="r465-n">'+n+'</span>':'';
+
+  /* ===================== overlay ===================== */
+  let MODAL=null;
+  function modal(title,html){let o=document.getElementById('r465M');
+    if(!o){o=document.createElement('div');o.id='r465M';o.innerHTML='<div class="r465-box"><div class="r465-hd"><b id="r465T"></b><button type="button" data-r465-x>CLOSE</button></div><div class="r465-bd" id="r465B"></div></div>';document.body.appendChild(o);
+      o.addEventListener('click',onClick);o.addEventListener('input',onInput);o.addEventListener('change',onChange)}
+    o.querySelector('#r465T').textContent=title;o.querySelector('#r465B').innerHTML=html;o.querySelector('#r465B').scrollTop=0;MODAL={title};return o}
+  function closeModal(){const o=document.getElementById('r465M');if(o)o.remove();MODAL=null;S.view=null;tick()}
+  function body(h){const b=document.getElementById('r465B');if(b){b.innerHTML=h;b.scrollTop=0}}
+  function msg(t,bad){const m=document.getElementById('r465Msg');if(m){m.className='r465-msg'+(bad?' bad':'');m.textContent=t}}
+  const S={view:null,mine:[],hr:[],hrTab:'IR',hrB:'ALL',cur:null,photos:[],from:null};
+
+  /* ===================== documents ===================== */
+  function trow(k,v){return v?'<tr><td>'+esc(k)+'</td><td>'+esc(v)+'</td></tr>':''}
+  function irDoc(r,photos){const d=r.data||{};
+    return '<div class="r465-doc"><h3>INCIDENT REPORT</h3><div class="c">RUSTICA • '+esc(bName(r.branch))+' • IR No. '+esc(r.id)+' • Filed '+esc(fmtDT(r.created_at))+'</div><table>'
+      +trow('Employee involved',(r.emp_name||'')+(r.emp_code?' ('+r.emp_code+')':''))+trow('Others involved',d.others)
+      +trow('Date / time of incident',fmtD(d.date)+(d.time?' • '+d.time:''))+trow('Place / area',d.place)+trow('Witnesses',d.witness)+trow('Damage / loss',d.loss)+trow('Recommendation',d.reco)+'</table>'
+      +'<b>WHAT HAPPENED</b><p>'+esc(d.what||'')+'</p>'+(d.action?'<b>ACTION TAKEN</b><p>'+esc(d.action)+'</p>':'')
+      +(photos&&photos.length?'<div class="ph"><b>PHOTOS</b>'+photos.map(p=>'<img src="data:image/jpeg;base64,'+p+'" alt="photo">').join('')+'</div>':(r.photos_n?'<p><i>'+r.photos_n+' photo(s) attached.</i></p>':''))
+      +'<div class="sig">Reported by:<br><b>'+esc(r.by_name||'')+'</b><br>'+esc(d.pos||'')+(r.by_code?' • '+esc(r.by_code):'')+'<br><small>I certify that this report is true and correct.</small></div></div>'}
+  function nteDoc(r){const d=r.data||{};const n=+d.days||5;const sig=d.sig||'';
+    return '<div class="r465-doc"><h3>NOTICE TO EXPLAIN</h3><div class="c">RUSTICA • '+esc(bName(r.branch))+' • NTE No. '+esc(r.id)+' • '+esc(fmtD(r.created_at))+'</div><table>'
+      +trow('TO',(r.emp_name||'')+(r.emp_code?' ('+r.emp_code+')':''))+trow('POSITION',d.pos)+trow('THROUGH',r.head_name?r.head_name+' (Head)':'')+trow('FROM',(d.hrName||'HR')+' — HR Operation Officer')+trow('SUBJECT',d.subject)+trow('REFERENCE',d.ref)+'</table>'
+      +'<p>'+esc(d.details||'')+'</p>'+(d.rule?'<p><b>Rule / provision:</b> '+esc(d.rule)+'</p>':'')
+      +'<p>You are hereby directed to submit your <b>written explanation</b> within <b>'+esc(NUMW[n]||n)+' ('+n+') days</b> from receipt of this notice, stating why no disciplinary action should be taken against you. Write it in your RCADS: <b>✍ WRITE MY EXPLANATION</b>. If you do not submit an explanation, HR will decide based on the records available.</p>'
+      +'<div class="sig">'+(sig?'<img src="'+esc(sig)+'" alt="">':'')+'<b>'+esc(d.hrName||'')+'</b><br>HR Operation Officer</div>'
+      +(r.delivered_at?'<div class="sig">Served by the Head: <b>'+esc(r.head_name||'')+'</b> • '+esc(fmtDT(r.delivered_at))+(r.emp_read_at?'<br>Received and read by the employee: '+esc(fmtDT(r.emp_read_at)):'')+'</div>':'')+'</div>'}
+  function explDoc(r){const x=(r.kind==='NTE'?r.reply:r.data)||{};
+    return '<div class="r465-doc"><h3>WRITTEN EXPLANATION</h3><div class="c">RUSTICA • '+esc(bName(r.branch))+' • '+(r.kind==='NTE'?'reply to NTE No. '+esc(r.id):'No. EX-'+esc(r.id))+' • '+esc(fmtDT(r.kind==='NTE'?r.replied_at:r.created_at))+'</div><table>'
+      +trow('TO','HR Operation Officer')+trow('FROM',(x.name||r.emp_name||r.by_name||'')+' ('+(r.emp_code||r.by_code||'')+')')+trow('POSITION',x.pos)+trow('RE',x.subject||(r.data&&r.data.subject))+'</table>'
+      +'<b>MY EXPLANATION</b><p>'+esc(x.text||'')+'</p>'+(x.proof?'<b>WITNESSES / PROOF</b><p>'+esc(x.proof)+'</p>':'')+(x.promise?'<b>MY COMMITMENT</b><p>'+esc(x.promise)+'</p>':'')
+      +'<div class="sig">'+(x.sig?'<img src="'+esc(x.sig)+'" alt="">':'')+'<b>'+esc(x.name||'')+'</b><br><small>I declare that this explanation is true and written by me.</small></div></div>'}
+  function printHtml(h){let p=document.getElementById('r465Print');if(!p){p=document.createElement('div');p.id='r465Print';p.style.display='none';document.body.appendChild(p)}
+    p.innerHTML=h;document.body.classList.add('r465-printing');setTimeout(()=>{try{window.print()}finally{setTimeout(()=>{document.body.classList.remove('r465-printing');p.innerHTML=''},500)}},50)}
+
+  /* ===================== photos (optional, max 2, small) ===================== */
+  function shrink(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,900/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',0.6).split(',')[1])};im.onerror=()=>rej(new Error('Cannot read the picture.'));im.src=fr.result};fr.onerror=()=>rej(fr.error);fr.readAsDataURL(file)})}
+  function photoPrev(){const p=document.getElementById('r465PhPrev');if(!p)return;p.innerHTML=S.photos.length?S.photos.map((b,i)=>'<span style="display:inline-block;margin:4px;position:relative"><img src="data:image/jpeg;base64,'+b+'" style="height:70px;border-radius:8px"><button type="button" data-r465-phdel="'+i+'" style="position:absolute;top:-6px;right:-6px;border-radius:50%;border:0;background:#a1281f;color:#fff;width:22px;height:22px">×</button></span>').join('')+'<small style="display:block">~'+Math.round(S.photos.reduce((a,b)=>a+b.length,0)*0.75/1024)+' KB</small>':''}
+
+  /* ===================== 2) INCIDENT REPORT (approvers) ===================== */
+  const IRK=c=>'r465_ir_draft_'+c;
+  function empOptions(b,sel){return '<option value="">— choose the employee —</option>'+staff(b).slice().sort((a,c)=>String(a.name).localeCompare(String(c.name))).map(e=>'<option value="'+esc(U(e.code))+'"'+(U(e.code)===U(sel)?' selected':'')+'>'+esc(U(e.name))+' • '+esc(U(e.code))+(e.position?' • '+esc(e.position):'')+'</option>').join('')}
+  function irForm(m){const d=J(IRK(m.code),{})||{};S.photos=Array.isArray(d.photos)?d.photos:[];const b=d.branch||m.branch;
+    modal('📝 INCIDENT REPORT',
+      '<div class="r465-f" id="r465Ir">'
+      +(m.mgr?'<label>BRANCH</label><select id="r465IrB">'+branches().map(x=>'<option value="'+esc(x.code)+'"'+(x.code===b?' selected':'')+'>'+esc(x.name)+'</option>').join('')+'</select>':'<input type="hidden" id="r465IrB" value="'+esc(b)+'"><div class="r465-st">BRANCH: '+esc(bName(b))+'</div>')
+      +'<label>EMPLOYEE INVOLVED</label><select id="r465IrE">'+empOptions(b,d.emp)+'</select>'
+      +'<label>OTHER PERSONS INVOLVED (optional)</label><input id="r465IrO" value="'+esc(d.others||'')+'" placeholder="names, or a guest / supplier">'
+      +'<div class="r465-row2"><div><label>DATE OF INCIDENT</label><input type="date" id="r465IrD" value="'+esc(d.date||ymd(now()))+'"></div><div><label>TIME</label><input type="time" id="r465IrT" value="'+esc(d.time||'')+'"></div></div>'
+      +'<label>PLACE / AREA</label><input id="r465IrP" value="'+esc(d.place||'')+'" placeholder="e.g. Kitchen, Dining area, Stock room">'
+      +'<label>WHAT HAPPENED (who, what, how — the facts)</label><textarea id="r465IrW" placeholder="Write what you saw or what was reported to you. Facts only.">'+esc(d.what||'')+'</textarea>'
+      +'<label>WITNESSES (optional)</label><input id="r465IrX" value="'+esc(d.witness||'')+'">'
+      +'<label>DAMAGE / LOSS (optional)</label><input id="r465IrL" value="'+esc(d.loss||'')+'" placeholder="e.g. 1 broken plate, ₱350 shortage">'
+      +'<label>ACTION TAKEN (optional)</label><textarea id="r465IrA" style="min-height:70px">'+esc(d.action||'')+'</textarea>'
+      +'<label>RECOMMENDATION</label><select id="r465IrR">'+['For HR evaluation','For Notice to Explain (NTE)','Verbal warning already given','For record only'].map(x=>'<option'+(x===d.reco?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>'
+      +'<label>PHOTOS (optional, max 2 — small size)</label><input type="file" accept="image/*" id="r465IrPh" multiple><div id="r465PhPrev"></div>'
+      +'<div class="r465-st">REPORTED BY: '+esc(m.name)+' • '+esc(m.pos||'')+' • '+esc(m.code)+'</div>'
+      +'<label class="r465-chk"><input type="checkbox" id="r465IrOk"> I certify that this report is true and correct.</label>'
+      +'<button type="button" class="r465-go" data-r465-irsend>📤 SUBMIT TO HR</button><button type="button" class="r465-go l" data-r465-x>SAVE DRAFT & CLOSE</button><div id="r465Msg" class="r465-msg">Draft is saved on this phone while you type.</div></div>');
+    S.view='IR';photoPrev()}
+  function irVal(){const g=id=>{const e=document.getElementById(id);return e?String(e.value||'').trim():''};
+    return {branch:g('r465IrB'),emp:g('r465IrE'),others:g('r465IrO'),date:g('r465IrD'),time:g('r465IrT'),place:g('r465IrP'),what:g('r465IrW'),witness:g('r465IrX'),loss:g('r465IrL'),action:g('r465IrA'),reco:g('r465IrR'),photos:S.photos}}
+  function irSave(){const m=me();if(m&&document.getElementById('r465Ir'))put(IRK(m.code),irVal())}
+  async function irSend(btn){const m=me();if(!m)return;const v=irVal();
+    if(!v.emp&&!v.others)return msg('Choose the employee involved (or write the other persons involved).',true);
+    if(v.what.length<15)return msg('Write what happened (at least one full sentence).',true);
+    if(!document.getElementById('r465IrOk').checked)return msg('Tick: I certify that this report is true and correct.',true);
+    const e=v.emp?empOf(v.emp):null;btn.disabled=true;btn.textContent='Sending…';
+    try{const d=await rpc('rustica_case_put',{p_kind:'IR',p_branch:v.branch,p_emp_code:v.emp,p_emp_name:e?U(e.name):'',p_head_code:'',p_head_name:'',p_by_code:m.code,p_by_name:m.name,p_parent:null,
+        p_data:{others:v.others,date:v.date,time:v.time,place:v.place,what:v.what,witness:v.witness,loss:v.loss,action:v.action,reco:v.reco,pos:m.pos,emp_pos:e?e.position||'':''},p_photos:v.photos});
+      try{localStorage.removeItem(IRK(m.code))}catch(_){}S.photos=[];
+      body('<div class="r465-lock"><div class="i">✅</div><b>SENT TO HR</b><p>Incident Report No. '+esc(d.id)+' is now with HR.</p><button type="button" class="r465-go l" data-r465-x>CLOSE</button></div>')}
+    catch(err){btn.disabled=false;btn.textContent='📤 SUBMIT TO HR';msg('Not sent: '+err.message,true)}}
+
+  /* ===================== mine (Head + Employee) ===================== */
+  async function loadMine(m){const d=await rpc('rustica_case_mine',{p_code:m.code});S.mine=d.rows||[];
+    CNT.me.head=S.mine.filter(r=>r.kind==='NTE'&&r.head_code===m.code&&r.status==='TO_HEAD').length;
+    CNT.me.emp=S.mine.filter(r=>r.kind==='NTE'&&r.emp_code===m.code&&(!r.emp_read_at||!r.replied_at)).length;CNT.me.at=Date.now();CNT.me.code=m.code;return S.mine}
+  const stTxt=r=>r.status==='TO_HEAD'?'🟠 WAITING FOR THE HEAD':r.status==='DELIVERED'?'🔵 SENT TO THE EMPLOYEE':r.status==='READ'?'🔵 READ BY THE EMPLOYEE':r.status==='EXPLAINED'?'🟢 EXPLANATION SENT':r.status==='CLOSED'?'⚪ CLOSED':r.status==='SUBMITTED'?'🟡 WITH HR':r.status;
+  async function headList(){const m=me();if(!m)return;modal('📨 NOTICES FROM HR TO SEND','<div class="r465-st">Loading…</div>');S.view='HEAD';
+    try{await loadMine(m)}catch(e){return body('<div class="r465-msg bad">⚠ '+esc(e.message)+'</div>')}
+    const L=S.mine.filter(r=>r.kind==='NTE'&&r.head_code===m.code);
+    body('<div class="r465-st">HR sends the Notice to Explain to you first. Call the employee, tap the notice, then <b>📤 SEND TO EMPLOYEE</b> — the employee reads it on his / her own RCADS in front of you.</div>'
+      +(L.length?L.map(r=>'<button type="button" class="r465-item'+(r.status==='TO_HEAD'?' new':'')+'" data-r465-open="'+r.id+'"><b>'+esc(r.emp_name)+' • '+esc((r.data||{}).subject||'Notice to Explain')+'</b><small>NTE No. '+r.id+' • '+esc(fmtDT(r.created_at))+' • '+stTxt(r)+'</small></button>').join(''):'<div class="r465-st">No notice for you. 👍</div>'));
+    tick()}
+  async function myList(){const m=me();if(!m)return;modal('📋 MY REPORTS SENT TO HR','<div class="r465-st">Loading…</div>');S.view='SENT';
+    try{await loadMine(m)}catch(e){return body('<div class="r465-msg bad">⚠ '+esc(e.message)+'</div>')}
+    const L=S.mine.filter(r=>(r.kind==='IR'||r.kind==='EXPL')&&r.by_code===m.code);
+    body(L.length?L.map(r=>'<button type="button" class="r465-item" data-r465-open="'+r.id+'"><b>'+(r.kind==='IR'?'📝 INCIDENT REPORT • '+esc(r.emp_name||((r.data||{}).others)||''):'✍ EXPLANATION • '+esc((r.data||{}).subject||''))+'</b><small>No. '+r.id+' • '+esc(fmtDT(r.created_at))+' • '+(r.hr_seen_at?'✓ HR opened it '+esc(fmtDT(r.hr_seen_at)):'🟡 not yet opened by HR')+'</small></button>').join(''):'<div class="r465-st">Nothing sent in the last 30 days.</div>')}
+  async function empList(){const m=me();if(!m)return;modal('📩 NOTICE FROM HR','<div class="r465-st">Loading…</div>');S.view='EMP';
+    try{await loadMine(m)}catch(e){return body('<div class="r465-msg bad">⚠ '+esc(e.message)+'</div>')}
+    const L=S.mine.filter(r=>r.kind==='NTE'&&r.emp_code===m.code);
+    body(L.length?L.map(r=>{const left=Math.max(0,Math.ceil((Date.parse(r.delivered_at)+5*864e5-now().getTime())/864e5));
+      return '<button type="button" class="r465-item'+(!r.emp_read_at||!r.replied_at?' new':'')+'" data-r465-open="'+r.id+'"><b>NOTICE TO EXPLAIN • '+esc((r.data||{}).subject||'')+'</b><small>From HR through '+esc(r.head_name||'your Head')+' • '+esc(fmtDT(r.delivered_at))+' • '+(r.replied_at?'✓ explanation sent':'✍ explanation needed')+' • visible '+left+' more day(s)</small></button>'}).join(''):'<div class="r465-st">No notice from HR. 👍</div>')}
+  async function openMineCase(id){const m=me();if(!m)return;const r=S.mine.find(x=>String(x.id)===String(id));if(!r)return;S.cur=r;
+    if(r.kind==='IR'||r.kind==='EXPL'){let ph=[];if(r.photos_n){try{ph=(await rpc('rustica_case_get',{p_id:r.id,p_code:m.code})).row.photos||[]}catch(e){}}
+      return body('<button type="button" class="r465-go l" data-r465-back="SENT">← BACK</button>'+(r.kind==='IR'?irDoc(r,ph):explDoc(r)))}
+    if(r.head_code===m.code&&r.emp_code!==m.code){
+      if(!r.head_seen_at)rpc('rustica_case_act',{p_id:r.id,p_action:'HEAD_SEEN',p_code:m.code,p_reply:null}).catch(()=>{});
+      return body('<button type="button" class="r465-go l" data-r465-back="HEAD">← BACK</button>'+nteDoc(r)
+        +'<div class="r465-st">STATUS: '+stTxt(r)+(r.delivered_at?'<br>Sent to the employee: '+esc(fmtDT(r.delivered_at)):'')+(r.emp_read_at?'<br>Read by the employee: '+esc(fmtDT(r.emp_read_at)):'')+(r.replied_at?'<br>Explanation sent to HR: '+esc(fmtDT(r.replied_at)):'')+'</div>'
+        +(r.status==='TO_HEAD'?'<button type="button" class="r465-go r" data-r465-deliver="'+r.id+'">📤 SEND TO EMPLOYEE — '+esc(r.emp_name)+'</button><div class="r465-msg">Call the employee first. He / she reads it on his / her own RCADS in front of you.</div>':'')+'<div id="r465Msg" class="r465-msg"></div>')}
+    if(r.emp_code===m.code){
+      return body('<button type="button" class="r465-go l" data-r465-back="EMP">← BACK</button>'+nteDoc(r)
+        +(!r.emp_read_at?'<button type="button" class="r465-go" data-r465-read="'+r.id+'">✓ I RECEIVED AND READ THIS NOTICE</button>':'<div class="r465-st">✓ You received and read this notice on '+esc(fmtDT(r.emp_read_at))+'.</div>')
+        +(r.replied_at?'<div class="r465-st">✓ Your explanation was sent to HR on '+esc(fmtDT(r.replied_at))+'.</div>'+explDoc(r):'<button type="button" class="r465-go r" data-r465-explain="'+r.id+'">✍ WRITE MY EXPLANATION</button>')+'<div id="r465Msg" class="r465-msg"></div>')}
+  }
+  async function act(id,action,code,reply){return rpc('rustica_case_act',{p_id:+id,p_action:action,p_code:code||'',p_reply:reply||null})}
+
+  /* ===================== 5) EXPLANATION template (every employee) ===================== */
+  const EXK=c=>'r465_ex_draft_'+c;
+  function explForm(m,nte){const d=J(EXK(m.code),{})||{};const subj=nte?((nte.data||{}).subject||''):(d.subject||'');S.from=nte||null;const sg=idSig(m.code);
+    modal('✍ MY WRITTEN EXPLANATION','<div class="r465-f" id="r465Ex">'
+      +(nte?'<div class="r465-st">Reply to NTE No. '+esc(nte.id)+' • '+esc(subj)+'</div><input type="hidden" id="r465ExS" value="'+esc(subj)+'">':'<label>RE / SUBJECT</label><input id="r465ExS" value="'+esc(subj)+'" placeholder="e.g. My absence on Nov 10, 2026">')
+      +'<label>MY EXPLANATION (what happened and why — in your own words)</label><textarea id="r465ExT" style="min-height:170px" placeholder="Dear HR,&#10;&#10;This is my explanation about …">'+esc(d.text||'')+'</textarea>'
+      +'<label>WITNESSES / PROOF (optional)</label><input id="r465ExP" value="'+esc(d.proof||'')+'">'
+      +'<label>MY COMMITMENT (optional)</label><textarea id="r465ExC" style="min-height:60px" placeholder="What I will do so it will not happen again">'+esc(d.promise||'')+'</textarea>'
+      +'<label>MY FULL NAME (as signature)</label><input id="r465ExN" value="'+esc(d.name||m.name)+'">'
+      +(sg?'<label class="r465-chk"><input type="checkbox" id="r465ExSig" checked> Use the signature on my Rustica ID</label>':'')
+      +'<label class="r465-chk"><input type="checkbox" id="r465ExOk"> I declare that this explanation is true and written by me.</label>'
+      +'<button type="button" class="r465-go" data-r465-exsend>📤 SUBMIT TO HR</button><button type="button" class="r465-go l" data-r465-x>SAVE DRAFT & CLOSE</button><div id="r465Msg" class="r465-msg">Draft is saved on this phone while you type.</div></div>');
+    S.view='EX'}
+  function exVal(){const g=id=>{const e=document.getElementById(id);return e?String(e.value||'').trim():''};return {subject:g('r465ExS'),text:g('r465ExT'),proof:g('r465ExP'),promise:g('r465ExC'),name:g('r465ExN')}}
+  function exSave(){const m=me();if(m&&document.getElementById('r465Ex'))put(EXK(m.code),exVal())}
+  async function exSend(btn){const m=me();if(!m)return;const v=exVal();
+    if(!v.subject)return msg('Write the subject.',true);if(v.text.length<20)return msg('Write your explanation (at least one full sentence).',true);if(!v.name)return msg('Write your full name.',true);
+    if(!document.getElementById('r465ExOk').checked)return msg('Tick: I declare that this explanation is true and written by me.',true);
+    const sc=document.getElementById('r465ExSig');const rep=Object.assign(v,{pos:m.pos,date:ymd(now()),sig:sc&&sc.checked?idSig(m.code):''});
+    btn.disabled=true;btn.textContent='Sending…';
+    try{let no='';if(S.from){await act(S.from.id,'EXPLAIN',m.code,rep);no='NTE No. '+S.from.id}
+      else{const d=await rpc('rustica_case_put',{p_kind:'EXPL',p_branch:m.branch,p_emp_code:m.code,p_emp_name:m.name,p_head_code:'',p_head_name:'',p_by_code:m.code,p_by_name:m.name,p_parent:null,p_data:rep,p_photos:[]});no='No. EX-'+d.id}
+      try{localStorage.removeItem(EXK(m.code))}catch(_){}poll(true);
+      body('<div class="r465-lock"><div class="i">✅</div><b>SENT TO HR</b><p>Your explanation ('+esc(no)+') is now with HR.</p><button type="button" class="r465-go l" data-r465-x>CLOSE</button></div>')}
+    catch(err){btn.disabled=false;btn.textContent='📤 SUBMIT TO HR';msg('Not sent: '+err.message,true)}}
+
+  /* ===================== the card on the phones ===================== */
+  function cardHtml(m){const c=CNT.me;
+    return '<h4>🚨 HR NOTICES & REPORTS</h4><div class="r465-btns">'
+      +(c.emp?'<button type="button" class="r465-b red" data-r465-go="EMP">📩 NOTICE FROM HR'+badge(c.emp)+'<small>Read it with your Head, then write your explanation.</small></button>':'')
+      +(m.approver?'<button type="button" class="r465-b" data-r465-go="IR">📝 FILL INCIDENT REPORT<small>Fill in → SUBMIT TO HR</small></button>'
+        +'<button type="button" class="r465-b'+(c.head?' red':'')+'" data-r465-go="HEAD">📨 NOTICES FROM HR TO SEND'+badge(c.head)+'<small>Notice to Explain for your staff — send it to the employee</small></button>'
+        +'<button type="button" class="r465-b" data-r465-go="SENT">📋 MY REPORTS SENT TO HR</button>':'')
+      +'<button type="button" class="r465-b" data-r465-go="EX">✍ WRITE MY EXPLANATION (NTE)<small>Explanation template → SUBMIT TO HR</small></button>'
+      +'</div>'}
+  function tickCard(){const m=me();let el=document.getElementById('r465Card');
+    if(!m){if(el)el.remove();return}
+    if(!el){el=document.createElement('div');el.id='r465Card';el.className='r465-card';el.setAttribute('data-r162-tab','home');el.addEventListener('click',onClick)}
+    if(el.parentElement!==m.host){const a=document.getElementById('r202Card')||document.getElementById('r175StaffCard');if(a&&a.parentElement===m.host)a.insertAdjacentElement('afterend',el);else{const nav=m.host.querySelector(':scope > .r162-nav');m.host.insertBefore(el,nav||null)}}
+    if(el.getAttribute('data-r162-tab')!=='home')el.setAttribute('data-r162-tab','home');
+    const h=cardHtml(m);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
+    if(CNT.me.code!==m.code&&Date.now()-(CNT.me.tried||0)>60000){CNT.me.tried=Date.now();poll(true)}
+    /* red number on the HOME tab button too */
+    try{const n=CNT.me.emp+(m.approver?CNT.me.head:0);const nav=m.host.querySelector(':scope > .r162-nav [data-r162-go="home"]');if(nav){let s=nav.querySelector('.r465-n');if(n){if(!s){s=document.createElement('span');s.className='r465-n';nav.style.position='relative';nav.appendChild(s)}if(s.textContent!==String(n))s.textContent=n}else if(s)s.remove()}}catch(e){}
+  }
+
+  /* ===================== 3) HR DASHBOARD ===================== */
+  async function hrLoad(){const d=await rpc('rustica_case_hr_list',{p_days:180});S.hr=d.rows||[];
+    CNT.hr.ir=S.hr.filter(r=>r.kind==='IR'&&!r.hr_seen_at&&r.status!=='CLOSED').length;
+    CNT.hr.nte=S.hr.filter(r=>r.status!=='CLOSED'&&((r.kind==='NTE'&&r.replied_at&&!r.hr_reply_seen_at)||(r.kind==='EXPL'&&!r.hr_seen_at))).length;CNT.hr.at=Date.now()}
+  const isNew=r=>r.status!=='CLOSED'&&((r.kind==='IR'&&!r.hr_seen_at)||(r.kind==='NTE'&&r.replied_at&&!r.hr_reply_seen_at)||(r.kind==='EXPL'&&!r.hr_seen_at));
+  function hrHtml(){
+    const fb=S.hrB;const L=S.hr.filter(r=>fb==='ALL'||r.branch===fb);
+    const tab=S.hrTab;const rows=L.filter(r=>tab==='IR'?r.kind==='IR':r.kind!=='IR');
+    return '<h3>🚨 INCIDENT REPORT & NOTICE TO EXPLAIN</h3>'
+      +'<div class="r465-tabs"><button type="button" data-r465-tab="IR" class="'+(tab==='IR'?'on':'')+'">📝 INCIDENT REPORTS'+badge(CNT.hr.ir)+'</button><button type="button" data-r465-tab="NTE" class="'+(tab!=='IR'?'on':'')+'">📨 NOTICE TO EXPLAIN'+badge(CNT.hr.nte)+'</button></div>'
+      +'<div class="r465-tools"><select id="r465HrB"><option value="ALL">ALL BRANCHES</option>'+branches().map(b=>'<option value="'+esc(b.code)+'"'+(b.code===fb?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select>'
+      +'<button type="button" class="g" data-r465-nte="">＋ WRITE A NOTICE TO EXPLAIN</button><button type="button" data-r465-hrref>↻ REFRESH</button></div>'
+      +(S.hrErr?'<div class="r465-msg bad">⚠ '+esc(S.hrErr)+'</div>':'')
+      +(rows.length?rows.map(r=>'<button type="button" class="r465-item'+(isNew(r)?' new':'')+'" data-r465-hropen="'+r.id+'"><b>'+(r.kind==='IR'?'📝 IR No. '+r.id+' • '+esc(r.emp_name||((r.data||{}).others)||''):r.kind==='NTE'?'📨 NTE No. '+r.id+' • '+esc(r.emp_name)+' • '+esc((r.data||{}).subject||''):'✍ EXPLANATION (no NTE) • '+esc(r.by_name)+' • '+esc((r.data||{}).subject||''))+'</b><small>'+esc(bName(r.branch))+' • '+esc(fmtDT(r.created_at))+(r.kind==='IR'?' • by '+esc(r.by_name):'')+(r.kind==='NTE'?' • through '+esc(r.head_name||'—')+' • '+stTxt(r):'')+(r.status==='CLOSED'?' • ⚪ CLOSED':'')+'</small></button>').join(''):'<div class="r465-st">'+(S.hrLoaded?'Nothing here yet.':'Loading…')+'</div>')}
+  function drawHr(){const el=document.getElementById('r465HrBox');if(!el)return;const a=document.activeElement;if(a&&el.contains(a)&&a.tagName==='SELECT')return;const h=hrHtml();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}navBadge()}
+  function navBadge(){const nav=document.getElementById('r465HrNavBtn');if(!nav)return;const n=CNT.hr.ir+CNT.hr.nte;const h='🚨 Incident Report & NTE'+(n?'<span class="r465-nav-n">'+n+'</span>':'');if(nav.innerHTML!==h)nav.innerHTML=h}
+  async function hrRefresh(){if(!hrDevice())return;CNT.hr.at=Date.now();try{await hrLoad();S.hrErr='';S.hrLoaded=true}catch(e){S.hrErr=e.message}drawHr()}
+  function mountHr(){
+    const admin=document.getElementById('simpleHrAdminModal');if(!admin||!isHr())return;const main=admin.querySelector('.rcads-hr-main');if(!main)return;
+    const nav=admin.querySelector('.rcads-hr-nav');
+    if(nav&&!document.getElementById('r465HrNavBtn')){const bt=document.createElement('button');bt.id='r465HrNavBtn';bt.type='button';bt.setAttribute('onclick',"rcadsHrGo('r465HrBox')");nav.insertBefore(bt,nav.firstChild);navBadge()}
+    let box=document.getElementById('r465HrBox');
+    if(!box){box=document.createElement('div');box.id='r465HrBox';box.className='rcads-dashboard-section r465-hr';main.insertBefore(box,main.firstChild);
+      box.addEventListener('click',onClick);box.addEventListener('change',e=>{if(e.target.id==='r465HrB'){S.hrB=e.target.value;drawHr()}});
+      hrRefresh()}
+    if(Date.now()-CNT.hr.at>150000&&navigator.onLine&&document.visibilityState!=='hidden')hrRefresh();
+    drawHr()}
+  async function hrOpen(id){const r=S.hr.find(x=>String(x.id)===String(id));if(!r)return;S.cur=r;
+    modal(r.kind==='IR'?'📝 INCIDENT REPORT No. '+r.id:r.kind==='NTE'?'📨 NOTICE TO EXPLAIN No. '+r.id:'✍ EXPLANATION No. EX-'+r.id,'<div class="r465-st">Loading…</div>');S.view='HR';
+    let full=r;try{full=(await rpc('rustica_case_get',{p_id:r.id,p_code:''})).row||r}catch(e){}
+    if(isNew(r)){act(r.id,'HR_SEEN','',null).then(()=>{if(r.kind==='NTE')r.hr_reply_seen_at=new Date().toISOString();else r.hr_seen_at=new Date().toISOString();hrRefresh()}).catch(()=>{})}
+    const doc=r.kind==='IR'?irDoc(full,full.photos||[]):r.kind==='NTE'?nteDoc(full)+(full.replied_at?explDoc(full):''):explDoc(full);
+    const kids=S.hr.filter(x=>String(x.parent_id)===String(r.id));
+    body(doc+'<div class="r465-st">'+(r.kind==='NTE'?'STATUS: '+stTxt(r)+(r.head_seen_at?'<br>Head opened: '+esc(fmtDT(r.head_seen_at)):'')+(r.delivered_at?'<br>Sent to the employee: '+esc(fmtDT(r.delivered_at)):'')+(r.emp_read_at?'<br>Read by the employee: '+esc(fmtDT(r.emp_read_at)):'')+(r.replied_at?'<br>Explanation: '+esc(fmtDT(r.replied_at)):''):'Received: '+esc(fmtDT(r.created_at)))
+      +(kids.length?'<br>NTE issued: '+kids.map(k=>'No. '+k.id+' ('+stTxt(k)+')').join(', '):'')+'</div>'
+      +(r.kind==='IR'&&r.emp_code?'<button type="button" class="r465-go r" data-r465-nte="'+r.id+'">📨 ISSUE A NOTICE TO EXPLAIN FROM THIS REPORT</button>':'')
+      +'<button type="button" class="r465-go l" data-r465-print>🖨 PRINT</button>'
+      +(r.status!=='CLOSED'?'<button type="button" class="r465-go l" data-r465-close="'+r.id+'">✓ MARK AS CLOSED (done)</button>':'')+'<div id="r465Msg" class="r465-msg"></div>')}
+
+  /* ===================== 4) NTE writer (HR) ===================== */
+  function headOptions(b,dept,sel){const H=HEADS()[b]||{};const seen=new Set();const out=[];
+    [['kitchenHead1','KITCHEN HEAD 1'],['kitchenHead2','KITCHEN HEAD 2'],['diningHead1','DINING HEAD 1'],['diningHead2','DINING HEAD 2']].forEach(([k,l])=>{const c=U(H[k]);if(c&&!seen.has(c)){seen.add(c);const e=empOf(c);out.push({c,n:e?U(e.name):c,l})}});
+    staff(b).forEach(e=>{const c=U(e.code);if(seen.has(c))return;if(U(e.dept||e.department)==='MANAGEMENT'||/HEAD|MANAGER|SUPERVISOR|CHEF|OIC|CAPTAIN/i.test(e.position||'')){seen.add(c);out.push({c,n:U(e.name),l:String(e.position||'').toUpperCase()})}});
+    let def=sel;if(!def){const want=/KITCHEN/.test(dept)?['kitchenHead1','kitchenHead2']:['diningHead1','diningHead2'];for(const k of want){if(H[k]){def=U(H[k]);break}}}
+    return '<option value="">— choose the Head who will serve it —</option>'+out.map(o=>'<option value="'+esc(o.c)+'"'+(o.c===def?' selected':'')+'>'+esc(o.n)+' • '+esc(o.l)+' • '+esc(o.c)+'</option>').join('')}
+  function nteForm(fromId){const ir=fromId?S.hr.find(x=>String(x.id)===String(fromId)):null;const b=ir?ir.branch:(S.hrB!=='ALL'?S.hrB:curBranch());const em=ir&&ir.emp_code?empOf(ir.emp_code):null;
+    const sg=hrSig();
+    modal('📨 WRITE A NOTICE TO EXPLAIN','<div class="r465-f" id="r465Nte"><input type="hidden" id="r465NP" value="'+esc(ir?ir.id:'')+'">'
+      +'<label>BRANCH</label><select id="r465NB">'+branches().map(x=>'<option value="'+esc(x.code)+'"'+(x.code===b?' selected':'')+'>'+esc(x.name)+'</option>').join('')+'</select>'
+      +'<label>EMPLOYEE</label><select id="r465NE">'+empOptions(b,ir&&ir.emp_code)+'</select>'
+      +'<label>SERVED THROUGH (Head 1 / Head 2 — gets it first, then sends it to the employee)</label><select id="r465NH">'+headOptions(b,em?U(em.dept||em.department):'',null)+'</select>'
+      +'<label>SUBJECT</label><input id="r465NS" value="'+esc(ir?('Incident on '+fmtD((ir.data||{}).date)+((ir.data||{}).place?' at '+(ir.data||{}).place:'')):'')+'" placeholder="e.g. Absence without leave on Nov 10, 2026">'
+      +'<label>REFERENCE (optional)</label><input id="r465NR" value="'+esc(ir?'Incident Report No. '+ir.id+' by '+ir.by_name:'')+'">'
+      +'<label>DETAILS (what the employee did / was reported to have done)</label><textarea id="r465ND" style="min-height:150px">'+esc(ir?(ir.data||{}).what||'':'')+'</textarea>'
+      +'<label>RULE / PROVISION OF THE CODE OF DISCIPLINE (optional)</label><input id="r465NL" placeholder="e.g. Code of Discipline, Offense No. …">'
+      +'<div class="r465-row2"><div><label>EXPLAIN WITHIN</label><select id="r465NDy">'+[1,2,3,5].map(n=>'<option value="'+n+'"'+(n===5?' selected':'')+'>'+n+' day(s)</option>').join('')+'</select></div><div><label>ISSUED BY</label><input id="r465NN" value="'+esc(U(sg.name||''))+'" placeholder="HR name"></div></div>'
+      +(sg.img?'<label class="r465-chk"><input type="checkbox" id="r465NSig" checked> Put my HR signature on the notice</label>':'')
+      +'<button type="button" class="r465-go" data-r465-ntesend>📤 SEND TO THE HEAD</button><div id="r465Msg" class="r465-msg"></div></div>');
+    S.view='NTE'}
+  async function nteSend(btn){const g=id=>{const e=document.getElementById(id);return e?String(e.value||'').trim():''};
+    const b=g('r465NB'),ec=g('r465NE'),hc=g('r465NH'),subj=g('r465NS'),det=g('r465ND');
+    if(!ec)return msg('Choose the employee.',true);if(!hc)return msg('Choose the Head who will serve the notice.',true);if(hc===ec)return msg('The Head cannot be the same person as the employee.',true);
+    if(!subj)return msg('Write the subject.',true);if(det.length<15)return msg('Write the details.',true);if(!g('r465NN'))return msg('Write the HR name (ISSUED BY).',true);
+    const e=empOf(ec),h=empOf(hc);const sc=document.getElementById('r465NSig');
+    btn.disabled=true;btn.textContent='Sending…';
+    try{const d=await rpc('rustica_case_put',{p_kind:'NTE',p_branch:b,p_emp_code:ec,p_emp_name:e?U(e.name):ec,p_head_code:hc,p_head_name:h?U(h.name):hc,p_by_code:'HR',p_by_name:g('r465NN'),p_parent:g('r465NP')?+g('r465NP'):null,
+        p_data:{subject:subj,ref:g('r465NR'),details:det,rule:g('r465NL'),days:+g('r465NDy')||5,hrName:g('r465NN'),pos:e?String(e.position||'').toUpperCase():'',sig:sc&&sc.checked?(hrSig().img||''):''},p_photos:[]});
+      await hrRefresh();S.hrTab='NTE';drawHr();
+      body('<div class="r465-lock"><div class="i">✅</div><b>SENT TO '+esc(h?U(h.name):hc)+'</b><p>NTE No. '+esc(d.id)+' for '+esc(e?U(e.name):ec)+'. The Head sends it to the employee; you will see a red number here when the explanation arrives.</p><button type="button" class="r465-go l" data-r465-x>CLOSE</button></div>')}
+    catch(err){btn.disabled=false;btn.textContent='📤 SEND TO THE HEAD';msg('Not sent: '+err.message,true)}}
+
+  /* ===================== events ===================== */
+  async function onClick(e){const t=e.target;if(!t.closest)return;
+    if(t.closest('[data-r465-x]')){irSave();exSave();closeModal();return}
+    const go=t.closest('[data-r465-go]');if(go){const m=me();if(!m)return;const k=go.getAttribute('data-r465-go');
+      if(k==='IR')irForm(m);else if(k==='HEAD')headList();else if(k==='SENT')myList();else if(k==='EMP')empList();else if(k==='EX')explForm(m,null);return}
+    const bk=t.closest('[data-r465-back]');if(bk){const k=bk.getAttribute('data-r465-back');if(k==='HEAD')headList();else if(k==='EMP')empList();else myList();return}
+    const op=t.closest('[data-r465-open]');if(op){openMineCase(op.getAttribute('data-r465-open'));return}
+    const dl=t.closest('[data-r465-deliver]');if(dl){const m=me();const r=S.cur;if(!m||!r)return;if(!confirm('Send this Notice to Explain to '+r.emp_name+' now?\n\nThe employee reads it on his / her own RCADS in front of you.'))return;
+      dl.disabled=true;try{await act(r.id,'DELIVER',m.code,null);r.status='DELIVERED';r.delivered_at=new Date().toISOString();poll(true);openMineCase(r.id);msg('✓ Sent. Ask '+r.emp_name+' to open RCADS → 📩 NOTICE FROM HR.')}catch(err){dl.disabled=false;msg(err.message,true)}return}
+    const rd=t.closest('[data-r465-read]');if(rd){const m=me();const r=S.cur;if(!m||!r)return;rd.disabled=true;try{await act(r.id,'READ',m.code,null);r.emp_read_at=new Date().toISOString();openMineCase(r.id);poll(true)}catch(err){rd.disabled=false;msg(err.message,true)}return}
+    const ex=t.closest('[data-r465-explain]');if(ex){const m=me();if(m&&S.cur)explForm(m,S.cur);return}
+    if(t.closest('[data-r465-irsend]')){irSend(t.closest('[data-r465-irsend]'));return}
+    if(t.closest('[data-r465-exsend]')){exSend(t.closest('[data-r465-exsend]'));return}
+    const pd=t.closest('[data-r465-phdel]');if(pd){S.photos.splice(+pd.getAttribute('data-r465-phdel'),1);photoPrev();irSave();return}
+    /* HR */
+    const tb=t.closest('[data-r465-tab]');if(tb){S.hrTab=tb.getAttribute('data-r465-tab');drawHr();return}
+    if(t.closest('[data-r465-hrref]')){hrRefresh();return}
+    const ho=t.closest('[data-r465-hropen]');if(ho){hrOpen(ho.getAttribute('data-r465-hropen'));return}
+    const nt=t.closest('[data-r465-nte]');if(nt){nteForm(nt.getAttribute('data-r465-nte'));return}
+    if(t.closest('[data-r465-ntesend]')){nteSend(t.closest('[data-r465-ntesend]'));return}
+    if(t.closest('[data-r465-print]')){const d=document.querySelectorAll('#r465B .r465-doc');printHtml([...d].map(x=>x.outerHTML).join('<div style="page-break-after:always"></div>'));return}
+    const cl=t.closest('[data-r465-close]');if(cl){if(!confirm('Mark this as CLOSED (done)?'))return;try{await act(cl.getAttribute('data-r465-close'),'CLOSE','',null);await hrRefresh();closeModal()}catch(err){msg(err.message,true)}return}
+  }
+  let svT=null;
+  function onInput(e){if(!e.target.closest)return;clearTimeout(svT);svT=setTimeout(()=>{irSave();exSave()},400)}
+  async function onChange(e){const t=e.target;
+    if(t.id==='r465IrPh'&&t.files){const fs=[...t.files];t.value='';for(const f of fs){if(S.photos.length>=2){msg('Max 2 photos.',true);break}try{S.photos.push(await shrink(f))}catch(err){msg(err.message,true)}}photoPrev();irSave();return}
+    if(t.id==='r465IrB'){const s=document.getElementById('r465IrE');if(s)s.innerHTML=empOptions(t.value,'');irSave();return}
+    if(t.id==='r465NB'){const s=document.getElementById('r465NE');if(s)s.innerHTML=empOptions(t.value,'');const h=document.getElementById('r465NH');if(h)h.innerHTML=headOptions(t.value,'',null);return}
+    if(t.id==='r465NE'){const em=empOf(t.value);const h=document.getElementById('r465NH');const b=(document.getElementById('r465NB')||{}).value;if(h&&em)h.innerHTML=headOptions(b,U(em.dept||em.department),null);return}
+    irSave();exSave()}
+
+  function tick(){try{tickCard()}catch(e){console.warn('R465 card',e)}try{mountHr()}catch(e){console.warn('R465 hr',e)}}
+  setInterval(tick,2000);setTimeout(()=>poll(true),4000);
+  window.rcadsR465={me,CNT,S,poll,privileged,bulletin,gate:window.rcadsR465Gate,irDoc,nteDoc,explDoc,ver:'R465'};
+})();
+</script>
+
+<script id="rcadsR467Script">
+/* R467 — Nov 12, 2026: TEXT MEMOS (low data)
+   ✍ WRITE A MEMO (type or PASTE from Word / WPS / Notes) is saved in Supabase as TEXT (a few KB),
+   not as page pictures (150–300 KB per page). Each phone draws the Legal page itself, so the
+   reader, ✍ RECEIVE & OPEN, the signature and the signed copy in the 201 work exactly as before.
+   Old memos / uploaded PDFs are not changed. */
+(function(){
+  'use strict';
+  const PW=816,PH=1344,PAD=72,OUTW=1240,S=OUTW/PW,OUTH=Math.round(PH*S),AW=PW-2*PAD,BOTTOM=PH-PAD;
+  const MARK='R467TX';const FONT='Arial, Helvetica, sans-serif';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function fnt(f,sz){return (f.indexOf('i')>=0?'italic ':'')+(f.indexOf('b')>=0?'bold ':'')+sz+'px '+FONT}
+  let MC=null;function mctx(){if(!MC)MC=document.createElement('canvas').getContext('2d');return MC}
+  function mw(t,f,sz){const g=mctx();g.font=fnt(f,sz);return g.measureText(t).width}
+  /* ---------------- HTML → blocks ---------------- */
+  function parse(html){
+    const box=document.createElement('div');box.innerHTML=html||'';const blocks=[];let cur=null;
+    const flush=()=>{if(cur&&cur.runs.some(r=>r.br||String(r.t).trim()))blocks.push(cur);cur=null};
+    const ensure=st=>{if(!cur)cur={type:'p',runs:[],size:st.size,align:st.align,indent:st.indent,bullet:null}};
+    function walk(n,st){
+      for(const c of n.childNodes){
+        if(c.nodeType===3){const t=c.nodeValue.replace(/\s+/g,' ');if(!t.trim()&&!cur)continue;ensure(st);cur.runs.push({t,f:(st.b?'b':'')+(st.i?'i':''),u:st.u});continue}
+        if(c.nodeType!==1)continue;const tag=c.tagName.toUpperCase();const s2=Object.assign({},st);
+        const al=String((c.style&&c.style.textAlign)||c.getAttribute('align')||'').toLowerCase();
+        if(tag==='B'||tag==='STRONG')s2.b=true;else if(tag==='I'||tag==='EM')s2.i=true;else if(tag==='U')s2.u=true;
+        if(tag==='BR'){ensure(st);cur.runs.push({br:true});continue}
+        if(tag==='TABLE'){flush();const rows=[];c.querySelectorAll('tr').forEach(tr=>{const cells=[];tr.querySelectorAll(':scope > td, :scope > th').forEach(td=>{const sub=parse(td.innerHTML);const runs=[];sub.forEach((bk,i)=>{if(bk.type!=='p')return;if(runs.length)runs.push({br:true});bk.runs.forEach(r=>runs.push(td.tagName==='TH'&&!r.br?Object.assign({},r,{f:r.f.indexOf('b')>=0?r.f:r.f+'b'}):r))});cells.push(runs)});if(cells.length)rows.push(cells)});if(rows.length)blocks.push({type:'table',rows});continue}
+        if(tag==='UL'||tag==='OL'){flush();let k=0;[...c.children].forEach(li=>{if(li.tagName.toUpperCase()!=='LI'){walk(li,st);flush();return}k++;const s3=Object.assign({},st,{indent:st.indent+28});ensure(s3);cur.bullet=tag==='OL'?k+'.':'•';walk(li,s3);flush()});flush();continue}
+        if(/^(P|DIV|H1|H2|H3|LI)$/.test(tag)){flush();if(al)s2.align=al;if(/^H/.test(tag)){s2.b=true;s2.size=tag==='H1'?22:tag==='H2'?19:17}walk(c,s2);flush();continue}
+        walk(c,s2)}}
+    walk(box,{b:false,i:false,u:false,size:15,align:'left',indent:0});flush();return blocks}
+  /* ---------------- runs → lines ---------------- */
+  function lines(runs,width,size){
+    const out=[];let line=[],x=0;
+    const push=()=>{while(line.length&&!line[line.length-1].t.trim()){x-=line[line.length-1].w;line.pop()}out.push({segs:line,w:x});line=[];x=0};
+    runs.forEach(r=>{if(r.br){push();return}
+      String(r.t).split(/(\s+)/).forEach(tok=>{if(!tok)return;const sp=!tok.trim();if(sp){if(!line.length)return;tok=' '}
+        let w=mw(tok,r.f,size);
+        if(!sp&&x+w>width&&line.length)push();
+        if(!sp&&w>width){let part='';for(const ch of tok){if(mw(part+ch,r.f,size)>width&&part){line.push({t:part,f:r.f,u:r.u,w:mw(part,r.f,size)});x+=line[line.length-1].w;push();part=ch}else part+=ch}tok=part;w=mw(tok,r.f,size)}
+        const last=line[line.length-1];if(last&&last.f===r.f&&last.u===r.u){last.t+=tok;last.w+=w}else line.push({t:tok,f:r.f,u:r.u,w});x+=w})});
+    if(line.length||!out.length)push();
+    out.forEach(l=>{l.segs=l.segs.map(s=>Object.assign(s,{w:mw(s.t,s.f,size)}));l.w=l.segs.reduce((a,s)=>a+s.w,0)});
+    return out}
+  function drawLine(ops,l,x0,width,top,size,align,lh){
+    const base=top+lh/2+size*0.36;let x=x0+(align==='center'?(width-l.w)/2:align==='right'?width-l.w:0);
+    l.segs.forEach(s=>{if(s.t)ops.push(['T',+x.toFixed(1),+base.toFixed(1),s.f,size,s.t,+s.w.toFixed(1)]);if(s.u&&s.t.trim())ops.push(['L',+x.toFixed(1),+(base+2).toFixed(1),+(x+s.w).toFixed(1),+(base+2).toFixed(1),1]);x+=s.w})}
+  /* ---------------- memo → page draw lists ---------------- */
+  function layout(m,bodyHtml,sig){
+    const boxes=[];const B=(h,draw,keep)=>boxes.push({h,draw,keep});
+    /* letterhead */
+    B(21*1.45+12*1.45+8+3+12,(o,y)=>{o.push(['T',PAD+AW/2,y+21*1.1,'b',21,'RUSTICA RESTAURANT & CATERING',0,'c']);o.push(['T',PAD+AW/2,y+21*1.45+12*1.05,'',12,'HUMAN RESOURCES DEPARTMENT',0,'c',2]);const ly=y+21*1.45+12*1.45+8;o.push(['L',PAD,ly,PAD+AW,ly,1]);o.push(['L',PAD,ly+2.5,PAD+AW,ly+2.5,1])});
+    const title=m.kind==='MC'?'MEMORANDUM CIRCULAR':(/NTE|EXPLAIN/i.test((m.no||'')+' '+(m.title||''))?'NOTICE TO EXPLAIN':'MEMORANDUM');
+    B(4+19*1.45+12,(o,y)=>o.push(['T',PAD+AW/2,y+4+19*1.1,'b',19,title,0,'c',2]));
+    const meta=[];if(m.no)meta.push(['MEMO NO.',m.no,'']);meta.push(['DATE',m.dateTxt,''],['TO',m.to,''],['FROM',(m.fromName||'')+', HR OPERATION OFFICER',''],['SUBJECT',m.title,'b']);
+    meta.forEach(([k,v,f])=>{const L=lines([{t:': '},{t:String(v||''),f}].map(r=>Object.assign({f:'',u:false},r)),AW-118,14.5);const lh=14.5*1.45;
+      B(L.length*lh+4,(o,y)=>{o.push(['T',PAD+4,y+2+lh/2+14.5*0.36,'b',14.5,k,0]);L.forEach((l,i)=>drawLine(o,l,PAD+114,AW-118,y+2+i*lh,14.5,'left',lh))})});
+    B(6+1.5+14,(o,y)=>o.push(['L',PAD,y+6,PAD+AW,y+6,1.5]));
+    /* body */
+    parse(bodyHtml).forEach(bk=>{
+      if(bk.type==='table'){const cols=Math.max(...bk.rows.map(r=>r.length));const cw=AW/cols;
+        bk.rows.forEach(r=>{const L=r.map(runs=>lines(runs,cw-12,14));const lh=14*1.45;const h=Math.max(...L.map(l=>l.length))*lh+6;
+          B(h,(o,y)=>{r.forEach((_,ci)=>{o.push(['R',+(PAD+ci*cw).toFixed(1),+y.toFixed(1),+cw.toFixed(1),+h.toFixed(1),1]);L[ci].forEach((l,li)=>drawLine(o,l,PAD+ci*cw+6,cw-12,y+3+li*lh,14,'left',lh))})})});
+        B(8,()=>{});return}
+      const sz=bk.size||15,lh=sz*1.45,ind=bk.indent||0;const L=lines(bk.runs,AW-ind,sz);
+      L.forEach((l,i)=>B(lh,(o,y)=>{if(i===0&&bk.bullet)o.push(['T',PAD+ind-(bk.bullet==='•'?14:22),+(y+lh/2+sz*0.36).toFixed(1),'',sz,bk.bullet,0]);drawLine(o,l,PAD+ind,AW-ind,y,sz,bk.align,lh)}));
+      B(/^H/.test(String(sz))?6:8,()=>{})});
+    /* HR signature */
+    const sh=22+15*1.45+(sig.img?62-6:50)+15*1.45+13*1.45;
+    B(sh,(o,y)=>{o.push(['T',PAD,y+22+15*1.1,'',15,'Prepared by:',0]);let yy=y+22+15*1.45;if(sig.img){o.push(['I','sig',PAD,yy+4,0,62]);yy+=62-6}else yy+=50;
+      const nm=U(sig.name||'JOVILITO F. FETIZANAN');o.push(['T',PAD,yy+15*1.1,'b',15,nm,0]);const w=mw(nm,'b',15);o.push(['L',PAD,yy+15*1.1+2,PAD+w,yy+15*1.1+2,1]);
+      o.push(['T',PAD,yy+15*1.45+13*1.1,'',13,sig.title||'HR Operation Officer',0])},true);
+    B(262,()=>{},true);   /* blank space at the bottom for the employee's signature (R426 signs inside the page) */
+    /* paginate */
+    const pages=[];let ops=null,y=0;const np=()=>{ops=[];pages.push(ops);y=PAD};np();
+    boxes.forEach(bx=>{if(y+bx.h>BOTTOM&&y>PAD)np();bx.draw(ops,y);y+=bx.h});
+    if(pages.length>1)pages.forEach((p,i)=>p.push(['T',PW-PAD,26+11,'',11,'Page '+(i+1)+' of '+pages.length,0,'r',0,'#555']));
+    return pages}
+  /* ---------------- draw ---------------- */
+  function loadImg(u){return new Promise(res=>{if(!u)return res(null);const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);im.src=u})}
+  async function draw(p){
+    const c=document.createElement('canvas');c.width=OUTW;c.height=OUTH;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,OUTW,OUTH);g.scale(S,S);g.textBaseline='alphabetic';
+    const imgs={};for(const k of Object.keys(p.img||{}))imgs[k]=await loadImg(p.img[k]);
+    for(const o of p.ops||[]){
+      if(o[0]==='T'){g.font=fnt(o[3],o[4]);g.fillStyle=o[9]||'#000';g.textAlign=o[7]==='c'?'center':o[7]==='r'?'right':'left';try{g.letterSpacing=(o[8]||0)+'px'}catch(e){}
+        if(o[6])g.fillText(o[5],o[1],o[2],o[6]+0.6);else g.fillText(o[5],o[1],o[2]);try{g.letterSpacing='0px'}catch(e){}}
+      else if(o[0]==='L'){g.strokeStyle='#000';g.lineWidth=o[5]||1;g.beginPath();g.moveTo(o[1],o[2]);g.lineTo(o[3],o[4]);g.stroke()}
+      else if(o[0]==='R'){g.strokeStyle='#333';g.lineWidth=o[5]||1;g.strokeRect(o[1],o[2],o[3],o[4])}
+      else if(o[0]==='I'){const im=imgs[o[1]];if(im){const h=o[5],w=o[4]||im.width*h/im.height;g.drawImage(im,o[2],o[3],w,h)}}}
+    g.textAlign='left';return c.toDataURL('image/jpeg',0.72)}
+  /* ---------------- store format: base64( "R467TX" + JSON ) ---------------- */
+  function enc(obj){const b=new TextEncoder().encode(MARK+JSON.stringify(obj));let s='';for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s)}
+  function dec(b64){const s=atob(b64);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);const t=new TextDecoder().decode(u);return JSON.parse(t.slice(MARK.length))}
+  const isText=b64=>typeof b64==='string'&&b64.slice(0,8)==='UjQ2N1RY';
+  /* HR: memo → {pages: JPEG previews, store: one small text record per page} */
+  async function make(m,bodyHtml,sig){
+    const P=layout(m,bodyHtml,sig||{});
+    const recs=P.map((ops,i)=>{const r={v:1,n:i+1,of:P.length,ops};if(ops.some(o=>o[0]==='I'&&o[1]==='sig'))r.img={sig:sig.img};return r});
+    const pages=[];for(const r of recs)pages.push(await draw(r));
+    return {pages,store:recs.map(r=>'txt,'+enc(r))}}
+  /* phones: stored text page → JPEG (kept in memory only) */
+  async function render(b64){return draw(dec(b64))}
+  window.rcadsR467={make,render,isText,layout,parse,draw,enc,dec,ver:'R467'};
+})();
+</script>
+
 <script id="rcadsR438Script">
 /* R438 — Roving Managers / Deputy Chef 1: the schedule cell may hold the BRANCH of the day
    ("ANGELES", "SAN FERNANDO", "CABANATUAN", "SAN JUAN", "SAN RAFAEL", optionally with a time: "ANGELES 10:00-9:00").
