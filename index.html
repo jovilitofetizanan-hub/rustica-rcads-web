@@ -288,7 +288,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R471 CLEAR ALL RED FLAGS (ATTENDANCE SIGNALS)</title>
+<title>Rustica RCADS App — R472 NO LATE / UNDERTIME NOTE FOR EMPLOYEES</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -35374,7 +35374,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     cache={k:key,at:Date.now(),html:h};return h}
   setInterval(()=>{try{
     const p=document.getElementById('employeeSimplePanel'),e=cur();const box=p&&p.querySelector(':scope > .rcads-employee-dtr-box');let el=document.getElementById('r414Note');
-    if(!e||!box||!document.body.classList.contains('employee-simple-mode')){if(el)el.remove();return}
+    if(!e||!box||!document.body.classList.contains('employee-simple-mode')||window.RCADS_R472_NO_LATE_NOTE!==false){if(el)el.remove();return}  /* R472: no Late / Undertime reminder in the employee app — HR only */
     const h=html(e);if(!h){if(el)el.remove();return}
     if(!el||el.parentElement!==box||el.dataset.h!==h){if(el)el.remove();const t=document.createElement('div');t.innerHTML=h;el=t.firstChild;el.dataset.h=h;box.appendChild(el)}
     else if(box.lastElementChild!==el&&!box.lastElementChild.matches('.r405-wm,#r405DtrLock'))box.appendChild(el);
