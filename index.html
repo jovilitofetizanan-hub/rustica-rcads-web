@@ -288,7 +288,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R470 CLOSE ALL (NTE / IR / ANSWERS)</title>
+<title>Rustica RCADS App — R471 CLEAR ALL RED FLAGS (ATTENDANCE SIGNALS)</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -28235,12 +28235,16 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       '<div class="r192-kpi"><span class="bad">🔴 '+n('red')+'</span><span class="warn">🟡 '+n('yellow')+'</span><span class="ok">🟢 '+n('green')+'</span><span class="none">📨 answers to read: <b>'+ans.length+'</b></span><span class="sus">⏰ no reply after '+REPLY_DAYS+' days: <b>'+noRep.length+'</b></span></div>'+
       '<div class="r196-hsub">📨 ANSWERS TO READ ('+ans.length+')'+(ans.length?' <button type="button" data-r200-closeall="ANS" style="margin-left:8px">✓ CLOSE ALL '+ans.length+'</button>':'')+'</div>'+(ans.length?ans.map(([d,it])=>{const r=repOf(d.code)[it.id];return '<div class="r196-exh"><b>'+esc(d.name)+'</b> <small>'+esc(d.code)+' • '+esc(bName(d.branch))+'</small><br><span class="r200-n lv-'+it.level+'">'+esc(it.kind)+' • '+esc(fmt(it.date))+' • '+ord(it.n)+'</span> <small>'+esc(it.detail)+'</small><p>'+esc(r.text)+'</p><div><button type="button" data-r200-dec="ACCEPTED|'+esc(d.code)+'|'+esc(it.id)+'">✓ EXPLANATION ACCEPTED</button><button type="button" class="ghost" data-r200-dec="FOR DISCIPLINARY ACTION|'+esc(d.code)+'|'+esc(it.id)+'">⚠ FOR DISCIPLINARY ACTION</button></div></div>'}).join(''):'<div class="r185-empty">No answers to read.</div>')+
       (noRep.length?'<div class="r196-hsub">⏰ NO REPLY AFTER '+REPLY_DAYS+' DAYS ('+noRep.length+') <button type="button" data-r200-closeall style="margin-left:8px">✓ CLOSE ALL '+noRep.length+'</button></div>'+noRep.map(([d,it])=>'<div class="r196-exh"><b>'+esc(d.name)+'</b> <small>'+esc(d.code)+'</small> • '+esc(it.kind)+' '+esc(fmt(it.date))+' • due '+esc(fmt(it.due))+'<div><button type="button" class="ghost" data-r200-dec="FOR DISCIPLINARY ACTION (no reply)|'+esc(d.code)+'|'+esc(it.id)+'">⚠ FOR DISCIPLINARY ACTION</button><button type="button" data-r200-dec="CLOSED|'+esc(d.code)+'|'+esc(it.id)+'">CLOSE</button></div></div>').join(''):'')+
-      '<div class="r196-hsub">THIS CUTOFF ('+ROWS.length+' employees)</div>'+(ROWS.length?'<table class="r185-t"><thead><tr><th></th><th>EMPLOYEE</th><th class="c">ABSENT</th><th class="c">LATE<br><small>times • total</small></th><th class="c">UNDERTIME<br><small>times • total</small></th><th>DAYS (A / L / U)</th><th></th></tr></thead><tbody>'+(showAll?ROWS:ROWS.slice(0,60)).map(rowHtml).join('')+'</tbody></table>'+(ROWS.length>60&&!showAll?'<button type="button" class="r185-save" data-r200-all>SHOW ALL '+ROWS.length+'</button>':''):'<div class="r185-empty">No absent, late or undertime this cutoff (or no schedule / attendance yet).</div>');
+      '<div class="r196-hsub">THIS CUTOFF ('+ROWS.length+' employees)'+(function(){const k=NTE_PREFIX+'FLAGCLEAR_'+safeKey(c.from),x=lsGet(k,null);return x&&!x.undo?' <small style="color:#2f6b3a">✓ red flags cleared '+esc(new Date(x.at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+'</small> <button type="button" data-r200-flagclear="UNDO" class="ghost" style="margin-left:6px">↺ SHOW THE FLAGS AGAIN</button>':(ROWS.some(r=>r.lvl)?' <button type="button" data-r200-flagclear="ALL" style="margin-left:8px">✓ CLEAR ALL RED FLAGS</button>':'')})()+'</div>'+(ROWS.length?'<table class="r185-t"><thead><tr><th></th><th>EMPLOYEE</th><th class="c">ABSENT</th><th class="c">LATE<br><small>times • total</small></th><th class="c">UNDERTIME<br><small>times • total</small></th><th>DAYS (A / L / U)</th><th></th></tr></thead><tbody>'+(showAll?ROWS:ROWS.slice(0,60)).map(rowHtml).join('')+'</tbody></table>'+(ROWS.length>60&&!showAll?'<button type="button" class="r185-save" data-r200-all>SHOW ALL '+ROWS.length+'</button>':''):'<div class="r185-empty">No absent, late or undertime this cutoff (or no schedule / attendance yet).</div>');
   }
   function hrClick(e){const t=e.target;if(!t.closest)return;if(t.closest('[data-r200-all]')){showAll=true;render(true);return}
     const sn=t.closest('[data-r413-nte]');if(sn){const r=ROWS.find(x=>x.code===sn.getAttribute('data-r413-nte'));if(!r||!r.inc.length)return;
       if(!confirm('📨 SEND NOTICE TO EXPLAIN to '+r.name+' ('+r.code+')?\n\n'+r.inc.map(x=>'• '+x.kind+' '+fmt(x.date)+(x.mins?' ('+hm(x.mins)+')':'')).join('\n')+'\n\nIt appears in the employee’s RCADS app; 5 days to answer.\nThese days will not be counted again.'))return;
       const m=issue([r],true);ROWS=scan();lastScan=Date.now();render(true);alert('✓ Notice to Explain sent ('+m+' item'+(m===1?'':'s')+') to '+r.name+'.');return}
+    const fc=t.closest('[data-r200-flagclear]');if(fc){const cc=closedCut(),k=NTE_PREFIX+'FLAGCLEAR_'+safeKey(cc.from);
+      if(fc.getAttribute('data-r200-flagclear')==='UNDO'){lsSet(k,{cut:cc.from,undo:true,at:new Date().toISOString()});render(true);return}
+      if(!confirm('CLEAR ALL RED FLAGS of the cut-off '+cutTxt(cc)+'?\n\nThe Late / Undertime / Absent list stays below for your reference — only the red flags and the red number are removed.'))return;
+      lsSet(k,{cut:cc.from,at:new Date().toISOString()});render(true);return}
     if(t.closest('[data-r200-closeall]')){ /* R469: close every 'no reply' item at once */
       const WANT=t.closest('[data-r200-closeall]').getAttribute('data-r200-closeall')==='ANS'?'ANSWERED':'NO_REPLY';
       const L=[];allNte().forEach(d=>d.items.forEach(it=>{if(itemState(d.code,it)===WANT)L.push([d,it])}));if(!L.length)return;
@@ -28262,7 +28266,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   }
   // for the red-flag dots (R199)
   function flags(){
-    const o=[],cc=closedCut();ROWS.forEach(r=>{const w=r.name+' • '+bName(r.branch);   /* R414: ONE flag per employee for the closed cut-off — times and total minutes */
+    const o=[],cc=closedCut();const CLR=lsGet(NTE_PREFIX+'FLAGCLEAR_'+safeKey(cc.from),null);(CLR&&!CLR.undo?[]:ROWS).forEach(r=>{  /* R471: HR can clear the red flags of the closed cut-off */const w=r.name+' • '+bName(r.branch);   /* R414: ONE flag per employee for the closed cut-off — times and total minutes */
       const tot=k=>r.inc.filter(x=>x.kind===k).reduce((a,x)=>a+(x.mins||0),0);const parts=[];
       if(r.n.LATE)parts.push('LATE '+r.n.LATE+'× ('+hm(tot('LATE'))+' total)'+(r.n.LATE>=3?' — TARDINESS':''));
       if(r.n.UNDERTIME)parts.push('UNDERTIME '+r.n.UNDERTIME+'× ('+hm(tot('UNDERTIME'))+' total)');
