@@ -96,6 +96,31 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
 
 <html lang="en">
 <head>
+<script id="rcadsR481Lock">
+/* R481 — BLOCKED PHONE STAYS LOCKED. When HR blocks this phone (📋 DEVICES → BLOCK), RCADS on it will not open at all any more.
+   Nothing is deleted. Only a NEW QR from HR (one-time ticket) unlocks it. */
+(function(){
+  var F='r481_blocked';
+  function flag(){try{return localStorage.getItem(F)}catch(e){return null}}
+  function hasTicket(){return /(?:^#|[&#])rcads(?:Dev|Emp|Guard|Owner)=/.test(String(location.hash||''))}
+  function lock(){
+    if(document.getElementById('r481Lock'))return;
+    var st=document.createElement('style');st.id='r481LockCss';
+    st.textContent='html,body{overflow:hidden!important}body>*:not(#r481Lock){display:none!important}#r481Lock{position:fixed;inset:0;z-index:2147483647;background:#3d2412;color:#fff;display:flex!important;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;font:900 18px Arial,sans-serif}#r481Lock small{display:block;margin-top:14px;font:700 13px Arial,sans-serif;opacity:.85;max-width:320px}';
+    (document.head||document.documentElement).appendChild(st);
+    var d=document.createElement('div');d.id='r481Lock';
+    d.innerHTML='<div style="font-size:54px">⛔</div><div>THIS PHONE WAS BLOCKED BY HR</div><small>RUSTICA RCADS cannot be opened on this phone. If this is your phone and you got it back, see HR for a new QR.</small>';
+    var put=function(){(document.body||document.documentElement).appendChild(d)};
+    if(document.body)put();else document.addEventListener('DOMContentLoaded',put);
+    var unboot=function(){document.documentElement.classList.remove('r431-boot');var c=document.getElementById('r477Cover');if(c)c.remove()};unboot();setInterval(unboot,500);
+  }
+  window.rcadsR481={flag:flag,lock:lock,set:function(){try{localStorage.setItem(F,new Date().toISOString())}catch(e){}lock()},clear:function(){try{localStorage.removeItem(F)}catch(e){}}};
+  if(flag()){
+    if(!hasTicket())lock();
+    else setTimeout(function(){if(flag())lock()},20000);
+  }
+})();
+</script>
 <script id="rcadsR455Compress">
 /* R455 — SMALLER STORAGE. The browser gives RCADS only about 5 MB on this device.
    Every saved value bigger than 8 KB (schedules, biometric, DTR, logs) is now kept COMPRESSED (usually 4–10× smaller).
@@ -288,7 +313,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R474 NEW EMPLOYEES START AS EXTRA</title>
+<title>Rustica RCADS App — R474B BLOCKED PHONE STAYS LOCKED</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -26427,7 +26452,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function key(){return get(KEY)}
   function role(){return get(ROLE)}
   function branch(){try{return (window.rcadsSyncBranch&&window.rcadsSyncBranch())||RUSTICA_CENTRAL_DB.branch||'SAN_RAFAEL'}catch(e){return 'SAN_RAFAEL'}}
-  function setKey(k,r,label){set(KEY,k);set(ROLE,k?r:'');set(LABEL,k?(label||''):'');try{RUSTICA_CENTRAL_DB.syncSecret=k||''}catch(e){}}
+  function setKey(k,r,label){if(k&&window.rcadsR481)window.rcadsR481.clear();set(KEY,k);set(ROLE,k?r:'');set(LABEL,k?(label||''):'');try{RUSTICA_CENTRAL_DB.syncSecret=k||''}catch(e){}}
   // the HTML default no longer has a secret; make sure the live config uses this device's key
   try{if(key())RUSTICA_CENTRAL_DB.syncSecret=key()}catch(e){}
   function devLabel(){const ua=navigator.userAgent;const kind=/iphone|ipad/i.test(ua)?'iPhone':(/android/i.test(ua)?'Android':(/windows/i.test(ua)?'Windows':(/mac/i.test(ua)?'Mac':'Device')));return kind+' • '+new Date().toLocaleDateString()}
@@ -26479,7 +26504,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   }})();
 
   /* ---------- revoked phone → stop & tell the user ---------- */
-  async function checkMine(){if(!key())return;try{const d=await fetch(RUSTICA_CENTRAL_DB.url+'/rest/v1/rpc/rustica_rcads_key_status',{method:'POST',headers:{apikey:RUSTICA_CENTRAL_DB.anonKey,Authorization:'Bearer '+RUSTICA_CENTRAL_DB.anonKey,'Content-Type':'application/json'},body:JSON.stringify({p_branch_code:branch(),p_key:key()})}).then(r=>r.json());if(d&&d.state==='REVOKED'){setKey('', '', '');toast('⛔ This device was BLOCKED by HR. See HR for a new QR.',true)}}catch(e){}}
+  async function checkMine(){if(!key())return;try{const d=await fetch(RUSTICA_CENTRAL_DB.url+'/rest/v1/rpc/rustica_rcads_key_status',{method:'POST',headers:{apikey:RUSTICA_CENTRAL_DB.anonKey,Authorization:'Bearer '+RUSTICA_CENTRAL_DB.anonKey,'Content-Type':'application/json'},body:JSON.stringify({p_branch_code:branch(),p_key:key()})}).then(r=>r.json());if(d&&d.state==='REVOKED'){setKey('', '', '');if(window.rcadsR481)window.rcadsR481.set();else toast('⛔ This device was BLOCKED by HR. See HR for a new QR.',true)}}catch(e){}}
   setTimeout(checkMine,8000);setInterval(checkMine,15*60000);
 
   /* ---------- notice on phones without a key ---------- */
@@ -33311,14 +33336,14 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function nameOf(btn,code){const box=btn.closest('.r160-detail,.r160-d,.r160-card,div');const b=box&&box.querySelector('b');return (b&&b.textContent.trim())||code}
   async function lost(code,btn){
     const nm=nameOf(btn,code);
-    if(!confirm('📵 LOST / CHANGED PHONE\n\n'+nm+' • '+code+'\n\n1) The old phone is signed out and can no longer sync (BLOCKED).\n2) The next phone he/she sets up becomes the registered phone.\n3) Then a NEW SETUP CODE is given (the old PIN stops).\n\nContinue?'))return;
+    if(!confirm('📵 LOST / CHANGED PHONE\n\n'+nm+' • '+code+'\n\n1) The old (lost) phone is BLOCKED — RCADS will no longer open on it.\n2) He/she can log in on another phone (borrowed or new) with the SAME PIN.\n3) Next you choose: keep the current PIN or reset it.\n\nContinue?'))return;
     btn.disabled=true;btn.textContent='Working…';
     lsSet(RK(code),{dev:'',reset:true,at:new Date().toISOString(),by:'HR OPERATION OFFICER'});
     const r=await blockDevices(code);
     const log=lsGet(LOG,[])||[];log.push({code:U(code),name:nm,at:new Date().toISOString(),blocked:r.n,labels:r.labels||[],by:'HR OPERATION OFFICER'});lsSet(LOG,log.slice(-500));
     btn.disabled=false;btn.textContent='📵 LOST / CHANGED PHONE';
-    alert('✓ Done for '+nm+'\n\n• Phone slot freed — the next phone he/she sets up becomes the registered phone.\n• Devices BLOCKED: '+r.n+(r.labels&&r.labels.length?' ('+r.labels.join(', ')+')':'')+(r.err?'\n⚠ '+r.err:'')+'\n\nNext: give a NEW SETUP CODE (the old PIN will stop).');
-    const su=document.querySelector('[data-r176-setup="'+code+'"]');if(su)su.click();
+    alert('✓ Done for '+nm+'\n\n• Phone slot freed — the next phone he/she sets up becomes the registered phone.\n• Devices BLOCKED: '+r.n+(r.labels&&r.labels.length?' ('+r.labels.join(', ')+')':'')+(r.err?'\n⚠ '+r.err:'')+'\n\nHe/she logs in on the borrowed or new phone: press 📲 SHOW QR TO OPEN THE APP and let him/her scan it, then type the PIN.');
+    if(!confirm('KEEP THE CURRENT PIN of '+nm+'?\n\nOK = KEEP the same PIN (recommended if the thief does not know it)\nCancel = RESET the PIN (new setup code)')){const su=document.querySelector('[data-r176-setup="'+code+'"]');if(su)su.click()}
   }
   setInterval(()=>{try{document.querySelectorAll('[data-r176-setup]').forEach(su=>{if(su.parentElement.querySelector('[data-r356-lost]'))return;const code=su.getAttribute('data-r176-setup');
     const b=document.createElement('button');b.type='button';b.className=su.className+' r356-lostbtn';b.setAttribute('data-r356-lost',code);b.textContent='📵 LOST / CHANGED PHONE';
