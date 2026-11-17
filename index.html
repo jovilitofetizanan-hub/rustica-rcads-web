@@ -34638,12 +34638,12 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(FL.msg)return '<div class="r399-msg err">'+esc(FL.msg)+'</div>';
     if(!FL.rows)return '<div class="r399-n">Loading…</div>';
     const c=cycle();const cur=cutoffOf(c.t),prev=cutoffOf(addD(cur.from,-1));const acsCut=c.t===cur.from?prev:cur;   /* on the 11th / 26th HR still sees the cut-off that just closed */
-    const want=[[c.orig,'ORIG','ORIGINAL SCHEDULE']];
+    const want=[[c.orig,'ORIG','ORIGINAL SCHEDULE']];[...new Set(FL.rows.filter(x=>x.kind==='ORIG').map(x=>String(x.week).slice(0,10)))].filter(m=>m>c.orig).sort().forEach(m=>want.push([m,'ORIG','ORIGINAL SCHEDULE']));   /* R482 */
     const depts=['KITCHEN','DINING','ADMIN'];
     const weeks=acsWeeks(acsCut).filter(m=>m<=c.t&&m>=ACS_START);
     let h='<div class="r399-n" style="margin:0 0 4px"><b>ORIGINAL SCHEDULE</b>: sent <b>'+esc(fmtDay(c.sat))+'</b> • due back <b>'+esc(fmtDay(c.due))+'</b>. <b>ACS</b>: cut-off <b>'+esc(cutLbl(acsCut))+'</b> • due <b>'+esc(fmtDay(acsCut.to))+'</b>.</div><table class="r399-t"><thead><tr><th>BRANCH</th>'+want.map(w=>'<th>'+esc(w[2])+'<br><small>'+esc(fmtWk(w[0]))+'</small></th>').join('')+'<th>ACS • CUT-OFF<br><small>'+esc(cutLbl(acsCut))+'</small></th></tr></thead><tbody>';
     branches().forEach(b=>{h+='<tr><td><b>'+esc(b.name)+'</b></td>'+want.map(w=>'<td>'+depts.map(d=>{const r=FL.rows.find(x=>x.branch===b.code&&x.dept===d&&x.kind===w[1]&&String(x.week).slice(0,10)===w[0]);
-      if(!r)return d==='ADMIN'?'':'<div class="r399-no">'+(c.sat<RULE_SAT?'— ':c.t>c.due?'⚠ LATE ':'🔴 ')+d+'</div>';if(isMgrEdit(r))return '<div class="r442-pend">✏ '+d+' — edited by the Manager, waiting for the Dining Head 1 to CONFIRM <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇ VIEW</button><br><small>'+esc(fmtAt(r.at))+'</small></div>';
+      if(!r)return d==='ADMIN'?'':'<div class="r399-no">'+(w[0]>c.orig?'⏳ ':c.sat<RULE_SAT?'— ':c.t>c.due?'⚠ LATE ':'🔴 ')+d+'</div>';if(isMgrEdit(r))return '<div class="r442-pend">✏ '+d+' — edited by the Manager, waiting for the Dining Head 1 to CONFIRM <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇ VIEW</button><br><small>'+esc(fmtAt(r.at))+'</small></div>';
         return isOk(r.id)?'<div class="r399-ok">✅ '+d+' <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇</button><br><small>'+esc(fmtAt(r.at))+(r.by?' • '+esc(r.by):'')+' • approved</small></div>'
         :'<div class="r442-pend">🟡 '+d+' — FOR APPROVAL <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇ VIEW</button><button type="button" class="r399-btn ok" data-r442-ok="'+r.id+'">✅ APPROVE</button><br><small>'+esc(fmtAt(r.at))+(r.by?' • '+esc(r.by):'')+'</small></div>'}).join('')+'</td>').join('')+
       '<td>'+depts.map(d=>{const recs=weeks.map(m=>({m,r:FL.rows.find(x=>x.branch===b.code&&x.dept===d&&x.kind==='ACS'&&String(x.week).slice(0,10)===m)}));const ok=recs.filter(x=>acsState(x.r,x.m,acsCut)==='OK'&&isOk(x.r.id)).length;const pend=recs.filter(x=>x.r&&!isOk(x.r.id)&&!isMgrEdit(x.r));const mge=recs.filter(x=>x.r&&isMgrEdit(x.r));
@@ -34832,14 +34832,14 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     return U(bName(b)).replace(/[^A-Z]+/g,'_')+'_'+dept+'_'+(kind==='ACS'?'ACS':'SCHEDULE')+'_'+M(mon)+'-'+M(sun)+'_'+sun.slice(0,4)+'.xlsx'}
 
   async function loadHead(b,force){
-    if(HD.busy)return;if(!force&&HD.at[b]&&Date.now()-HD.at[b]<300000)return;
+    if(HD.busy)return;if(!force&&HD.at[b]&&Date.now()-HD.at[b]<60000)return;   /* R482: 1 minute (was 5) */
     const key=myKey();if(!key){HD.msg='This phone has no RCADS key. Ask HR for a new personal QR.';HD.err=true;drawHead();return}
     HD.busy=true;drawHead();
     try{const d=await rpc('rustica_rcps_form_latest',{p_key:key,p_branch:b});HD.forms[b]=d.rows||[];
       const weeks=[...new Set(HD.forms[b].filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)))];const filled={};
       for(const w of weeks){try{const f=await rpc('rustica_sched_filled_mine',{p_key:key,p_branch:b,p_week:w});(f.rows||[]).forEach(r=>{filled[w+'|'+r.dept+'|'+r.kind]=r})}catch(e){}}
       HD.filled[b]=filled;HD.at[b]=Date.now();HD.msg='';HD.err=false}
-    catch(e){HD.msg=e.message;HD.err=true;HD.at[b]=Date.now()-240000}
+    catch(e){HD.msg=e.message;HD.err=true;HD.at[b]=Date.now()-30000}
     HD.busy=false;drawHead();
   }
   function headRows(w,b){
@@ -34847,8 +34847,12 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const sched=w0=>forms.find(x=>x.kind==='SCHEDULE'&&String(x.from).slice(0,10)===w0);
     const rows=[];const depts=w.forms;
     depts.forEach(dept=>{
-      const f=sched(c.orig);const done=f&&(HD.filled[b]||{})[c.orig+'|'+dept+'|ORIG'];
-      if(c.sat<RULE_SAT&&!f){}else rows.push(f?{f,mon:c.orig,kind:'ORIG',dept,label:'ORIGINAL SCHEDULE',done,c,due:c.sat<RULE_SAT&&!done?'first Saturday send: '+fmtDay(RULE_SAT):dueText(done,c)}:{wait:true,dept,mon:c.orig,kind:'ORIG',label:'ORIGINAL SCHEDULE',why:'⏳ waiting for HR — sent every Saturday'});
+      /* R482: every ORIGINAL SCHEDULE week that HR sent and that has NOT started yet shows 📝 FILL at once
+         (no waiting for Saturday). Weeks already running / past are not shown (HR made those). */
+      {const fl=HD.filled[b]||{};const ws=[...new Set(forms.filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)))].filter(m=>m>c.t||(m<=c.t&&addD(m,6)>=c.t&&fl[m+'|'+dept+'|ORIG'])).sort();
+        ws.forEach(m=>{const f=sched(m);const done=fl[m+'|'+dept+'|ORIG'];const due=addD(m,-1);
+          rows.push({f,mon:m,kind:'ORIG',dept,label:'ORIGINAL SCHEDULE',done,c,due:done?'':(c.t>due?'':c.t===due?'🔴 DUE TODAY ('+fmtDay(due)+')':'🔴 send back by '+fmtDay(due))})});
+        if(!ws.length)rows.push({wait:true,dept,mon:addD(c.orig,c.orig>c.t?0:7),kind:'ORIG',label:'ORIGINAL SCHEDULE',why:'⏳ no new schedule from HR yet — it shows here as soon as HR sends it'})}
       // ACS: the weeks of the PREVIOUS cut-off that are still missing (LATE), then the weeks of THIS cut-off
       [[prev,true],[cur,false]].forEach(([cut,onlyMissing])=>acsWeeks(cut).forEach(mon=>{
         if(mon>c.t||mon<ACS_START)return;const fa=sched(mon);const rec=(HD.filled[b]||{})[mon+'|'+dept+'|ACS'];const st=acsState(rec,mon,cut);
@@ -34864,7 +34868,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     let h='<div class="r399-h">📝 FILL SCHEDULE / ACS IN RCADS</div><div class="r399-sub">'+esc(w.label)+' • '+esc(bName(b))+'</div>'+bsel;
     if(!HD.forms[b]){h+='<div class="r399-n">'+(HD.busy?'Loading the forms from HR…':'')+'</div>'}
     else{const rows=headRows(w,b);
-      h+='<div class="r399-n" style="margin-top:2px"><b>RULES:</b> ORIGINAL SCHEDULE — HR sends every <b>SATURDAY</b>, send back every <b>SUNDAY</b>. ACS — fill it in during the week, send it to HR every <b>CUT-OFF (10th and 25th)</b> for the review of change of schedule, long break and overtime.</div>';
+      h+='<div class="r399-n" style="margin-top:2px"><b>RULES:</b> ORIGINAL SCHEDULE — shows here as soon as HR sends it; send it back <b>before the week starts</b> (by the Sunday before). ACS — fill it in during the week, send it to HR every <b>CUT-OFF (10th and 25th)</b> for the review of change of schedule, long break and overtime.</div>';
       {const mons=[...new Set(rows.map(x=>x.mon))].sort();if(mons.length){const hl=holidaysFor(b,mons[0],addD(mons[mons.length-1],6)).filter(x=>x.date>=addD(today(),-1));h+=holBox(hl)}}
       rows.forEach(x=>{if(x.wait){h+='<div class="r399-item"><b>'+esc(x.label)+(w.forms.length>1||x.dept==='ADMIN'?' • '+esc(x.dept):'')+'</b><small>'+esc(fmtWk(x.mon))+' • '+esc(x.why)+'</small></div>';return}
         const id=x.f.id+'|'+x.mon+'|'+x.kind+'|'+x.dept;
