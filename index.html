@@ -313,7 +313,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R485 FILL SCHEDULE THIS WEEK + NEXT WEEK</title>
+<title>Rustica RCADS App — R487 ONE SCAN, NO EMPLOYEE LOCATION, QR 15 SECONDS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -21111,7 +21111,9 @@ SCOPE: QR only. Existing R141 Guard display/PIN/access/duty/camera/attendance lo
     try{if(window.currentEmployee&&typeof rcadsEmployeeRefreshQr==='function')rcadsEmployeeRefreshQr()}catch(e){}
     try{if(typeof getLoggedGuardLabel==='function'&&getLoggedGuardLabel()&&typeof rcadsGuardRefreshQr==='function')rcadsGuardRefreshQr()}catch(e){}
     try{if(typeof updateShiftQrPanel==='function')updateShiftQrPanel()}catch(e){}
-    setInterval(()=>{ensureHrNormalPanel();ensureHrPanel();ensureTopPanel();refreshRolePanels()},1000);
+    setInterval(()=>{ /* R476: not on employee / guard / approver phones unless HR is open (it redrew a QR every second) */
+      const B=document.body.classList,hm=document.getElementById('simpleHrAdminModal');if((B.contains('employee-simple-mode')||B.contains('guard-session-active')||B.contains('approver-only-mode'))&&!(hm&&getComputedStyle(hm).display!=='none'))return;
+      ensureHrNormalPanel();ensureHrPanel();ensureTopPanel();refreshRolePanels()},1000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,0));else setTimeout(init,0);
 })();
@@ -24316,9 +24318,10 @@ body.r162-has-nav{padding-bottom:78px!important}
   setInterval(()=>{
     try{
       const panel=document.getElementById('employeeSimplePanel');
-      if(panel&&document.body.classList.contains('employee-simple-mode'))mountEmp(panel);
       const app=document.getElementById('rcadsR131ApproverApp');const shell=app&&app.querySelector('.r131-shell');
-      if(shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none'){const nav=shell.querySelector(':scope > .r162-nav');mountEmp(shell);const el=document.getElementById('r167EmpId');if(nav&&el&&el.nextElementSibling!==nav)shell.insertBefore(el,nav)}
+      const apOn=!!(shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none');
+      if(!apOn&&panel&&document.body.classList.contains('employee-simple-mode'))mountEmp(panel);
+      if(apOn){const nav=shell.querySelector(':scope > .r162-nav');mountEmp(shell);const el=document.getElementById('r167EmpId');if(nav&&el&&el.nextElementSibling!==nav)shell.insertBefore(el,nav)}
     }catch(err){console.warn('R167 emp',err)}
   },1000);
 
@@ -26014,6 +26017,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(r.status!=='ACTIVE')return {ok:false,msg:p.c+': access is '+r.status+'.'};
     let good=false;try{good=(await hmac(r.pinHash,canon(p)))===p.s}catch(e){}
     if(!good)return {ok:false,msg:'FAKE or altered QR (RED FLAG). Do not record.'};
+    if(p.t==='GO'){const ag=Date.now()-Number(p.ts);if(!(ag<=GO_OK&&ag>-GO_SKEW))return {ok:false,msg:'⏱ The employee QR is old (15 seconds only). Ask the employee to show the NEW QR, then scan again.'};if(goUsed(p))return {ok:false,msg:'⛔ This QR was already scanned. Ask the employee to show the NEW QR (it changes every 15 seconds).'}}
     if(p.t==='PASS'&&p.geo!=='OK')return {ok:false,msg:'⛔ NOT AT THE BRANCH — GPS: '+(p.geo==='OUT'?'OUTSIDE the branch':'location OFF / not checked')+'. Do not record. The employee must turn ON Location, stand in front of you, and scan your QR again.'};
     const age=Date.now()-Number(p.ts);if(!(age<=MAX_AGE&&age>-60000))return {ok:false,msg:'The QR has expired (2 minutes only). Ask the employee to refresh it.'};
     if(isSep(p.c))return {ok:false,msg:p.c+' is already SEPARATED. Attendance not allowed.'};try{const tg=window.rcadsR193&&window.rcadsR193.gate(p.c);if(tg)return {ok:false,msg:tg}}catch(e){}
@@ -26060,7 +26064,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       const left=Math.ceil((PASS.until-Date.now())/1000);
       h+='<div class="r181-pass"><div class="r181-ok">✓ YOU SCANNED THE QR OF '+esc(PASS.guard.toUpperCase())+'</div><div class="r181-qr">'+qrSvg(PASS.txt)+'</div><b>SHOW THIS TO '+(PASS.guard==='HR OPERATION OFFICER'?'HR':'THE GUARD')+' TO SCAN</b><small>Still valid for <span data-r181-left>'+left+'</span>s • GPS: '+({OK:'✓ at the branch',OUT:'⚠ OUTSIDE the branch',NA:'not checked',NS:'branch location not set (HR)'}[PASS.geo])+'</small></div>';
     }else{
-      h+='<button type="button" class="r181-big" data-r181-scanguard>📷 SCAN THE GUARD’S QR<small>for TIME IN / TIME OUT</small></button>';
+      h+=oneHtml(who);   /* R479: ONE SCAN — the Guard scans this QR; it shows only within 50 m of the branch */
       h+='<details class="r181-brk"'+(st.state==='WORKING'||st.state==='BREAK'?' open':'')+'><summary>☕ BREAK QR — show to an authorized Head, assistant or Manager</summary><div class="r181-qr small" data-r181-bq="'+esc(who.code)+'">'+(breakCache[who.code]&&Date.now()-breakCache[who.code].at<60000?qrSvg(breakCache[who.code].txt):'<i>…</i>')+'</div><small>Changes every minute. BREAK OUT / BREAK IN: Guard, authorized Heads, assistants and Managers. Prioritize Head 1 and Managers under HR rules.</small></details>';
     }
     return h;
@@ -26079,7 +26083,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       if(me&&shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none')hosts.push([shell,shell.querySelector(':scope > .r162-status')]);
       let el=document.getElementById('r181Pass');
       if(!hosts.length){if(el)el.remove();renderBusy=false;return}
-      const [host,after]=hosts[0];
+      let [host,after]=hosts[0];
+      {const A=[document.getElementById('r330Lock'),document.getElementById('r405Tom')].filter(x=>x&&x.parentElement===host&&x!==el);if(A.length)after=A[A.length-1]}
       if(!el){el=document.createElement('div');el.id='r181Pass';el.className='r181-card';el.setAttribute('data-r162-tab','any')}
       if(after&&after.parentElement===host){if(after.nextElementSibling!==el)after.insertAdjacentElement('afterend',el)}else if(el.parentElement!==host)host.insertBefore(el,host.firstChild);
       if(!attendanceReady(me.code)){
@@ -26096,6 +26101,41 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     renderBusy=false;
   }
   setInterval(()=>{if(PASS&&Date.now()>PASS.until)PASS=null;renderPassAll();renderBorrow()},1000);
+  /* ---------------- R479: ONE SCAN — only the Guard scans ----------------
+     The employee opens RCADS → if the phone is within 50 m of a Rustica branch, the attendance QR shows (changes every minute).
+     Not at the branch / Location OFF → NO QR (so it cannot be sent to somebody else).
+     The old way (employee scans the Guard's QR first) stays as a backup. */
+  const ONE_R=50;let ONE=null,oneBusy=false;
+  /* R487 — ONE SCAN, NO EMPLOYEE LOCATION: the employee QR changes every 15 seconds and works once.
+     Only the GUARD's phone must be at the branch (R283 guard location check stays). */
+  const GO_MS=15000,GO_OK=25000,GO_SKEW=20000,GO_USED='rcads_r487_used_v1';
+  function goUsedMap(){try{return JSON.parse(localStorage.getItem(GO_USED)||'{}')||{}}catch(e){return {}}}
+  function goUsed(p){return !!goUsedMap()[p.c+'|'+p.ts]}
+  function goMark(p){try{const m=goUsedMap(),now=Date.now();Object.keys(m).forEach(k=>{if(now-m[k]>600000)delete m[k]});m[p.c+'|'+p.ts]=now;localStorage.setItem(GO_USED,JSON.stringify(m))}catch(e){}}
+  function oneGeo(){return new Promise(res=>{let cfg={};try{cfg=JSON.parse(localStorage.getItem('rcads_r159_branch_geo_v1')||'{}')||{}}catch(e){}
+    const pts=Object.keys(cfg).filter(k=>cfg[k]&&isFinite(cfg[k].lat)&&isFinite(cfg[k].lng));if(!pts.length)return res({ok:false,msg:'The branch location is not set yet. See HR.'});
+    if(!navigator.geolocation)return res({ok:false,msg:'This phone has no GPS.'});
+    navigator.geolocation.getCurrentPosition(p=>{const R=6371000,r=x=>x*Math.PI/180;let best=null;
+      pts.forEach(k=>{const a=cfg[k],dl=r(p.coords.latitude-a.lat),dn=r(p.coords.longitude-a.lng),h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(p.coords.latitude))*Math.sin(dn/2)**2,d=2*R*Math.asin(Math.sqrt(h));if(!best||d<best.d)best={k,d}});
+      const acc=Math.round(p.coords.accuracy||0),d=Math.round(best.d),ok=best.d<=ONE_R+Math.min(acc,10);
+      res(ok?{ok:true,branch:best.k,d,acc}:{ok:false,d,acc,branch:best.k,msg:'You are '+(d>=1000?(d/1000).toFixed(1)+' km':d+' m')+' from '+bName(best.k)+'. The QR shows only within '+ONE_R+' m of the branch.'+(acc>ONE_R?' (GPS is weak: ±'+acc+' m — go outside / near the entrance.)':'')})},
+      e=>res({ok:false,msg:e&&e.code===1?'Location is BLOCKED for this app. Allow Location, then press CHECK AGAIN.':'Location is OFF or not available. Turn ON Location, then press CHECK AGAIN.'}),{enableHighAccuracy:true,timeout:15000,maximumAge:10000})})}
+  async function oneMake(who,force){
+    if(oneBusy)return;if(!force&&ONE&&ONE.code===who.code&&Date.now()-ONE.at<(ONE.ok?GO_MS:10000))return;oneBusy=true;
+    try{if(!ONE||ONE.code!==who.code)ONE={code:who.code,at:0,checking:true};
+      const g={ok:true,branch:who.branch||''};let txt='';
+      try{txt=await makePayload(who.code,who.branch||'','GO',null,'GUARD',who.ph)}catch(e){g.ok=false;g.msg=e.message}
+      ONE={code:who.code,at:Date.now(),ok:g.ok,txt,msg:g.msg||'',d:g.d,acc:g.acc,branch:g.branch};
+    }finally{oneBusy=false}renderPassAll()}
+  function oneHtml(who){
+    if(!ONE||ONE.code!==who.code||ONE.checking){void oneMake(who);return '<div class="r181-info">Preparing your QR…</div>'}
+    if(Date.now()-ONE.at>(ONE.ok?GO_MS:10000))void oneMake(who);
+    if(ONE.ok&&ONE.txt)return '<div class="r181-pass"><div class="r181-qr">'+qrSvg(ONE.txt)+'</div><b>SHOW THIS TO THE GUARD TO SCAN</b><small>The QR changes every 15 seconds. No location needed.</small></div>'
+      +'<button type="button" class="r181-btn ghost" data-r181-scanguard style="margin-top:8px;width:100%">📷 Other way: scan the Guard’s QR</button>';
+    return '<div class="r181-warn" role="status"><b>NO QR YET</b><br>'+esc(ONE.msg||'')+'</div><button type="button" class="r181-big" data-r479-retry>🔄 TRY AGAIN</button>';
+  }
+  setInterval(()=>{try{if(document.hidden||!ONE||!ONE.ok)return;const me=meFromSession();if(!me||ONE.code!==me.code)return;if(!document.querySelector('#r181Pass .r181-qr'))return;if(Date.now()-ONE.at>=GO_MS)void oneMake(me,true)}catch(e){}},1000);   /* R487: new QR every 15 s */
+  document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-r479-retry]')){const me=meFromSession();if(me){ONE=null;void oneMake(me,true);renderPassAll()}}});
 
   /* ---------------- GUARD: scan the employee PASS ---------------- */
   function guardLabel(){if(window.__r335HrMode)return window.rcadsR335Label;try{return getLoggedGuardLabel()||''}catch(e){return ''}}
@@ -26107,19 +26147,19 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(!(await refreshAttendanceStatus('r181GuardRes')))return;
     const gl=guardLabel();if(!gl){alert('Log in as a Guard first.');return}
     const v=await verifyPayload(raw);if(!v.ok){resultBox('r181GuardRes','<b>✗ NOT RECORDED</b><span>'+esc(v.msg)+'</span>','bad');return}
-    const p=v.p;
-    if(p.t!=='PASS'){resultBox('r181GuardRes','<b>✗ INCOMPLETE SCAN</b><span>'+esc(v.emp.name)+': THEY must first scan your QR (Guard) before you scan their QR.</span>','bad');return}
-    if(!guardTokens().includes(p.g)){resultBox('r181GuardRes','<b>✗ THEY DID NOT SCAN YOUR QR</b><span>What they scanned is another guard’s QR or an old one. Have them scan your QR again ('+esc(gl)+').</span>','bad');return}
+    const p=v.p;if(p.t==='GO')goMark(p);
+    if(p.t!=='PASS'&&p.t!=='GO'){resultBox('r181GuardRes','<b>✗ INCOMPLETE SCAN</b><span>'+esc(v.emp.name)+': THEY must first scan your QR (Guard) before you scan their QR.</span>','bad');return}
+    if(p.t==='PASS'&&!guardTokens().includes(p.g)){resultBox('r181GuardRes','<b>✗ THEY DID NOT SCAN YOUR QR</b><span>What they scanned is another guard’s QR or an old one. Have them scan your QR again ('+esc(gl)+').</span>','bad');return}
     // R283: the recording Guard must pass a fresh location check too.
     let guardGeo=null;
     try{guardGeo=await window.rcadsR159VerifyLocation({id:'GUARD_'+gl,name:gl,role:'GUARD'})}catch(e){}
     if(!guardGeo||guardGeo.ok!==true){resultBox('r181GuardRes','<b>✗ NOT RECORDED</b><span>Guard: '+esc(guardGeo&&guardGeo.state||'Location is OFF or unavailable. Allow location and scan again.')+'</span>','bad');return}
-    if(guardLabel()!==gl||!guardTokens().includes(p.g)||Date.now()-Number(p.ts)>MAX_AGE){resultBox('r181GuardRes','<b>✗ SCAN AGAIN</b><span>The Guard session or QR expired during the location check.</span>','bad');return}
+    if(guardLabel()!==gl||(p.t==='PASS'&&!guardTokens().includes(p.g))||Date.now()-Number(p.ts)>MAX_AGE){resultBox('r181GuardRes','<b>✗ SCAN AGAIN</b><span>The Guard session or QR expired during the location check.</span>','bad');return}
     const st=shiftState(p.c);const name=v.emp.name||p.c;
-    const flags=[p.geo==='OUT'?'⚠ GPS: OUTSIDE THE BRANCH':(p.geo==='OK'?'✓ GPS: at the branch':'GPS: not checked'),String(p.ph||'').indexOf('BORROWED')===0?'👥 BORROWED PHONE ('+esc(p.ph.split(':')[1]||'')+')':'',v.branch&&curBranch()&&v.branch!==curBranch()?'🚨 URGENT DUTY from '+bName(v.branch)+' — goes to their own DTR':'',v.loan?'👥 TEMPORARY TRANSFER from '+bName(v.loan.from)+' until '+(window.rcadsR185?rcadsR185.fmt(v.loan.until):v.loan.until):'',v.loanEnded&&v.loanEnded.to===curBranch()?'⚠ TEMPORARY TRANSFER ENDED ('+(window.rcadsR185?rcadsR185.fmt(rcadsR185.loanEnd(v.loanEnded)):v.loanEnded.until)+') — should be at '+bName(v.loanEnded.from)+' now':''].filter(Boolean);
+    const flags=[p.t==='GO'?'✓ Scanned by the Guard at the branch':(p.geo==='OUT'?'⚠ GPS: OUTSIDE THE BRANCH':(p.geo==='OK'?'✓ GPS: at the branch':'GPS: not checked')),String(p.ph||'').indexOf('BORROWED')===0?'👥 BORROWED PHONE ('+esc(p.ph.split(':')[1]||'')+')':'',v.branch&&curBranch()&&v.branch!==curBranch()?'🚨 URGENT DUTY from '+bName(v.branch)+' — goes to their own DTR':'',v.loan?'👥 TEMPORARY TRANSFER from '+bName(v.loan.from)+' until '+(window.rcadsR185?rcadsR185.fmt(v.loan.until):v.loan.until):'',v.loanEnded&&v.loanEnded.to===curBranch()?'⚠ TEMPORARY TRANSFER ENDED ('+(window.rcadsR185?rcadsR185.fmt(rcadsR185.loanEnd(v.loanEnded)):v.loanEnded.until)+') — should be at '+bName(v.loanEnded.from)+' now':''].filter(Boolean);
     const noBreak=st.state==='WORKING'?'<div class="r181-warn">Employee is currently on duty. Choose BREAK OUT for a personal break, ERRAND OUT for an authorized work errand, or TIME OUT to end duty.</div>':'';
     const head=noBreak+'<div class="r181-who"><b>'+esc(name)+'</b><span>'+esc(p.c)+(rustId(p.c)?' • '+esc(rustId(p.c)):'')+' • '+esc(bName(v.branch))+'</span><em>'+flags.map(esc).join(' • ').replace(/&amp;/g,'&')+'</em></div>';
-    const base={handshake:'MUTUAL QR',guardToken:p.g,geo:p.geo,guardGeo:'OK',guardGeoCheckedAt:guardGeo.at||new Date().toISOString(),phone:p.ph||'OWN',authorizedBy:gl,authorizedDepartment:'Security / Guard',dutyBranch:curBranch()};
+    const base={handshake:p.t==='GO'?'ONE SCAN (Guard location; employee QR 15 s)':'MUTUAL QR',guardToken:p.g||'',geo:p.geo,guardGeo:'OK',guardGeoCheckedAt:guardGeo.at||new Date().toISOString(),phone:p.ph||'OWN',authorizedBy:gl,authorizedDepartment:'Security / Guard',dutyBranch:curBranch()};
     pendingOut={p,name,base,emp:v.emp,head};
     if(storeClosedTime()&&canGuardAction('TIME_OUT',st)){await commitGuardAction('TIME_OUT');return;}
     resultBox('r181GuardRes',guardActionMenu(head,st),'');
@@ -26157,7 +26197,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(guardChoiceBusy||!pendingOut)return;
     resultBox('r181GuardRes',pendingOut.head+'<form id="r397BreakForm"><h3>BREAK OUT</h3><label>Reason<select name="reason" required><option value="">Choose reason</option>'+guardBreakReasons.map(r=>'<option>'+esc(r)+'</option>').join('')+'</select></label><label>Details (required for Other)<input name="note" maxlength="500"></label><button type="submit" class="r181-btn">CONFIRM BREAK OUT</button><button type="button" class="r181-btn ghost" data-r395-back>BACK — NOT RECORDED</button><p role="status"></p></form>','');
   }
-  function choiceFresh(p,base){return pendingOut&&pendingOut.p===p&&guardLabel()===base.authorizedBy&&guardTokens().includes(p.g)&&Date.now()-Number(p.ts)<=MAX_AGE;}
+  function choiceFresh(p,base){return pendingOut&&pendingOut.p===p&&guardLabel()===base.authorizedBy&&(p.t!=='PASS'||guardTokens().includes(p.g))&&Date.now()-Number(p.ts)<=MAX_AGE;}
   function showErrandForm(){
     if(guardChoiceBusy)return;
     if(!pendingOut){resultBox('r181GuardRes','<b>SCAN AGAIN</b><span>No active employee scan. Nothing recorded.</span>','warn');return;}
@@ -26214,7 +26254,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
         Object.assign(extra,{reason:details.reason+(note?' — '+note:''),reasonApproved:details.verbal&&by?'YES':'N/A',approvedBy:by,approvalMethod:details.verbal&&by?'VERBAL — recorded by Guard':'',requiresHrReview:early||st.state==='BREAK',approvedEarlyLeave:early&&workedInfo(p.c).worked<NEED});
         }
       }
-      if(!['BREAK_OUT','ERRAND_OUT','ROVING_OUT','TIME_OUT'].includes(action)&&!confirm(actionLabel(action)+' — '+name+' ('+p.c+')\n\nRecord this exact action in the employee DTR?'))return false;
+      if(!['BREAK_OUT','ERRAND_OUT','ROVING_OUT','TIME_OUT'].includes(action)&&!(Date.now()-(window.__r478ok||0)<8000)&&!confirm(actionLabel(action)+' — '+name+' ('+p.c+')\n\nRecord this exact action in the employee DTR?'))return false;
       if(!(await refreshBeforeBreak('r181GuardRes'))||!choiceFresh(p,base)||!canGuardAction(action,shiftState(p.c))){resultBox('r181GuardRes','<b>NOT RECORDED</b><span>Status/session changed. Scan again.</span>','bad');return false;}
       const stamp=nowStampLocal();const mapping={TIME_IN:['IN','Start'],BREAK_IN:['IN','Return'],ERRAND_IN:['IN','Return'],BREAK_OUT:['OUT','Break'],ERRAND_OUT:['OUT','Break'],ROVING_OUT:['OUT','Break'],ROVING_IN:['IN',rovingKind||'Start'],TIME_OUT:['OUT','End Shift']};
       const [type,kind]=mapping[action];const rec=Object.assign({},base,extra,{type,kind,date:stamp.date.toISOString(),time:stamp.time,actionSelectedAt:stamp.date.toISOString()});
@@ -26416,7 +26456,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   }
   setInterval(()=>{try{hrCard()}catch(e){}},1500);
 
-  window.rcadsR181={guardHandle,breakHandle,onGuardScanned,makePayload,verifyPayload,shiftState,openBorrow,borrowLogin,_pass:()=>PASS,_meta:()=>({BORROW})};
+  window.rcadsR181={guardHandle,breakHandle,onGuardScanned,makePayload,verifyPayload,shiftState,openBorrow,borrowLogin,_pass:()=>PASS,_one:()=>ONE,_meta:()=>({BORROW})};
 })();
 </script>
 
@@ -32715,7 +32755,8 @@ body.guard-session-active .phone>.screen:not(#guardHomeScreen):not(.hidden){disp
     let prev=top;[qr,scan,board].forEach(e=>{if(e){if(prev.nextElementSibling!==e)prev.insertAdjacentElement('afterend',e);prev=e}});
     if(more.previousElementSibling!==prev)prev.insertAdjacentElement('afterend',more);
     [rel,hr].forEach(e=>{if(e&&e.parentElement!==inn)inn.appendChild(e)});if(dtr&&more.nextElementSibling!==dtr)more.insertAdjacentElement('afterend',dtr);
-    {const after=dtr||more;if(out&&after.nextElementSibling!==out)after.insertAdjacentElement('afterend',out);}
+    {let after=dtr||more;const up=document.getElementById('r351Upd');if(up&&up.parentElement===card){if(after.nextElementSibling!==up)after.insertAdjacentElement('afterend',up);after=up} /* R476: keep 🔄 UPDATE before LOG OUT (no more jumping) */
+     if(out&&after.nextElementSibling!==out)after.insertAdjacentElement('afterend',out);}
     const sec=[...card.querySelectorAll(':scope > .section')].find(e=>/GUARD NORMAL SCREEN/i.test(e.textContent));if(sec)sec.style.display='none';
     const row=card.querySelector(':scope > .row');if(row&&row.querySelector('#guardHomeInBtn'))row.style.display='none';
   }
@@ -33623,8 +33664,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   }
   function display(cell,header){const v=cell?cell.v:'';if(typeof v==='number'&&/\[h\]:mm/i.test(header)){const m=Math.round(v*1440);return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')}return v==null?'':String(v)}
   /* R473: NEW employees written by the Head (approved by HR) → new rows under the list */
-  function r473Add(ws,n,l,d){const ex={};Object.keys(d.cells||{}).forEach(k=>{let a;try{a=JSON.parse(k)}catch(e){return}if(a[0]!==n||!/-(EXTRA)?NEW\d+$/.test(String(a[1])))return;(ex[a[1]]=ex[a[1]]||{})[U(a[2])]=d.cells[k].value});
-    const codes=Object.keys(ex).filter(c=>String(ex[c]['COMPLETE NAME']||ex[c]['NAME']||'').trim()&&!l.rows.some(r=>U(r[0])===c)).sort((x,y)=>(+x.replace(/^.*NEW/,''))-(+y.replace(/^.*NEW/,'')));if(!codes.length)return;
+  function r473Add(ws,n,l,d){const ex={};Object.keys(d.cells||{}).forEach(k=>{let a;try{a=JSON.parse(k)}catch(e){return}if(a[0]!==n)return;(ex[a[1]]=ex[a[1]]||{})[U(a[2])]=d.cells[k].value});
+    const codes=Object.keys(ex).filter(c=>String(ex[c]['COMPLETE NAME']||ex[c]['NAME']||'').trim()&&!l.rows.some(r=>U(r[0])===c)).sort((x,y)=>(+(x.match(/(\d+)$/)||[0,0])[1])-(+(y.match(/(\d+)$/)||[0,0])[1]));if(!codes.length)return;
     let last=l.h;l.rows.forEach((row,r)=>{if(r>l.h&&employee(row))last=r});const k=codes.length;const rg=XLSX.utils.decode_range(ws['!ref']||'A1');
     for(let r=rg.e.r;r>last;r--)for(let c=rg.s.c;c<=rg.e.c;c++){const A=XLSX.utils.encode_cell({r,c}),B=XLSX.utils.encode_cell({r:r+k,c});if(ws[A]){ws[B]=ws[A];delete ws[A]}else delete ws[B]}
     if(ws['!merges'])ws['!merges'].forEach(m=>{if(m.s.r>last){m.s.r+=k;m.e.r+=k}});rg.e.r+=k;ws['!ref']=XLSX.utils.encode_range(rg);
@@ -34772,11 +34813,15 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     return wb.SheetNames.find(x=>{const a=XLSX.utils.sheet_to_json(wb.Sheets[x],{header:1,defval:''}).slice(0,6).map(r=>U(r[0])).join('|');return a.indexOf('DEPT: '+(dept==='ADMIN'?'ADM':dept.slice(0,3)))>=0&&((kind==='ACS')===/APPROVED OVER TIME|CHANGE OF SCHEDULE/.test(a))})||''}
   /* reads the sheet layout: employees, day columns, existing values */
   /* R473: 5 blank rows for NEW EMPLOYEES (not yet in the RCPS list) */
-  const NEW_N=5;const isNewCode=c=>/-(EXTRA)?NEW\d+$/.test(U(c));const realE=e=>!e.isNew||!!String(e.name||'').trim();
+  const NEW_N=5;const NEWSET=new Set();const isNewCode=c=>NEWSET.has(U(c));
+  /* R475: a new employee gets the NEXT EXTRAEMP code of the branch (last SRF-EXTRAEMP15 → new SRF-EXTRAEMP16) */
+  function extraMax(b,more){let codes=[];try{codes=(rusticaManagerLoadBranchEmployeeMaster(b)||[]).map(e=>U(e&&e.code))}catch(e){}codes=codes.concat((more||[]).map(U)).filter(Boolean);
+    let P='';const f=codes.find(c=>/^[A-Z]{2,6}-/.test(c));if(f)P=f.split('-')[0];P=P||'X';let mx=0;codes.forEach(c=>{const m=new RegExp('^'+P+'-EXTRAEMP(\\d+)$').exec(c);if(m)mx=Math.max(mx,+m[1])});return {P,mx}}
+  const exCode=(P,n)=>P+'-EXTRAEMP'+String(n).padStart(2,'0');const realE=e=>!e.isNew||!!String(e.name||'').trim();
   function blankDays(kind){const o=[];for(let i=0;i<7;i++)o.push(kind==='ACS'?{st:'',in:'',out:'',ot:'',lb:''}:{st:'',in:'',out:''});return o}
-  function addSlots(L,kind){const P=(U((L.emps.find(e=>!isNewCode(e.code))||{}).code).split('-')[0])||'NEW';const prev=L._prevNew||[];
-    L.emps=L.emps.filter(e=>!isNewCode(e.code));
-    for(let i=1;i<=NEW_N;i++){const code=P+'-EXTRANEW'+i;const f=prev.find(e=>U(e.code)===code);L.emps.push({r:null,code,name:f?U(f.name):'',pos:f?U(f.pos):'',days:f&&f.days&&f.days.length===7?f.days:blankDays(kind),isNew:true,slot:i})}}
+  function addSlots(L,kind,b){const prev=L._prevNew||[];const base=L.emps.filter(e=>!prev.some(p=>p.code===e.code));const X=extraMax(b,base.concat(prev).map(e=>e.code));
+    L.emps=base;let slot=0;prev.forEach(f=>{const code=U(f.code);NEWSET.add(code);L.emps.push({r:null,code,name:U(f.name),pos:U(f.pos),days:f.days&&f.days.length===7?f.days:blankDays(kind),isNew:true,slot:++slot})});
+    let n=X.mx;while(slot<NEW_N){n++;const code=exCode(X.P,n);NEWSET.add(code);L.emps.push({r:null,code,name:'',pos:'',days:blankDays(kind),isNew:true,slot:++slot})}}
   /* insert k empty rows (same look as row 'after') below row 'after' (1-based) in a sheet XML */
   function insertRows(xml,after,k){if(k<=0)return xml;const sh=n=>n>after?n+k:n;let tpl='';
     xml=xml.replace(/<row\b[^>]*?(?:\/>|>[\s\S]*?<\/row>)/g,row=>{const r=+((/\br="(\d+)"/.exec(row)||[])[1]);if(r===after)tpl=row;
@@ -34923,8 +34968,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       const rows=[];for(let i=h+1;i<a.length;i++){const c=U(a[i][0]);if(/^[A-Z0-9]+-[A-Z0-9-]+$/.test(c))rows.push(a[i].slice())}
       sheets.push({tag:t,name:n,headers:a[h].map(x=>String(x)),rows})});
     /* R474: 5 rows for NEW employees — new employees start as EXTRA, so only in the Extra sheet */
-    {let P='';sheets.some(sh=>sh.rows.some(r=>{const c=U(r[0]);if(c&&!isNewCode(c)){P=c.split('-')[0];return true}return false}));P=P||'NEW';
-      sheets.forEach(sh=>{if(sh.tag!=='Extra')return;for(let i=1;i<=NEW_N;i++){const code=P+'-EXTRANEW'+i;if(sh.rows.some(r=>U(r[0])===code))continue;const row=sh.headers.map(()=>'');row[0]=code;sh.rows.push(row)}
+    {const all=[];sheets.forEach(sh=>sh.rows.forEach(r=>all.push(U(r[0]))));const X=extraMax(b,all);
+      sheets.forEach(sh=>{if(sh.tag!=='Extra')return;for(let i=1;i<=NEW_N;i++){const code=exCode(X.P,X.mx+i);NEWSET.add(code);const row=sh.headers.map(()=>'');row[0]=code;sh.rows.push(row)}
         sh.rows.sort((x,y)=>(isNewCode(x[0])?1:0)-(isNewCode(y[0])?1:0))})}
     if(!sheets.length){alert('No DTR Summary Log rows for this branch yet.');return null}return sheets}
   function cutTo(from){const [y,m,dd]=from.split('-').map(Number);if(dd===11)return from.slice(0,8)+'25';const t=new Date(y,m,10);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-10'}
@@ -34956,8 +35001,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       '<div class="ed-b"><div class="r440-v">'+DE.sheets.map((s,i)=>'<button type="button" class="r399-btn'+(i===DE.tab?'':' l')+'" data-tab="'+i+'">'+DTAG[s.tag]+'</button>').join('')+'</div>'+
       (DE.hr?'<div class="r442-pend">HR CHECK — sent by '+esc(DE.by)+'. Yellow = changed by the Head or by you. Correct anything, then ✅ APPROVE.</div>':'')+'<div class="r399-n">Numbers come from RCADS (punches + approved schedule). Change only what is wrong. LATE / UNDERTIME as hours:minutes (e.g. <b>1:30</b>). Changed cells are yellow. HR approves before it goes to payroll.</div>'+
       '<div class="gw"><table class="g"><thead><tr>'+sh.headers.map((h,c)=>'<th class="'+(c===0?'s1':c===1?'s2':'sub')+'">'+esc(h)+'</th>').join('')+'</tr></thead><tbody>';
-    let sep=false;sh.rows.forEach((row,ri)=>{const nr=isNewCode(row[0]);if(nr&&!sep){sep=true;t+='<tr class="r473-sep"><td colspan="'+sh.headers.length+'">➕ NEW EXTRA EMPLOYEES (not yet in the list) — write the NAME and POSITION (and the EXTRAEMP code if HR already gave one), then the numbers. Leave blank if none.</td></tr>'}
-      t+='<tr'+(nr?' class="r473-new"':'')+'>'+sh.headers.map((h,c)=>{if(nr&&c<3){const x=dVal(sh,row,h,c);return '<td class="'+(c===0?'s1':c===1?'s2':'c')+(x.ed?' st':'')+'"><input data-r="'+ri+'" data-c="'+c+'" value="'+esc(c===0&&!x.ed?'':x.v)+'" placeholder="'+(c===0?'NEW EXTRA '+row[0].replace(/^.*NEW/,''):c===1?'SURNAME, FIRST NAME':'POSITION')+'" style="width:'+(c===1?150:c===0?90:100)+'px;text-transform:uppercase"></td>'}
+    let sep=false;sh.rows.forEach((row,ri)=>{const nr=isNewCode(row[0]);if(nr&&!sep){sep=true;t+='<tr class="r473-sep"><td colspan="'+sh.headers.length+'">➕ NEW EXTRA EMPLOYEES (not yet in the list) — the next EXTRAEMP codes are ready. Write the NAME and POSITION, then the numbers. Leave blank if none.</td></tr>'}
+      t+='<tr'+(nr?' class="r473-new"':'')+'>'+sh.headers.map((h,c)=>{if(nr&&c===0)return '<td class="s1">'+esc(row[0])+'<small style="display:block;color:#2f6b3a">NEW</small></td>';if(nr&&c<3){const x=dVal(sh,row,h,c);return '<td class="'+(c===0?'s1':c===1?'s2':'c')+(x.ed?' st':'')+'"><input data-r="'+ri+'" data-c="'+c+'" value="'+esc(c===0&&!x.ed?'':x.v)+'" placeholder="'+(c===0?'NEW EXTRA '+row[0].replace(/^.*NEW/,''):c===1?'SURNAME, FIRST NAME':'POSITION')+'" style="width:'+(c===1?150:c===0?90:100)+'px;text-transform:uppercase"></td>'}
         if(c===0)return '<td class="s1">'+esc(row[0])+'</td>';if(c===1)return '<td class="s2">'+esc(row[1])+'</td>';
         if(!dEdit(h,c))return '<td class="ps">'+esc(dShow(row[c],h))+'</td>';const x=dVal(sh,row,h,c);
         return '<td class="c'+(x.ed?' st':'')+'"><input data-r="'+ri+'" data-c="'+c+'" value="'+esc(dShow(x.v,h))+'"'+(U(h)==='REMARKS'?' style="width:160px"':'')+'></td>'}).join('')+'</tr>'});
@@ -34978,7 +35023,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       document.getElementById('r461Ed').remove();DE=null;alert('✅ APPROVED — '+n+' correction(s) are now in your DTR Summary Log.\nOpen the DTR Summary Log of that branch + cut-off and press 📤 SEND TO RCPS as usual.');drawHr();return}
     if(act==='submit'){if(window.RCADS_PREVIEW){alert('👁 PREVIEW — view only.');return}
       if(!confirm('Send the DTR SUMMARY LOG of '+bName(DE.b)+' ('+Object.keys(DE.edits).length+' correction(s)) to HR?\nHR approves it before it goes to payroll.'))return;
-      a.disabled=true;try{const out=XLSX.utils.book_new();DE.sheets.forEach(sh=>{const aoa=[sh.headers].concat(sh.rows.filter(row=>!isNewCode(row[0])||String(dVal(sh,row,sh.headers[1],1).v||'').trim()).map(row=>sh.headers.map((h,c)=>(dEdit(h,c)||(c<3&&isNewCode(row[0])))?dVal(sh,row,h,c).v:row[c])));
+      a.disabled=true;try{const out=XLSX.utils.book_new();DE.sheets.forEach(sh=>{const aoa=[sh.headers].concat(sh.rows.filter(row=>!isNewCode(row[0])||String(dVal(sh,row,sh.headers[1],1).v||'').trim()).map(row=>sh.headers.map((h,c)=>(dEdit(h,c)||((c===1||c===2)&&isNewCode(row[0])))?dVal(sh,row,h,c).v:row[c])));
           const ws=XLSX.utils.aoa_to_sheet(aoa);for(let r=1;r<aoa.length;r++)sh.headers.forEach((h,c)=>{if(!isTime(h))return;const ref=XLSX.utils.encode_cell({r,c});if(ws[ref]&&typeof ws[ref].v==='number')ws[ref].z='[h]:mm'});
           XLSX.utils.book_append_sheet(out,ws,'DTR Log ('+sh.tag+')')});
         XLSX.utils.book_append_sheet(out,XLSX.utils.aoa_to_sheet([[JSON.stringify(DE.edits)]]),'R461_EDITS');
@@ -35021,10 +35066,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     let src;try{src=sourceU8(b,id,mon,kind,dept)}catch(e){alert(e.message);return}
     const base=unb64(formById(b,id).data_b64);
     let L;try{const wbS=XLSX.read(src.u8,{type:'array'});const sn=sheetOf(wbS,kind,dept);if(!sn)throw new Error('No '+dept+' '+(kind==='ACS'?'ACS':'schedule')+' sheet in this form.');L=layout(wbS,sn,kind);
-      if(src.filled){const wbB=XLSX.read(base,{type:'array'});const snB=sheetOf(wbB,kind,dept);const LB=layout(wbB,snB,kind);LB.emps.forEach(e=>{const f=L.emps.find(x=>x.code===e.code);if(f)e.days=f.days});LB._prevNew=L.emps.filter(e=>isNewCode(e.code));L=LB}}
+      if(src.filled){const wbB=XLSX.read(base,{type:'array'});const snB=sheetOf(wbB,kind,dept);const LB=layout(wbB,snB,kind);LB.emps.forEach(e=>{const f=L.emps.find(x=>x.code===e.code);if(f)e.days=f.days});LB._prevNew=L.emps.filter(e=>!LB.emps.some(x=>x.code===e.code));L=LB}}
     catch(e){alert('Could not open the form: '+e.message);return}
     if(!L.emps.length){alert('There are no '+dept+' employees in this form. Ask HR to update it in RCPS.');return}
-    addSlots(L,kind);   /* R473 */
+    addSlots(L,kind,b);   /* R473 / R475 */
     {const ff=formById(b,id);ED_RT=!!(ff&&String(ff.from).slice(0,10)!==mon);if(ED_RT)L.days.forEach((d,i)=>{d.date=dLbl(addD(mon,i))})}   /* R484 */
     ED={b,id,mon,kind,dept,base,L,w,open:{},hol:{}};holidaysFor(b,mon,addD(mon,6)).forEach(x=>{ED.hol[x.date]=x});
     try{const d=JSON.parse(r441LS().getItem(draftKey())||'null');if(d&&d.emps&&confirm('You have an unsent draft from '+fmtAt(d.at)+'. Continue it?'))d.emps.forEach(x=>{const e=L.emps.find(y=>y.code===x.code);if(e&&Array.isArray(x.days)&&x.days.length===7){e.days=x.days;if(e.isNew){e.name=U(x.name||'');e.pos=U(x.pos||'')}}})}catch(e){}
@@ -35043,7 +35088,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     return h+'</div>';
   }
   function empHtml(e,ei){const ok=empDone(e,ED.kind);const changed=ED.kind==='ACS'?e.days.filter(d=>dayStatus(d,'ACS')).length:0;
-    return '<div class="emp'+(ED.open[ei]?'':' closed')+'"><div class="emp-h" data-tog="'+ei+'"><div><b>'+(e.isNew?(e.name?esc(e.name):'➕ NEW EMPLOYEE '+e.slot):esc(e.name))+'</b><small>'+(e.isNew?'NEW EXTRA — not yet in the list':esc(e.code))+' • '+esc(e.pos)+'</small></div><span class="st '+(ED.kind==='ACS'?(changed?'ok':''):(ok?'ok':'no'))+'">'+(ED.kind==='ACS'?(changed?changed+' change(s)':'no change'):(ok?'✓ complete':'incomplete'))+' ▾</span></div>'+
+    return '<div class="emp'+(ED.open[ei]?'':' closed')+'"><div class="emp-h" data-tog="'+ei+'"><div><b>'+(e.isNew?(e.name?esc(e.name):'➕ NEW EMPLOYEE '+e.slot):esc(e.name))+'</b><small>'+(e.isNew?esc(e.code)+' • NEW EXTRA — not yet in the list':esc(e.code))+' • '+esc(e.pos)+'</small></div><span class="st '+(ED.kind==='ACS'?(changed?'ok':''):(ok?'ok':'no'))+'">'+(ED.kind==='ACS'?(changed?changed+' change(s)':'no change'):(ok?'✓ complete':'incomplete'))+' ▾</span></div>'+
       '<div class="emp-b">'+(e.isNew?'<div class="tools"><input data-e="'+ei+'" data-f="nname" value="'+esc(e.name)+'" placeholder="NAME (SURNAME, FIRST NAME)" style="text-transform:uppercase"> <input data-e="'+ei+'" data-f="npos" value="'+esc(e.pos)+'" placeholder="POSITION" style="text-transform:uppercase"></div>':'')+(ED.kind==='ORIG'?'<div class="tools"><button type="button" class="r399-btn l" data-copy="'+ei+'">COPY MONDAY TO THE OTHER DAYS</button></div>':'')+e.days.map((d,di)=>dayHtml(e,ei,d,di)).join('')+'</div></div>'}
   /* R440 — TABLE VIEW: the same layout as the Excel form (EMPCODE • NAME • POSITION, then MONDAY … SUNDAY).
      ORIGINAL: IN | OUT per day.  ACS: NEW SCHED | LONG BREAK | APRVD O.T. per day.  Type like in Excel: 8, 8:30, 11, 9 PM, DAY OFF, LEAVE, ANGELES … */
@@ -35059,8 +35104,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     let h=gLists()+'<div class="gw"><table class="g"><thead><tr><th class="s1" rowspan="2">EMPCODE</th><th class="s2" rowspan="2">NAME</th><th rowspan="2">POSITION</th>'+L.days.map((dd,di)=>{const hd=ED.hol&&ED.hol[addD(ED.mon,di)];return '<th class="dh" colspan="'+span+'">'+esc(['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'][di])+'<small>'+esc(dd.date)+'</small>'+(hd?'<span class="r399-hb '+(hd.type==='R'?'r':'s')+'">'+(hd.type==='R'?'REG. HOL.':'SPECIAL')+'</span>':'')+'</th>'}).join('')+'</tr><tr>'
       +L.days.map(()=>acs?'<th class="sub">New Sched</th><th class="sub">Long Break</th><th class="sub">Aprvd O.T.</th>':'<th class="sub">IN</th><th class="sub">OUT</th>').join('')+'</tr></thead><tbody>';
     L.emps.forEach((e,ei)=>{const ok=empDone(e,ED.kind);
-      if(e.isNew&&e.slot===1)h+='<tr class="r473-sep"><td colspan="'+(3+7*span)+'">➕ NEW EMPLOYEES — they start as EXTRA (not yet in the list). Write the NAME and POSITION, then the schedule. Leave blank if none.</td></tr>';
-      h+='<tr class="'+(acs||ok||!realE(e)?'':'inc')+(e.isNew?' r473-new':'')+'"><td class="s1">'+(e.isNew?'NEW EXTRA '+e.slot:esc(e.code))+(acs?'':'<button type="button" class="cp" data-copy="'+ei+'" title="Copy Monday to the other days">⇉</button>')+'</td>'+(e.isNew?'<td class="s2"><input data-e="'+ei+'" data-f="nname" value="'+esc(e.name)+'" placeholder="SURNAME, FIRST NAME" style="width:150px;text-transform:uppercase"></td><td class="ps"><input data-e="'+ei+'" data-f="npos" value="'+esc(e.pos)+'" placeholder="POSITION" style="width:100px;text-transform:uppercase"></td>':'<td class="s2">'+esc(e.name)+'</td><td class="ps">'+esc(e.pos)+'</td>');
+      if(e.isNew&&e.slot===1)h+='<tr class="r473-sep"><td colspan="'+(3+7*span)+'">➕ NEW EMPLOYEES — they start as EXTRA with the next EXTRAEMP code. Write the NAME and POSITION, then the schedule. Leave blank if none.</td></tr>';
+      h+='<tr class="'+(acs||ok||!realE(e)?'':'inc')+(e.isNew?' r473-new':'')+'"><td class="s1">'+(e.isNew?esc(e.code)+'<small style="display:block;color:#2f6b3a">NEW</small>':esc(e.code))+(acs?'':'<button type="button" class="cp" data-copy="'+ei+'" title="Copy Monday to the other days">⇉</button>')+'</td>'+(e.isNew?'<td class="s2"><input data-e="'+ei+'" data-f="nname" value="'+esc(e.name)+'" placeholder="SURNAME, FIRST NAME" style="width:150px;text-transform:uppercase"></td><td class="ps"><input data-e="'+ei+'" data-f="npos" value="'+esc(e.pos)+'" placeholder="POSITION" style="width:100px;text-transform:uppercase"></td>':'<td class="s2">'+esc(e.name)+'</td><td class="ps">'+esc(e.pos)+'</td>');
       e.days.forEach((d,di)=>{const A='data-e="'+ei+'" data-d="'+di+'"';
         if(acs){const ns=d.st?d.st:(d.in?gShow(d.in)+(d.out?' - '+gShow(d.out):''):'');
           h+='<td class="c"><input '+A+' data-f="gns" list="r440Ns" value="'+esc(ns)+'" placeholder="no change"></td><td class="c lb"><input '+A+' data-f="glb" list="r440Lb" value="'+esc(d.lb||'')+'"></td><td class="c ot"><select '+A+' data-f="ot">'+['','1','2','3','4','5','6','7','8'].map(v=>'<option value="'+v+'"'+(String(d.ot||'')===v?' selected':'')+'>'+(v||'—')+'</option>').join('')+'</select></td>'}
@@ -35495,7 +35540,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const p=document.getElementById('employeeSimplePanel'),e=cur();let el=document.getElementById('r415Week');
     if(!p||!e||!document.body.classList.contains('employee-simple-mode')){if(el)el.remove();return}
     if(!el){el=document.createElement('div');el.id='r415Week';el.setAttribute('data-r162-tab','notices')}
-    const nav=p.querySelector(':scope > .r162-nav');if(el.parentElement!==p||(nav&&el.nextElementSibling!==nav)){if(nav)p.insertBefore(el,nav);else p.appendChild(el)}
+    const nav=[document.getElementById('r174My'),document.getElementById('r167EmpId')].find(x=>x&&x.parentElement===p)||p.querySelector(':scope > .r162-nav');if(el.parentElement!==p||(nav&&el.nextElementSibling!==nav)){if(nav)p.insertBefore(el,nav);else p.appendChild(el)}
     const k=ymd(new Date())+'|'+e.code;const h=html(e);if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
   }catch(x){console.warn('R415',x)}},2000);
 })();
@@ -36596,6 +36641,111 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
         return {type:'TIME',in:tin,out:tout,raw:String(cell),dutyBranch:code,branchDuty:n}}}}}catch(e){}
     return r};
   window.rcadsR438={list};
+})();
+</script>
+<style id="rcadsR476Css">
+#r476Toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:2147483600;background:#3d2615;color:#fff;padding:10px 16px;border-radius:12px;font:800 14px/1.3 Arial,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.35);pointer-events:none;opacity:0;transition:opacity .15s}
+#r476Toast.on{opacity:1}
+</style>
+<script id="rcadsR476Script">
+/* R476 — STEADY SCREEN (Nov 14, 2026)
+   1) TAP GUARD: if a button MOVED under the finger (the screen jumped) the tap is ignored and
+      "The screen moved — tap again" shows. No more TIME OUT pressed instead of TIME IN.
+   2) Less work every second on the phones (employee / guard / approver):
+      • the HR QR + person list (HR only) is no longer rebuilt every second on these phones;
+      • the QR picture is drawn again only when the code changes (not every second). */
+(function(){
+  'use strict';
+  /* ---------- 2a) the QR picture: draw only when the code changes ---------- */
+  function cacheDraw(name,boxId){const f=window[name];if(typeof f!=='function'||f.__r476)return;let last=null;
+    const w=function(token){const box=document.getElementById(boxId);if(token===last&&box&&box.childElementCount)return;last=token;return f.apply(this,arguments)};w.__r476=1;window[name]=w}
+  function wrapAll(){cacheDraw('rcadsEmployeeDrawTokenVisual','rcadsEmployeeQrVisual');cacheDraw('rcadsGuardDrawQr','rcadsGuardQrVisual')}
+  wrapAll();setInterval(wrapAll,3000);
+
+  /* ---------- 1) TAP GUARD ---------- */
+  const SEL='button,a[href],[role="button"],input[type="button"],input[type="submit"],summary,[data-r162-go],[onclick]';
+  const MOVE=6,RECENT=450;
+  const pos=new WeakMap(),moved=new WeakMap();let lastAny=0,lastScroll=0,started=performance.now(),down=null,sampleT=null;
+  const now=()=>performance.now();
+  function rectOf(el){const r=el.getBoundingClientRect();return {t:r.top,l:r.left,w:r.width,h:r.height}}
+  function sample(){sampleT=null;const t=now();if(t-lastScroll<250){return}
+    const vh=innerHeight;let n=0;
+    for(const el of document.querySelectorAll(SEL)){if(n>120)break;const r=el.getBoundingClientRect();if(!r.width||!r.height||r.bottom<0||r.top>vh)continue;n++;
+      const p=pos.get(el);if(p){if(Math.abs(p.t-r.top)>MOVE||Math.abs(p.l-r.left)>MOVE){moved.set(el,t);lastAny=t}}else if(t-started>1500){moved.set(el,t);lastAny=t}
+      pos.set(el,{t:r.top,l:r.left})}}
+  function schedule(){if(!sampleT)sampleT=setTimeout(sample,60)}
+  try{new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['style','class','hidden']})}catch(e){}
+  addEventListener('resize',schedule);
+  document.addEventListener('scroll',()=>{lastScroll=now();if(down)down.scrolled=true},true);
+  addEventListener('touchmove',()=>{lastScroll=now()},{passive:true,capture:true});
+  addEventListener('pointerdown',e=>{const el=e.target&&e.target.closest?e.target.closest(SEL):null;down=el?Object.assign({el,at:now()},rectOf(el)):null;},true);
+  let tt=null;function toast(){let t=document.getElementById('r476Toast');if(!t){t=document.createElement('div');t.id='r476Toast';(document.body||document.documentElement).appendChild(t)}
+    t.textContent='⚠ The screen moved — please tap again.';t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),1600)}
+  addEventListener('click',e=>{
+    if(!e.isTrusted)return;const el=e.target&&e.target.closest?e.target.closest(SEL):null;if(!el)return;
+    const t=now();let bad=false;
+    if(down&&t-down.at<2000&&!down.scrolled){
+      if(down.el!==el&&!down.el.contains(el)&&!el.contains(down.el))bad=true;                       /* finger went down on another button */
+      else{const r=rectOf(el);if(Math.abs(r.t-down.t)>MOVE+2||Math.abs(r.l-down.l)>MOVE+2)bad=true}  /* the button moved while pressing */
+    }
+    const m=moved.get(el),ref=down?down.at:t;if(!bad&&m&&ref-m>=0&&ref-m<RECENT&&t-lastScroll>400)bad=true;  /* it jumped there just before the tap */
+    down=null;
+    if(bad){e.preventDefault();e.stopImmediatePropagation();toast();schedule()}
+  },true);
+  /* ---------- R477: COVER while a screen is being built ----------
+     After login (employee / guard / approver) and when the app opens, the parts of the screen arrive one by one
+     and push the buttons down. Now a cover ("Opening…") stays until nothing moves any more (max 5 s),
+     so the person sees only the finished screen. Taps are blocked under the cover. */
+  let cov=null,covAt=0;
+  function cover(){if(window.RCADS_PREVIEW)return;covAt=now();lastAny=covAt;
+    if(!cov){cov=document.createElement('div');cov.id='r477Cover';cov.style.cssText='position:fixed;inset:0;z-index:2147483500;background:#2a160d;color:#f3c770;display:flex;flex-direction:column;align-items:center;justify-content:center;font:900 20px/1.4 Georgia,serif;letter-spacing:2px;text-align:center;touch-action:none';
+      cov.innerHTML='RUSTICA<br>RCADS<small style="display:block;margin-top:14px;font:700 13px Arial,sans-serif;letter-spacing:1px;color:#e8d5b5">Opening…</small>';
+      ['pointerdown','click','touchstart'].forEach(ev=>cov.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation()},{capture:true,passive:false}))}
+    if(!cov.isConnected)(document.body||document.documentElement).appendChild(cov);schedule()}
+  setInterval(()=>{if(!cov||!cov.isConnected)return;const t=now();if((t-lastAny>900&&t-covAt>700)||t-covAt>5000){cov.remove();started=Math.min(started,t-2000)}},150);
+  const MODES=['employee-simple-mode','guard-session-active','approver-only-mode'];let had=new Set();
+  function modeCheck(){if(!document.body)return;const B=document.body.classList;MODES.forEach(m=>{const on=B.contains(m);if(on&&!had.has(m))cover();if(on)had.add(m);else had.delete(m)})}
+  try{new MutationObserver(modeCheck).observe(document.body||document.documentElement,{attributes:true,attributeFilter:['class']})}catch(e){}
+  if(document.readyState!=='loading')modeCheck();else document.addEventListener('DOMContentLoaded',()=>{try{new MutationObserver(modeCheck).observe(document.body,{attributes:true,attributeFilter:['class']})}catch(e){}modeCheck()});
+  window.rcadsR476={sample,moved,cover};
+})();
+</script>
+<style id="rcadsR478Css">
+#r478C{position:fixed;inset:0;z-index:2147483400;background:rgba(20,10,4,.97);display:flex;flex-direction:column;justify-content:space-between;padding:22px 16px calc(22px + env(safe-area-inset-bottom,0px));box-sizing:border-box}
+#r478C .card{background:#fff8ef;border-radius:18px;padding:20px 16px;text-align:center;color:#2b190c;font-family:Arial,sans-serif}
+#r478C .card .a{font-size:30px;font-weight:900;margin:6px 0;letter-spacing:1px}
+#r478C .card .n{font-size:19px;font-weight:900}
+#r478C .card .t{font-size:15px;font-weight:700;color:#6b4a2e;margin-top:4px}
+#r478C button{display:block;width:100%;border:0;border-radius:16px;font:900 20px Arial,sans-serif;padding:20px 10px;letter-spacing:.5px}
+#r478C .yes{background:#2f6b3a;color:#fff}
+#r478C .no{background:#fff;color:#a1281f;border:3px solid #a1281f}
+</style>
+<script id="rcadsR478Script">
+/* R478 — GUARD: CONFIRM or CANCEL before a punch is recorded.
+   After the Guard presses TIME IN / BREAK IN / ERRAND IN / ROVING IN, a big screen asks:
+     ✓ YES, RECORD   or   ✗ CANCEL — choose again   (nothing is recorded until YES).
+   TIME OUT / BREAK OUT / ERRAND OUT / ROVING OUT already open a form with a ← BACK button. */
+(function(){
+  'use strict';
+  const ASK=/^(TIME_IN|BREAK_IN|ERRAND_IN|ROVING_IN)$/;
+  const label=a=>a==='ROVING_IN'?'🚗 ROVING IN':a.replace(/_/g,' ');
+  const color=a=>a==='TIME_IN'?'#2f6b3a':'#1d5f8a';
+  function close(){const c=document.getElementById('r478C');if(c)c.remove()}
+  addEventListener('click',e=>{
+    const b=e.target&&e.target.closest?e.target.closest('[data-r391-action]'):null;if(!b||b.disabled)return;
+    const a=b.getAttribute('data-r391-action');if(!ASK.test(a))return;
+    if(b.dataset.r478ok==='1'){delete b.dataset.r478ok;return}          /* confirmed → let RCADS record it */
+    e.preventDefault();e.stopImmediatePropagation();
+    const box=b.closest('.r181-result')||document;const who=box.querySelector('.r181-who b'),sub=box.querySelector('.r181-who span');
+    const t=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    close();const c=document.createElement('div');c.id='r478C';
+    c.innerHTML='<div class="card"><div class="t">PLEASE CHECK — nothing is recorded yet</div><div class="a" style="color:'+color(a)+'">'+label(a)+'</div><div class="n">'+(who?who.textContent:'')+'</div><div class="t">'+(sub?sub.textContent:'')+'</div><div class="t">Time now: <b>'+t+'</b></div></div>'
+      +'<button type="button" class="no" data-r478="no">✗ CANCEL — choose again</button>'
+      +'<button type="button" class="yes" data-r478="yes" style="background:'+color(a)+'">✓ YES, RECORD '+label(a)+'</button>';
+    c.addEventListener('click',ev=>{const x=ev.target.closest('[data-r478]');if(!x)return;ev.preventDefault();ev.stopPropagation();const yes=x.getAttribute('data-r478')==='yes';close();
+      if(yes&&b.isConnected&&!b.disabled){b.dataset.r478ok='1';window.__r478ok=Date.now();b.click()}});
+    document.body.appendChild(c);
+  },true);
 })();
 </script>
 </body></html>
