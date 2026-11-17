@@ -313,7 +313,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R474B BLOCKED PHONE STAYS LOCKED</title>
+<title>Rustica RCADS App — R483 FILL SCHEDULE SHOWS AT ONCE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34849,9 +34849,9 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     depts.forEach(dept=>{
       /* R482: every ORIGINAL SCHEDULE week that HR sent and that has NOT started yet shows 📝 FILL at once
          (no waiting for Saturday). Weeks already running / past are not shown (HR made those). */
-      {const fl=HD.filled[b]||{};const ws=[...new Set(forms.filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)))].filter(m=>m>c.t||(m<=c.t&&addD(m,6)>=c.t&&fl[m+'|'+dept+'|ORIG'])).sort();
+      {const fl=HD.filled[b]||{};const ws=[...new Set(forms.filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)))].filter(m=>addD(m,6)>=c.t).sort();   /* R483: this week too (not only next weeks) — only weeks already finished are hidden */
         ws.forEach(m=>{const f=sched(m);const done=fl[m+'|'+dept+'|ORIG'];const due=addD(m,-1);
-          rows.push({f,mon:m,kind:'ORIG',dept,label:'ORIGINAL SCHEDULE',done,c,due:done?'':(c.t>due?'':c.t===due?'🔴 DUE TODAY ('+fmtDay(due)+')':'🔴 send back by '+fmtDay(due))})});
+          rows.push({f,mon:m,kind:'ORIG',dept,label:'ORIGINAL SCHEDULE',done,c,due:done?'':(c.t>due?'📝 this week — please fill and send it now':c.t===due?'🔴 DUE TODAY ('+fmtDay(due)+')':'🔴 send back by '+fmtDay(due))})});
         if(!ws.length)rows.push({wait:true,dept,mon:addD(c.orig,c.orig>c.t?0:7),kind:'ORIG',label:'ORIGINAL SCHEDULE',why:'⏳ no new schedule from HR yet — it shows here as soon as HR sends it'})}
       // ACS: the weeks of the PREVIOUS cut-off that are still missing (LATE), then the weeks of THIS cut-off
       [[prev,true],[cur,false]].forEach(([cut,onlyMissing])=>acsWeeks(cut).forEach(mon=>{
