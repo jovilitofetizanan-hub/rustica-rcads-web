@@ -313,7 +313,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R487 ONE SCAN, NO EMPLOYEE LOCATION, QR 15 SECONDS</title>
+<title>Rustica RCADS App — R488 ONE SCAN FIX: QR TIME USES INTERNET TIME</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -26007,7 +26007,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
 
   async function makePayload(code,branch,type,guard,geo,ph){
     const r=person(code);if(!r||r.status!=='ACTIVE'||!r.pinHash)throw new Error(accessNotice(code));
-    const p={v:1,t:type,c:U(code),b:branch||'',ts:Date.now(),g:guard?guard.token:'',gl:guard?guard.label:'',geo:geo||'NA',ph:ph||'OWN'};
+    const p={v:1,t:type,c:U(code),b:branch||'',ts:(type==='GO'?goNow():Date.now()),g:guard?guard.token:'',gl:guard?guard.label:'',geo:geo||'NA',ph:ph||'OWN'};
     p.s=await hmac(r.pinHash,canon(p));return 'RCADSPASS:'+b64u(JSON.stringify(p));
   }
   async function verifyPayload(raw){
@@ -26017,7 +26017,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     if(r.status!=='ACTIVE')return {ok:false,msg:p.c+': access is '+r.status+'.'};
     let good=false;try{good=(await hmac(r.pinHash,canon(p)))===p.s}catch(e){}
     if(!good)return {ok:false,msg:'FAKE or altered QR (RED FLAG). Do not record.'};
-    if(p.t==='GO'){const ag=Date.now()-Number(p.ts);if(!(ag<=GO_OK&&ag>-GO_SKEW))return {ok:false,msg:'⏱ The employee QR is old (15 seconds only). Ask the employee to show the NEW QR, then scan again.'};if(goUsed(p))return {ok:false,msg:'⛔ This QR was already scanned. Ask the employee to show the NEW QR (it changes every 15 seconds).'}}
+    if(p.t==='GO'){const at=(GO_SCAN_AT&&Date.now()-GO_SCAN_AT<120000)?GO_SCAN_AT:goNow();const ag=at-Number(p.ts);if(!(ag<=GO_OK&&ag>-GO_SKEW))return {ok:false,msg:'⏱ The employee QR is '+(ag<0?'ahead by '+Math.round(-ag/1000)+' s':Math.round(ag/1000)+' s old')+' (limit 15 s). Ask the employee to show the NEW QR, then scan again.'+(Math.abs(ag)>60000?' If this repeats: set BOTH phones to Automatic date & time, and turn ON internet on the employee phone.':'')};if(goUsed(p))return {ok:false,msg:'⛔ This QR was already scanned. Ask the employee to show the NEW QR (it changes every 15 seconds).'}}
     if(p.t==='PASS'&&p.geo!=='OK')return {ok:false,msg:'⛔ NOT AT THE BRANCH — GPS: '+(p.geo==='OUT'?'OUTSIDE the branch':'location OFF / not checked')+'. Do not record. The employee must turn ON Location, stand in front of you, and scan your QR again.'};
     const age=Date.now()-Number(p.ts);if(!(age<=MAX_AGE&&age>-60000))return {ok:false,msg:'The QR has expired (2 minutes only). Ask the employee to refresh it.'};
     if(isSep(p.c))return {ok:false,msg:p.c+' is already SEPARATED. Attendance not allowed.'};try{const tg=window.rcadsR193&&window.rcadsR193.gate(p.c);if(tg)return {ok:false,msg:tg}}catch(e){}
@@ -26108,7 +26108,11 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   const ONE_R=50;let ONE=null,oneBusy=false;
   /* R487 — ONE SCAN, NO EMPLOYEE LOCATION: the employee QR changes every 15 seconds and works once.
      Only the GUARD's phone must be at the branch (R283 guard location check stays). */
-  const GO_MS=15000,GO_OK=25000,GO_SKEW=20000,GO_USED='rcads_r487_used_v1';
+  const GO_MS=15000,GO_OK=30000,GO_SKEW=20000,GO_USED='rcads_r487_used_v1';
+  /* R488: both phones use INTERNET TIME (not the phone clock) and the guard's scan moment is taken
+     BEFORE the cloud refresh — so a slow connection or a phone clock that is off no longer makes the QR "old". */
+  let GO_SCAN_AT=0;
+  function goNow(){try{const t=window.rcadsTrueNow&&window.rcadsTrueNow();if(t)return Math.round(t)}catch(e){}return Date.now()}
   function goUsedMap(){try{return JSON.parse(localStorage.getItem(GO_USED)||'{}')||{}}catch(e){return {}}}
   function goUsed(p){return !!goUsedMap()[p.c+'|'+p.ts]}
   function goMark(p){try{const m=goUsedMap(),now=Date.now();Object.keys(m).forEach(k=>{if(now-m[k]>600000)delete m[k]});m[p.c+'|'+p.ts]=now;localStorage.setItem(GO_USED,JSON.stringify(m))}catch(e){}}
@@ -26142,6 +26146,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function guardTokens(){if(window.__r335HrMode&&window.rcadsR335Tokens)return window.rcadsR335Tokens();const t=[];try{t.push(rcadsGuardCurrentToken(new Date()));t.push(rcadsGuardCurrentToken(new Date(Date.now()-PASS_MS)))}catch(e){}return t.filter(Boolean)}
   function resultBox(id,html,cls){if(window.__r335HrMode&&id==='r181GuardRes'&&document.getElementById('r335Res'))id='r335Res';if(Math.abs(window.__r301skew||0)>120000&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r301-clock">⚠ This phone\'s clock is wrong by '+Math.abs(Math.round((window.__r301skew||0)/60000))+' min. RCADS used the correct internet time. HR can see this.</span>'+html;if(r287Off&&(id==='r181GuardRes'||id==='r181BreakRes'))html='<span class="r287off">📴 OFFLINE MODE — records are saved on this phone and will sync automatically when internet returns. Do not clear browser data.</span>'+html;const b=document.getElementById(id);if(b){b.className='r181-result '+(cls||'');b.innerHTML=html;b.scrollIntoView({block:'nearest',behavior:'smooth'})}}
   async function guardHandle(raw){
+    GO_SCAN_AT=goNow();
     if(/^RCADSGPASS:/.test(String(raw||''))&&window.rcadsR331){return window.rcadsR331.onDutyScan(String(raw))}
     pendingOut=null;
     if(!(await refreshAttendanceStatus('r181GuardRes')))return;
