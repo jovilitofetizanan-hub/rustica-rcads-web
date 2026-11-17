@@ -313,7 +313,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R483 FILL SCHEDULE SHOWS AT ONCE</title>
+<title>Rustica RCADS App — R484 FILL SCHEDULE ALWAYS (NEXT WEEK)</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34836,12 +34836,26 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const key=myKey();if(!key){HD.msg='This phone has no RCADS key. Ask HR for a new personal QR.';HD.err=true;drawHead();return}
     HD.busy=true;drawHead();
     try{const d=await rpc('rustica_rcps_form_latest',{p_key:key,p_branch:b});HD.forms[b]=d.rows||[];
-      const weeks=[...new Set(HD.forms[b].filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)))];const filled={};
+      const weeks=[...new Set(HD.forms[b].filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)).concat([nextMon()]))];const filled={};   /* R484: + next week */
       for(const w of weeks){try{const f=await rpc('rustica_sched_filled_mine',{p_key:key,p_branch:b,p_week:w});(f.rows||[]).forEach(r=>{filled[w+'|'+r.dept+'|'+r.kind]=r})}catch(e){}}
       HD.filled[b]=filled;HD.at[b]=Date.now();HD.msg='';HD.err=false}
     catch(e){HD.msg=e.message;HD.err=true;HD.at[b]=Date.now()-30000}
     HD.busy=false;drawHead();
   }
+  /* R484: the next week to fill (Monday). If HR has not sent a form for it yet, the NEWEST form is used as the template
+     (same employee list) and its dates are changed to that week — so 📝 FILL SCHEDULE is always there. */
+  function nextMon(){const c=cycle();return c.orig>c.t?c.orig:addD(c.orig,7)}
+  const MN=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  function dLbl(iso){return MN[+iso.slice(5,7)-1]+'.'+(+iso.slice(8,10))}
+  function retarget(u8,sheetName,mon){
+    const wb=XLSX.read(u8,{type:'array'});const ws=wb.Sheets[sheetName];if(!ws)return u8;const ref=XLSX.utils.decode_range(ws['!ref']||'A1:A1');
+    const txt=(r,c)=>{const x=ws[XLSX.utils.encode_cell({r,c})];return x?String(x.w!==undefined?x.w:x.v):''};
+    let h=-1,dr=-1;for(let r=0;r<=Math.min(ref.e.r,15);r++){const a=U(txt(r,0));if(h<0&&/^DATE\s*:/.test(a))dr=r;if(a==='EMPCODE'){h=r;break}}if(h<0)return u8;
+    const DAYS=['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
+    const z=zRead(u8);const sh=sheetsOf(z).find(x=>U(x.name)===U(sheetName));if(!sh)return u8;let x=zGet(z,sh.path);
+    for(let c=1;c<=ref.e.c;c++){const i=DAYS.indexOf(U(txt(h,c)));if(i>=0)x=setCell(x,colL(c+1)+(h+2),dLbl(addD(mon,i)))}
+    if(dr>=0)x=setCell(x,'A'+(dr+1),'DATE: '+dLbl(mon)+' - '+dLbl(addD(mon,6))+','+addD(mon,6).slice(0,4));
+    zSet(z,sh.path,x);return zWrite(z)}
   function headRows(w,b){
     const forms=(HD.forms[b]||[]);const c=cycle();const cur=cutoffOf(c.t),prev=cutoffOf(addD(cur.from,-1));
     const sched=w0=>forms.find(x=>x.kind==='SCHEDULE'&&String(x.from).slice(0,10)===w0);
@@ -34852,7 +34866,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       {const fl=HD.filled[b]||{};const ws=[...new Set(forms.filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)))].filter(m=>addD(m,6)>=c.t).sort();   /* R483: this week too (not only next weeks) — only weeks already finished are hidden */
         ws.forEach(m=>{const f=sched(m);const done=fl[m+'|'+dept+'|ORIG'];const due=addD(m,-1);
           rows.push({f,mon:m,kind:'ORIG',dept,label:'ORIGINAL SCHEDULE',done,c,due:done?'':(c.t>due?'📝 this week — please fill and send it now':c.t===due?'🔴 DUE TODAY ('+fmtDay(due)+')':'🔴 send back by '+fmtDay(due))})});
-        if(!ws.length)rows.push({wait:true,dept,mon:addD(c.orig,c.orig>c.t?0:7),kind:'ORIG',label:'ORIGINAL SCHEDULE',why:'⏳ no new schedule from HR yet — it shows here as soon as HR sends it'})}
+        {const nm=nextMon();const tpl=forms.filter(x=>x.kind==='SCHEDULE').sort((a,z)=>String(z.from).localeCompare(String(a.from)))[0];
+          if(!ws.includes(nm)&&tpl){const done=fl[nm+'|'+dept+'|ORIG'];const due=addD(nm,-1);
+            rows.push({f:tpl,mon:nm,kind:'ORIG',dept,label:'ORIGINAL SCHEDULE',done,c,tpl:true,due:done?'':(c.t>due?'📝 please fill and send it now':c.t===due?'🔴 DUE TODAY ('+fmtDay(due)+')':'🔴 send back by '+fmtDay(due))})}
+          else if(!ws.length)rows.push({wait:true,dept,mon:nm,kind:'ORIG',label:'ORIGINAL SCHEDULE',why:'⏳ no schedule form in RCADS yet — HR: press 📥 GET LATEST FROM RCPS once'})}}
       // ACS: the weeks of the PREVIOUS cut-off that are still missing (LATE), then the weeks of THIS cut-off
       [[prev,true],[cur,false]].forEach(([cut,onlyMissing])=>acsWeeks(cut).forEach(mon=>{
         if(mon>c.t||mon<ACS_START)return;const fa=sched(mon);const rec=(HD.filled[b]||{})[mon+'|'+dept+'|ACS'];const st=acsState(rec,mon,cut);
@@ -34988,7 +35005,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function formById(b,id){return (HD.forms[b]||[]).find(x=>String(x.id)===String(id))}
   function sourceU8(b,id,mon,kind,dept){const done=(HD.filled[b]||{})[mon+'|'+dept+'|'+kind];if(done&&done.data_b64)return {u8:unb64(done.data_b64),filled:true};const f=formById(b,id);if(!f)throw new Error('Form not found. Press ↻ REFRESH.');return {u8:unb64(f.data_b64),filled:false}}
   async function headDownload(spec){const [id,mon,kind,dept]=spec.split('|');const b=HD.b;
-    try{const src=sourceU8(b,id,mon,kind,dept);let u8=src.u8;if(!src.filled){const wb=XLSX.read(u8,{type:'array'});const sn=sheetOf(wb,kind,dept);if(!sn)throw new Error('No '+dept+' sheet in this form.');u8=deptSheetOnly(u8,sn)}
+    try{const src=sourceU8(b,id,mon,kind,dept);let u8=src.u8;if(!src.filled){const wb=XLSX.read(u8,{type:'array'});const sn=sheetOf(wb,kind,dept);if(!sn)throw new Error('No '+dept+' sheet in this form.');u8=deptSheetOnly(u8,sn);{const ff=formById(b,id);if(ff&&String(ff.from).slice(0,10)!==mon)u8=retarget(u8,sn,mon)}}
       saveU8(u8,fileNameFor(b,dept,kind,mon))}catch(e){alert('Could not download: '+e.message)}}
   async function dtrDownload(id,w){const b=HD.b;const f=formById(b,id);if(!f)return;
     try{const u8=unb64(f.data_b64);const all=w.forms[0]==='DINING';   /* R401: the Dining Head 1 double-checks ALL departments of the branch */
@@ -34998,6 +35015,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   /* ---------- the editor ---------- */
   let ED=null;
   const draftKey=()=>'r399draft_'+ED.b+'_'+ED.dept+'_'+ED.kind+'_'+ED.mon;   /* not rcads_/rustica_: stays on this phone */
+  let ED_RT=false;
   function openEditor(spec){
     const [id,mon,kind,dept]=spec.split('|');const b=HD.b;const w=who();if(!w)return;
     let src;try{src=sourceU8(b,id,mon,kind,dept)}catch(e){alert(e.message);return}
@@ -35007,6 +35025,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     catch(e){alert('Could not open the form: '+e.message);return}
     if(!L.emps.length){alert('There are no '+dept+' employees in this form. Ask HR to update it in RCPS.');return}
     addSlots(L,kind);   /* R473 */
+    {const ff=formById(b,id);ED_RT=!!(ff&&String(ff.from).slice(0,10)!==mon);if(ED_RT)L.days.forEach((d,i)=>{d.date=dLbl(addD(mon,i))})}   /* R484 */
     ED={b,id,mon,kind,dept,base,L,w,open:{},hol:{}};holidaysFor(b,mon,addD(mon,6)).forEach(x=>{ED.hol[x.date]=x});
     try{const d=JSON.parse(r441LS().getItem(draftKey())||'null');if(d&&d.emps&&confirm('You have an unsent draft from '+fmtAt(d.at)+'. Continue it?'))d.emps.forEach(x=>{const e=L.emps.find(y=>y.code===x.code);if(e&&Array.isArray(x.days)&&x.days.length===7){e.days=x.days;if(e.isNew){e.name=U(x.name||'');e.pos=U(x.pos||'')}}})}catch(e){}
     let el=document.getElementById('r399Ed');if(!el){el=document.createElement('div');el.id='r399Ed';document.documentElement.appendChild(el);/* R445: on <html> so a transformed <body> (HR page) can't push 💾 SAVE DRAFT / SUBMIT off the screen */
@@ -35099,7 +35118,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const by=w.kind==='HR'?'HR':(w.kind==='MGR'?MGR_EDIT+' • '+((w.e&&(w.e.name||w.e.code))||'MANAGER'):((w.e&&(w.e.name||w.e.code)||'')+' • '+w.label));
     const btn=document.querySelector('#r399Ed [data-act="submit"]');if(btn){btn.disabled=true;btn.textContent='⏳ SENDING…'}
     try{
-      const u8=buildFilled(ED.base,L,kind,(w.e&&w.e.name)||w.label);
+      let u8=buildFilled(ED.base,L,kind,(w.e&&w.e.name)||w.label);if(ED_RT)u8=retarget(u8,L.sheetName,ED.mon);   /* R484 */
       const name=fileNameFor(ED.b,ED.dept,kind,ED.mon);
       const put=await rpc('rustica_sched_filled_put',{p_key:myKey(),p_branch:ED.b,p_dept:ED.dept,p_kind:kind,p_week:ED.mon,p_form_id:+ED.id,p_file_name:name,p_data_b64:b64(u8),p_name:by});
       const isHr=w.kind==='HR';if(isHr&&put&&put.id)setOk(put.id,'HR');
