@@ -313,7 +313,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R484 FILL SCHEDULE ALWAYS (NEXT WEEK)</title>
+<title>Rustica RCADS App — R485 FILL SCHEDULE THIS WEEK + NEXT WEEK</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34836,7 +34836,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const key=myKey();if(!key){HD.msg='This phone has no RCADS key. Ask HR for a new personal QR.';HD.err=true;drawHead();return}
     HD.busy=true;drawHead();
     try{const d=await rpc('rustica_rcps_form_latest',{p_key:key,p_branch:b});HD.forms[b]=d.rows||[];
-      const weeks=[...new Set(HD.forms[b].filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)).concat([nextMon()]))];const filled={};   /* R484: + next week */
+      const weeks=[...new Set(HD.forms[b].filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)).concat([addD(nextMon(),-7),nextMon()]))];const filled={};   /* R485: + this week and next week */
       for(const w of weeks){try{const f=await rpc('rustica_sched_filled_mine',{p_key:key,p_branch:b,p_week:w});(f.rows||[]).forEach(r=>{filled[w+'|'+r.dept+'|'+r.kind]=r})}catch(e){}}
       HD.filled[b]=filled;HD.at[b]=Date.now();HD.msg='';HD.err=false}
     catch(e){HD.msg=e.message;HD.err=true;HD.at[b]=Date.now()-30000}
@@ -34863,16 +34863,16 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     depts.forEach(dept=>{
       /* R482: every ORIGINAL SCHEDULE week that HR sent and that has NOT started yet shows 📝 FILL at once
          (no waiting for Saturday). Weeks already running / past are not shown (HR made those). */
-      {const fl=HD.filled[b]||{};const ws=[...new Set(forms.filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)))].filter(m=>addD(m,6)>=c.t).sort();   /* R483: this week too (not only next weeks) — only weeks already finished are hidden */
-        ws.forEach(m=>{const f=sched(m);const done=fl[m+'|'+dept+'|ORIG'];const due=addD(m,-1);
-          rows.push({f,mon:m,kind:'ORIG',dept,label:'ORIGINAL SCHEDULE',done,c,due:done?'':(c.t>due?'📝 this week — please fill and send it now':c.t===due?'🔴 DUE TODAY ('+fmtDay(due)+')':'🔴 send back by '+fmtDay(due))})});
-        {const nm=nextMon();const tpl=forms.filter(x=>x.kind==='SCHEDULE').sort((a,z)=>String(z.from).localeCompare(String(a.from)))[0];
-          if(!ws.includes(nm)&&tpl){const done=fl[nm+'|'+dept+'|ORIG'];const due=addD(nm,-1);
-            rows.push({f:tpl,mon:nm,kind:'ORIG',dept,label:'ORIGINAL SCHEDULE',done,c,tpl:true,due:done?'':(c.t>due?'📝 please fill and send it now':c.t===due?'🔴 DUE TODAY ('+fmtDay(due)+')':'🔴 send back by '+fmtDay(due))})}
-          else if(!ws.length)rows.push({wait:true,dept,mon:nm,kind:'ORIG',label:'ORIGINAL SCHEDULE',why:'⏳ no schedule form in RCADS yet — HR: press 📥 GET LATEST FROM RCPS once'})}}
+      /* R485: ORIGINAL SCHEDULE — every week from THIS week to NEXT week (+ any later week HR sent), one after the other, none skipped.
+         A week without its own RCPS form uses the newest form as the template (dates changed to that week). Finished weeks are hidden. */
+      {const fl=HD.filled[b]||{};const nm=nextMon(),tm=addD(nm,-7);const tpl=forms.filter(x=>x.kind==='SCHEDULE').sort((a,z)=>String(z.from).localeCompare(String(a.from)))[0];
+        const ws=[...new Set(forms.filter(x=>x.kind==='SCHEDULE').map(x=>String(x.from).slice(0,10)).concat([tm,nm]))].filter(m=>addD(m,6)>=c.t).sort();
+        if(!tpl)rows.push({wait:true,dept,mon:nm,kind:'ORIG',label:'ORIGINAL SCHEDULE',why:'⏳ no schedule form in RCADS yet — HR: press 📥 GET LATEST FROM RCPS once'});
+        else ws.forEach(m=>{const f=sched(m)||tpl;const done=fl[m+'|'+dept+'|ORIG'];const due=addD(m,-1);
+          rows.push({f,mon:m,kind:'ORIG',dept,label:'ORIGINAL SCHEDULE',done,c,tpl:f===tpl&&!sched(m),due:done?'':(c.t>due?'📝 this week — please fill and send it now':c.t===due?'🔴 DUE TODAY ('+fmtDay(due)+')':'🔴 send back by '+fmtDay(due))})})}
       // ACS: the weeks of the PREVIOUS cut-off that are still missing (LATE), then the weeks of THIS cut-off
       [[prev,true],[cur,false]].forEach(([cut,onlyMissing])=>acsWeeks(cut).forEach(mon=>{
-        if(mon>c.t||mon<ACS_START)return;const fa=sched(mon);const rec=(HD.filled[b]||{})[mon+'|'+dept+'|ACS'];const st=acsState(rec,mon,cut);
+        if(mon>c.t||mon<ACS_START)return;const fa=sched(mon)||forms.filter(x=>x.kind==='SCHEDULE').sort((a,z)=>String(z.from).localeCompare(String(a.from)))[0];   /* R485: no week skipped — newest form as template */const rec=(HD.filled[b]||{})[mon+'|'+dept+'|ACS'];const st=acsState(rec,mon,cut);
         if(onlyMissing&&(st==='OK'||!fa))return;
         const lbl='ACS • CUT-OFF '+cutLbl(cut)+' • days '+fmtD(firstIn(mon,cut))+' – '+fmtD(lastIn(mon,cut));
         rows.push(fa?{f:fa,mon,kind:'ACS',dept,label:lbl,done:st==='OK'?rec:null,again:st==='AGAIN'?rec:null,due:acsDueText(st,cut,c.t),c}:{wait:true,dept,mon,kind:'ACS',label:lbl,why:'⏳ form not available — ask HR to press 📥 GET LATEST FROM RCPS'});
