@@ -313,7 +313,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R488 ONE SCAN FIX: QR TIME USES INTERNET TIME</title>
+<title>Rustica RCADS App — R489 VIVIENNE BAUTISTA MAKES DINING SCHEDULE (3 BRANCHES)</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -30734,6 +30734,9 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
     if(window.rcadsMgrIsManager&&window.rcadsMgrIsManager(e))return {kind:'MGR',e,host,branches:branches().map(x=>x.code),forms:['KITCHEN','DINING'],dtr:['MANAGEMENT','KITCHEN','DINING','EXTRA'],label:'MANAGER'};
     let hk='',hb='';try{const m=JSON.parse(localStorage.getItem('rcads_r231_branch_heads_v1')||'{}')||{};Object.keys(m).forEach(k=>{const x=m[k]||{};if(U(x.kitchenHead1)===U(e.code)){hk='kitchenHead1';hb=k}else if(U(x.diningHead1)===U(e.code)){hk='diningHead1';hb=k}})}catch(_){}
     if(!hk&&appr){try{const a=getCurrentApproverAssignment();if(a&&(a.key==='kitchenHead1'||a.key==='diningHead1')){hk=a.key;hb=(window.rcadsHeadBranch&&window.rcadsHeadBranch(e))||homeB}}catch(_){}}
+    /* R489: extra schedule makers chosen by HR (they fill and SUBMIT TO HR like a Head 1; HR still approves) */
+    {const X={'ANG-EMP43':{branches:['SAN_RAFAEL','SAN_FERNANDO','ANGELES'],forms:['DINING'],label:'DINING SCHEDULE • 3 BRANCHES'}}[U(e.code)];
+     if(X)return {kind:'HEAD',e,host,branches:X.branches.slice(),forms:X.forms.slice(),dtr:[],label:X.label}}
     if(hk){const dep=hk==='kitchenHead1'?'KITCHEN':'DINING';return {kind:'HEAD',e,host,branches:[hb||homeB],forms:[dep],dtr:[dep],label:dep==='KITCHEN'?'KITCHEN HEAD 1':'DINING HEAD 1'}}
     let role='';try{role=((JSON.parse(localStorage.getItem('rcads_r175_201staff_v1')||'[]')||[]).find(x=>U(x.code)===U(e.code))||{}).role||''}catch(_){}
     if(role==='HRA')return {kind:'HRA',e,host,branches:branches().map(x=>x.code),forms:['ADMIN'],dtr:[],label:'HR ASSISTANT'};
