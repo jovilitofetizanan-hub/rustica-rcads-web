@@ -313,7 +313,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R489 VIVIENNE BAUTISTA MAKES DINING SCHEDULE (3 BRANCHES)</title>
+<title>Rustica RCADS App — R490 VIVIENNE SCHEDULE CARD ALSO FOR MANAGER / APPROVER</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34811,6 +34811,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function isSchedMgr(e){return !!e&&(U(e.code)==='CAB-EMP01'||/MAGLAQUE/i.test(String(e.name||'')))}
   function isMgrEdit(r){return !!r&&String(r.by||'').indexOf(MGR_EDIT)===0}
   function who(){if(R442W)return R442W;try{const w=window.rcadsR264&&window.rcadsR264.who&&window.rcadsR264.who();if(!w)return null;
+      {const X={'ANG-EMP43':{branches:['SAN_RAFAEL','SAN_FERNANDO','ANGELES'],forms:['DINING'],label:'DINING SCHEDULE • 3 BRANCHES'}}[U(w.e&&w.e.code)];   /* R490: also when she is a Manager / Approver */
+       if(X)return Object.assign({},w,{kind:'HEAD',branches:X.branches.slice(),forms:X.forms.slice(),dtr:[],label:X.label})}
       if(w.kind==='MGR'){if(!isSchedMgr(w.e))return null;return Object.assign({},w,{forms:['DINING'],label:'MANAGER (DINING SCHEDULE)'})}
       if(w.kind!=='HEAD'&&w.kind!=='HRA')return null;return w}catch(e){return null}}
   const HD={b:'',forms:{},filled:{},at:{},busy:false,msg:'',err:false};
