@@ -313,7 +313,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R491 RUSTICA ID RUST-156 FOR SRF-EXTRAEMP07</title>
+<title>Rustica RCADS App — R492 RUSTICA ID GREEN + GOLD DESIGN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -24147,7 +24147,7 @@ body.r162-has-nav{padding-bottom:78px!important}
   function r191Front(c){
     const nm=r191Name(c.name);
     const photo=c.photo?'<img src="'+c.photo+'" alt="">':'<span>1×1<br>PHOTO</span>';
-    return '<div class="r167-card port r255"><div class="r255-top r313-top"></div><div class="r255-slot"></div><div class="r313-head"><img class="r313-logo" src="'+r322Logo()+'" alt=""><div class="r313-txt"><b>rustica</b><span>RESTAURANT</span></div></div>'
+    return '<div class="r167-card port r255"><div class="r255-top r313-top"></div><div class="r255-slot"></div><div class="r313-head"><img class="r313-logo" src="'+R255_LOGO+'" alt=""><div class="r313-txt"><b>rustica</b><span>RESTAURANT</span></div></div>'
       +'<div class="r255-photo">'+photo+'</div>'
       +'<div class="r255-name" style="font-size:'+r191Fit(nm,3.6,48,0.74)+'">'+esc(nm)+'</div>'
       +'<div class="r255-pos" style="font-size:'+r191Fit(c.position,1.95,40,0.78)+'">'+esc(U(c.position))+'</div>'
@@ -24485,7 +24485,7 @@ body.r162-has-nav{padding-bottom:78px!important}
     if(rj){const code=rj.getAttribute('data-r167-reject');const why=prompt('Reason for returning (the employee will see it):','Please replace the 1x1 photo (white background, clear face).');if(why===null)return;const r=rec(code);if(!r)return;r.status='REJECTED';r.rejectReason=why;write(recKey(code),r);renderHrList();renderHrDetail(U(code));return}
   });
   setInterval(()=>{try{ensureHr()}catch(e){console.warn('R167 hr',e)}},1500);
-  window.rcadsR167={rec,printCard,cardData,sigFromFile,trimCanvas};
+  window.rcadsR167={rec,printCard,cardData,sigFromFile,trimCanvas,front,back};
 })();
 </script>
 
@@ -36758,4 +36758,32 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   },true);
 })();
 </script>
+<style id="rcadsR167Css" data-r492="1">
+/* R492 — RUSTICA ID: GREEN + GOLD design (green header with gold wave, gold body, green footer) */
+.r167-card.r255{background:radial-gradient(ellipse at 50% 38%,#fdf0c6 0%,#f7dc95 45%,#ecc56f 100%)!important;color:#2b1a0e!important}
+.r167-card.r255::after{border:.55mm solid #2e6a17!important;box-shadow:inset 0 0 0 .45mm #fff8e0}
+.r255 .r255-top.r313-top{height:23mm!important;background:radial-gradient(ellipse at 72% 38%,#a6cc45 0%,#5f9a22 42%,#2c6812 100%)!important;border-bottom:0!important}
+.r255 .r255-top.r313-top::after{content:"";position:absolute;left:0;right:0;bottom:-2.4mm;height:6.2mm;background:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20540%2060%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20x2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23b8861c%22/%3E%3Cstop%20offset%3D%22.5%22%20stop-color%3D%22%23f7d76a%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c8951f%22/%3E%3C/linearGradient%3E%3ClinearGradient%20id%3D%22f%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23f5d991%22/%3E%3Cstop%20offset%3D%22.55%22%20stop-color%3D%22%23f5d991%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f5d991%22%20stop-opacity%3D%220%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath%20d%3D%22M0%2046%20C140%2020%20300%2018%20540%2032%20L540%2060%20L0%2060%20Z%22%20fill%3D%22url%28%23f%29%22/%3E%3Cpath%20d%3D%22M0%2034%20C140%206%20300%206%20540%2022%20L540%2032%20C300%2018%20140%2020%200%2046%20Z%22%20fill%3D%22url%28%23g%29%22/%3E%3C/svg%3E") center/100% 100% no-repeat}
+.r255 .r313-head{top:3.2mm!important;height:16mm!important;left:3mm!important;gap:1.8mm!important}
+.r255 .r313-logo{width:16mm!important;height:16mm!important;flex:0 0 16mm!important;border-radius:50%;box-shadow:0 0 0 .45mm #e7bf55,0 .4mm 1mm rgba(0,0,0,.45);filter:none!important}
+.r255 .r313-txt{border-left:.3mm solid rgba(255,236,170,.9);padding-left:1.8mm}
+.r255 .r313-txt b{color:#3a1d0a!important;font-size:7.6mm!important;letter-spacing:0!important;text-shadow:0 .2mm 0 rgba(255,255,255,.25)}
+.r255 .r313-txt span{color:#3a1d0a!important;font-weight:700!important;font-size:2.3mm!important;letter-spacing:.5mm!important;margin-top:.6mm!important}
+.r255 .r255-slot{background:rgba(255,255,255,.9)!important;box-shadow:inset 0 .2mm .4mm rgba(0,0,0,.35)}
+.r255 .r255-photo{top:24.6mm!important;border:.7mm solid #2e6a17!important;box-shadow:0 0 0 .35mm #fff8e0,0 .4mm 1mm rgba(0,0,0,.25)!important;border-radius:2.2mm!important;background:#fff!important}
+.r255 .r255-name{color:#2b1a0e!important;top:52.2mm!important}
+.r255 .r255-pos{color:#1f6418!important;font-weight:800!important;top:57.2mm!important;letter-spacing:.3mm!important}
+.r255 .r255-line{background:#2e6a17!important;top:61mm!important;height:.25mm!important}
+.r255 .r255-grid b{color:#2b1a0e!important;font-weight:800!important}
+.r255 .r255-grid span{color:#2b1a0e!important;font-weight:800!important}
+.r255 .r255-band{height:8.2mm!important;background:linear-gradient(180deg,#3d7d1c 0%,#2a6312 100%)!important;color:#fff!important;font-size:3.7mm!important;letter-spacing:.7mm!important;border-top:.35mm solid #e7bf55}
+/* back */
+.r255.back .r255-top{height:8mm!important;background:radial-gradient(ellipse at 50% 0%,#5f9a22 0%,#2c6812 100%)!important;border-radius:0 0 50% 50%/0 0 2.6mm 2.6mm}
+.r255 .r255-in{top:9.4mm!important;color:#2b1a0e!important}
+.r255 .r255-h{color:#1f5a12!important;font-size:2.3mm!important}
+.r255 .r255-hr{background:#2b1a0e!important;height:.18mm!important}
+.r255 .r255-qr{border:.45mm solid #2e6a17!important}
+.r255 .r255-note{color:#2b1a0e!important}
+@media print{.r167-card.r255{box-shadow:none!important}}
+</style>
 </body></html>
