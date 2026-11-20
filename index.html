@@ -313,7 +313,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R492 RUSTICA ID GREEN + GOLD DESIGN</title>
+<title>Rustica RCADS App — R493 REGULARIZED / PROMOTED FROM RCPS GET THE NEW CODE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -26995,6 +26995,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   let origLoader=null;
   const origPos=new Map();             // employees (San Rafael built-in) original positions
   function overrides(){const m=new Map();read().rows.forEach(r=>{if(r&&r.code)m.set(U(r.code),r)});return m}
+  /* R493: REGULARIZED / PROMOTED with a NEW EMPCODE in RCPS (e.g. SRF-EXTRAEMP07 → SRF-EMP46): the old code is replaced by the new one */
+  function regs(){const m=new Map();read().rows.forEach(r=>{if(r&&r.kind==='REG'&&r.oldCode)m.set(U(r.oldCode),r)});return m}
+  const regSaved=new Map();
+  function regRid(){try{const R=window.RCADS_RUSTICA_IDS;if(!R)return;regs().forEach(g=>{if(R[U(g.oldCode)]&&!R[U(g.code)])R[U(g.code)]=R[U(g.oldCode)]})}catch(e){}}
   function builtIn(b){
     let l=[];
     try{l=(origLoader?origLoader(b):window.rusticaManagerLoadBranchEmployeeMaster?.(b))||[]}catch(e){l=[]}
@@ -27005,7 +27009,10 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   }
   function patchEmployees(){
     let E;try{E=employees}catch(e){return}if(!E)return;
-    const ov=overrides();
+    const ov=overrides(),rg=regs();
+    regSaved.forEach((e,old)=>{if(!rg.has(old)){Object.keys(E).forEach(k=>{if(E[k]&&E[k]._r493===old)delete E[k]});E[e.k]=e.e;regSaved.delete(old)}});
+    Object.keys(E).forEach(k=>{const e=E[k];if(!e||!e.code||e._r493)return;const g=rg.get(U(e.code));if(!g)return;regSaved.set(U(e.code),{k,e});delete E[k];E[U(g.code)]=Object.assign({},e,{code:U(g.code),dept:g.dept||e.dept,position:g.position||e.position,_r493:U(e.code)})});
+    regRid();
     Object.keys(E).forEach(k=>{
       const e=E[k];if(!e||!e.code)return;
       if(e._r190){const r=ov.get(U(e.code));if(!r||r.kind!=='NEW')delete E[k];else{e.position=r.position;e.name=r.name;e.dept=r.dept}return}
@@ -27021,6 +27028,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const w=function(code){
       let rows=[];try{rows=cur.apply(this,arguments)||[]}catch(e){rows=[]}
       const b=U(code),ov=overrides();if(!ov.size)return rows;
+      const rg=regs();if(rg.size){regRid();rows=rows.map(x=>{const g=x&&rg.get(U(x.code));return g?Object.assign({},x,{code:U(g.code),dept:g.dept||x.dept,position:g.position||x.position}):x})}
       rows=rows.map(x=>{const r=x&&ov.get(U(x.code));return r&&r.kind==='POS'&&sameName(x.name,r.name)?Object.assign({},x,{position:r.position}):x});
       ov.forEach(r=>{if(r.kind==='NEW'&&r.branch===b&&!rows.some(x=>x&&U(x.code)===U(r.code)))rows.push({code:U(r.code),name:r.name,dept:r.dept,position:r.position})});
       return rows;
@@ -27053,6 +27061,12 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       const f=findIn(b,r.code,r.name);
       if(f){
         if(f.how==='code'&&!sameName(f.emp.name,r.name))return out.push({kind:'CHECK',r,b,code:U(f.emp.code),why:'This EMPCODE belongs to '+f.emp.name+' in RCADS. Not changed.'});
+        if(f.how==='name'&&U(f.emp.code)!==U(r.code)&&!inTransfers(r.code,r.name)){   /* R493 */
+          {const ex=regs().get(U(f.emp.code));if(ex&&U(ex.code)===U(r.code))return}   /* already applied */
+          const used=branches().some(x=>{const g=findIn(x.code,r.code,'');return g&&g.how==='code'});
+          if(used)return out.push({kind:'CHECK',r,b,why:'New EMPCODE '+U(r.code)+' is already used in RCADS. Not changed.'});
+          return out.push({kind:'REG',r,b,code:U(r.code),oldCode:U(f.emp.code),name:f.emp.name,dept:r.dept||f.emp.dept,old:U(f.emp.code)+' • '+(f.emp.dept||'')});
+        }
         if(!r.position)return;
         if(nrm(f.emp.position)===nrm(r.position))return;
         return out.push({kind:'POS',r,b,code:U(f.emp.code),name:f.emp.name,dept:f.emp.dept||r.dept,old:f.emp.position||'',role:ROLE.test(U(f.emp.position))||ROLE.test(U(r.position))});
@@ -27068,8 +27082,8 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const ch=list.filter(x=>x.kind!=='CHECK'),ck=list.filter(x=>x.kind==='CHECK');
     if(!list.length)return '<div class="r185-empty">✓ <b>'+esc(file)+'</b>: everything already matches. Nothing to change.</div>';
     const row=(x,i)=>'<tr><td>'+(x.kind==='CHECK'?'':'<input type="checkbox" data-r190-i="'+i+'" checked>')+'</td><td>'+
-      (x.kind==='POS'?'<span class="r185-chip loan">POSITION</span>':x.kind==='NEW'?'<span class="r185-chip ok">NEW EMPLOYEE</span>':'<span class="r185-chip bad">CHECK</span>')+'</td><td><b>'+esc(x.kind==='POS'?x.name:x.r.name)+'</b><br><small>'+esc(x.code||x.r.code)+' • '+esc(bName(x.b)||x.r.branchName)+' • '+esc(x.dept||x.r.dept)+'</small></td><td>'+
-      (x.kind==='CHECK'?'<small>'+esc(x.why)+'</small>':(x.old?esc(x.old)+' → ':'')+'<b>'+esc(x.r.position||'(no position)')+'</b>'+(x.role?'<br><span class="r185-chip bad">⚠ head / manager position, please check</span>':''))+'</td></tr>';
+      (x.kind==='REG'?'<span class="r185-chip ok">⬆ NEW CODE / DEPT</span>':x.kind==='POS'?'<span class="r185-chip loan">POSITION</span>':x.kind==='NEW'?'<span class="r185-chip ok">NEW EMPLOYEE</span>':'<span class="r185-chip bad">CHECK</span>')+'</td><td><b>'+esc(x.kind==='POS'?x.name:x.r.name)+'</b><br><small>'+esc(x.code||x.r.code)+' • '+esc(bName(x.b)||x.r.branchName)+' • '+esc(x.dept||x.r.dept)+'</small></td><td>'+
+      (x.kind==='CHECK'?'<small>'+esc(x.why)+'</small>':x.kind==='REG'?esc(x.old)+' → <b>'+esc(x.code)+' • '+esc(x.dept||'')+'</b><br>':(x.old?esc(x.old)+' → ':'')+'<b>'+esc(x.r.position||'(no position)')+'</b>'+(x.role?'<br><span class="r185-chip bad">⚠ head / manager position, please check</span>':''))+'</td></tr>';
     return '<div class="r185-who">File: <b>'+esc(file)+'</b> • '+ch.filter(x=>x.kind==='POS').length+' position change(s) • '+ch.filter(x=>x.kind==='NEW').length+' new employee(s)'+(ck.length?' • '+ck.length+' to check':'')+'</div>'+
       '<table class="r185-t"><thead><tr><th></th><th>TYPE</th><th>EMPLOYEE</th><th>POSITION</th></tr></thead><tbody>'+list.map(row).join('')+'</tbody></table>'+
       (ch.length?'<button type="button" class="r185-save" id="r190Apply" style="margin-top:10px">✓ APPLY THE TICKED CHANGES</button>':'')+
@@ -27079,7 +27093,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const d=read();if(!d.rows.length)return '<div class="r185-empty">No positions from RCPS applied yet. RCADS uses its built-in employee list.</div>';
     const L=d.rows.slice().sort((a,b)=>(a.branch+a.code)<(b.branch+b.code)?-1:1);
     return '<div class="r185-who">Applied from RCPS: <b>'+L.length+'</b>'+(d.at?' • last import '+esc(new Date(d.at).toLocaleString('en-US'))+(d.file?' ('+esc(d.file)+')':''):'')+'</div>'+
-      '<table class="r185-t"><thead><tr><th>TYPE</th><th>EMPLOYEE</th><th>POSITION</th><th></th></tr></thead><tbody>'+L.map(r=>'<tr><td>'+(r.kind==='NEW'?'<span class="r185-chip ok">NEW</span>':'<span class="r185-chip loan">POSITION</span>')+'</td><td><b>'+esc(r.name)+'</b><br><small>'+esc(r.code)+' • '+esc(bName(r.branch))+' • '+esc(r.dept||'')+'</small></td><td>'+(r.old?'<small>'+esc(r.old)+' →</small> ':'')+'<b>'+esc(r.position)+'</b></td><td><button type="button" class="ghost" data-r190-undo="'+esc(r.code)+'">UNDO</button></td></tr>').join('')+'</tbody></table>'+
+      '<table class="r185-t"><thead><tr><th>TYPE</th><th>EMPLOYEE</th><th>POSITION</th><th></th></tr></thead><tbody>'+L.map(r=>'<tr><td>'+(r.kind==='NEW'?'<span class="r185-chip ok">NEW</span>':r.kind==='REG'?'<span class="r185-chip ok">⬆ '+esc(r.oldCode||'')+' →</span>':'<span class="r185-chip loan">POSITION</span>')+'</td><td><b>'+esc(r.name)+'</b><br><small>'+esc(r.code)+' • '+esc(bName(r.branch))+' • '+esc(r.dept||'')+'</small></td><td>'+(r.old?'<small>'+esc(r.old)+' →</small> ':'')+'<b>'+esc(r.position)+'</b></td><td><button type="button" class="ghost" data-r190-undo="'+esc(r.code)+'">UNDO</button></td></tr>').join('')+'</tbody></table>'+
       '<button type="button" class="r185-save" id="r190UndoAll" style="margin-top:8px;background:#fff;color:#8f3028;border:1px solid #d9a199">UNDO ALL (back to the built-in list)</button>';
   }
   function panelHtml(){
@@ -27101,17 +27115,17 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   function apply(){
     if(!pending)return;const pick=[];document.querySelectorAll('[data-r190-i]').forEach(c=>{if(c.checked)pick.push(pending.list[+c.dataset.r190I])});
     if(!pick.length){alert('Nothing is ticked.');return}
-    const np=pick.filter(x=>x.kind==='POS').length,nn=pick.filter(x=>x.kind==='NEW').length;
-    if(!confirm('Apply '+np+' position change(s) and add '+nn+' new employee(s)?\n\nThis syncs to all devices.'))return;
+    const np=pick.filter(x=>x.kind==='POS').length,nn=pick.filter(x=>x.kind==='NEW').length,nr=pick.filter(x=>x.kind==='REG').length;
+    if(!confirm('Apply '+np+' position change(s), '+nr+' new code / department (regularized / promoted) and add '+nn+' new employee(s)?\n\nThis syncs to all devices.'))return;
     const d=read(),by=new Map(d.rows.map(r=>[U(r.code),r]));
-    pick.forEach(x=>by.set(U(x.code),{kind:x.kind,branch:x.b,code:U(x.code),name:x.kind==='POS'?x.name:x.r.name,dept:x.dept||x.r.dept,position:x.r.position,old:x.old||'',basis:x.r.basis,at:new Date().toISOString()}));
+    pick.forEach(x=>by.set(U(x.code),{kind:x.kind,branch:x.b,code:U(x.code),oldCode:x.oldCode||'',name:(x.kind==='POS'||x.kind==='REG')?x.name:x.r.name,dept:x.dept||x.r.dept,position:x.r.position,old:x.old||'',basis:x.r.basis,at:new Date().toISOString()}));
     d.rows=[...by.values()];d.at=new Date().toISOString();d.file=pending.file;d.by='HR OPERATION OFFICER';
     (d.log=d.log||[]).push({at:d.at,file:pending.file,pos:np,neu:nn});d.log=d.log.slice(-30);
-    if(write(d)){applyAll(true);pending=null;document.getElementById('r190Preview').innerHTML='<div class="r185-empty">✓ Done: '+np+' position change(s), '+nn+' new employee(s). '+(nn?'New employees still need a SETUP CODE / Rustica ID from HR.':'')+'</div>';renderCurrent()}
+    if(write(d)){applyAll(true);pending=null;document.getElementById('r190Preview').innerHTML='<div class="r185-empty">✓ Done: '+np+' position change(s), '+nr+' new code(s), '+nn+' new employee(s). '+(nr?'Regularized / promoted: give them a SETUP CODE for the NEW code (🔐 Employee Personal QR). ':'')+(nn?'New employees still need a SETUP CODE / Rustica ID from HR.':'')+'</div>';renderCurrent()}
   }
   function undo(code){
     const d=read(),r=d.rows.find(x=>U(x.code)===U(code));if(!r)return;
-    if(!confirm('Undo '+(r.kind==='NEW'?'adding '+r.name:r.name+'’s position change')+'?'))return;
+    if(!confirm('Undo '+(r.kind==='NEW'?'adding '+r.name:r.kind==='REG'?r.name+'’s new code '+r.code+' (back to '+r.oldCode+')':r.name+'’s position change')+'?'))return;
     d.rows=d.rows.filter(x=>U(x.code)!==U(code));if(write(d)){applyAll(true);renderCurrent()}
   }
   function undoAll(){if(!confirm('Undo ALL positions from RCPS? RCADS goes back to its built-in employee list.'))return;const d=read();d.rows=[];if(write(d)){applyAll(true);renderCurrent()}}
