@@ -119,6 +119,13 @@ This block is COMMENT-ONLY. It does not execute and must not change app behavior
     if(!hasTicket())lock();
     else setTimeout(function(){if(flag())lock()},20000);
   }
+  /* R495: an employee whose access HR DISABLED sees NOTHING on his/her own phone (no notices, no ID, no DTR) —
+     even offline. Not for a regularized code that moved to a new code. Lifted by itself when HR gives access again. */
+  function closed(){try{if(hasTicket())return false;var o=JSON.parse(localStorage.getItem('rustica_r160_mypin_device')||'null');if(!o||!o.c)return false;
+    var db=JSON.parse(localStorage.getItem('rcads_r160_emp_access_v1')||'null');var r=db&&db.people&&db.people[String(o.c).trim().toUpperCase()];
+    return !!(r&&r.status==='DISABLED'&&!r.movedTo)}catch(e){return false}}
+  if(closed())lock();
+  setInterval(function(){if(!document.getElementById('r481Lock')&&closed())lock()},4000);
 })();
 </script>
 <script id="rcadsR455Compress">
@@ -313,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R494 NEW CODE KEEPS THE SAME PIN (NO NEW SETUP CODE)</title>
+<title>Rustica RCADS App — R495 DISABLED EMPLOYEE SEES NOTHING ON HIS PHONE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
