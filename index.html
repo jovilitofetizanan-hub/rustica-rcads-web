@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R495 DISABLED EMPLOYEE SEES NOTHING ON HIS PHONE</title>
+<title>Rustica RCADS App — R500 11 AM RULE: SUPERVISOR, DEPUTY CHEF, MANAGER, ASST. MANAGER</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -36820,4 +36820,66 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
 .r255 .r255-note{color:#2b1a0e!important}
 @media print{.r167-card.r255{box-shadow:none!important}}
 </style>
+<script id="rcadsR496Script">
+/* R496 — MANAGEMENT (monthly): UNDERTIME only when the ACTUAL WORK of the day is less than 8 HOURS.
+   Work = time IN → OUT minus breaks (errand time counts as work). The 9th hour of a 9-hour schedule is the 1-hour meal break,
+   so leaving early is NOT undertime as long as 8 hours were worked. LATE and OVER-BREAK stay as LATE (no double count:
+   undertime of the day = hours short of 8 minus the late / over-break already counted that day). Rank-and-file: unchanged.
+   R497/R498: a day with NO break scan → the ACS long break (or scheduled hours minus 8 h) is deducted, but ONLY from the time above 8 hours. */
+(function(){
+  'use strict';
+  const NEED=480;
+  function sorted(p){return p.slice().sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0))}
+  function dayInfo(emp,dk,punches){
+    let sc=null;try{sc=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!sc||sc.type!=='TIME')return null;
+    const ps=sorted(punches).filter(r=>!r.errand&&!r.errandReturn);
+    const ins=ps.filter(r=>r.type==='IN'),outs=ps.filter(r=>r.type==='OUT'&&r.kind!=='Break');if(!ins.length||!outs.length)return null;   /* no TIME OUT → not computed here */
+    let work=0,brk=0,inAt=null,brAt=null;
+    ps.forEach(r=>{const t=(Date.parse(r.date)||0)/60000;
+      if(r.type==='IN'){if(brAt!=null){brk+=Math.max(0,t-brAt);brAt=null}inAt=t}
+      else if(r.type==='OUT'){if(inAt!=null){work+=Math.max(0,t-inAt);inAt=null}if(r.kind==='Break')brAt=t}});
+    let a=null,b=null;try{a=dtrMinutesFromHHMM(sc.in);b=dtrMinutesFromHHMM(sc.out)}catch(e){}
+    let late=0,over=0,noBreak=!ps.some(r=>r.type==='OUT'&&r.kind==='Break');
+    if(a!=null){try{const th=getEmployeeLateThresholdMinutes(emp,sc.in);const f=dtrPunchMinutes(ins[0]);if(f!=null)late=Math.max(0,f-th)}catch(e){}}
+    if(a!=null&&b!=null){if(b<=a)b+=1440;else if(b-a<NEED)b+=720;let allowed=Math.max(0,(b-a)-NEED);
+      try{const lb=window.rcadsR215&&window.rcadsR215.acsLongBreakMinutes?window.rcadsR215.acsLongBreakMinutes(emp.code,dk):null;if(lb!=null)allowed=lb}catch(e){}
+      over=Math.max(0,Math.floor(brk-allowed));
+      /* R497: NO BREAK OUT / BREAK IN scanned → the LONG BREAK of the day (ACS long break, or scheduled hours minus 8 h: 9 AM – 9 PM = 4 h) is taken out of the work */
+      /* R498: the break is taken only from time ABOVE 8 hours — a short day (less than 8 h IN → OUT) has nothing deducted */
+      if(noBreak&&allowed>0&&work>NEED)work=Math.max(NEED,work-allowed)}
+    const short=Math.max(0,NEED-Math.floor(work));
+    return Math.max(0,short-late-over);
+  }
+  const prev=window.calculateEmployeeDtrSummary;
+  if(typeof prev==='function')window.calculateEmployeeDtrSummary=function(emp,cutoff){
+    const s=prev.apply(this,arguments);
+    try{
+      if(!s||!s.cutoff||!emp||!(typeof isManagementEmployee==='function'&&isManagementEmployee(emp)))return s;
+      let recs=[];try{recs=getEmployeeAttendanceRecordsForDtr(emp)||[]}catch(e){}
+      const by={};recs.forEach(x=>{let k='';try{k=dtrDateKey(x.date)}catch(e){}if(k)(by[k]=by[k]||[]).push(x)});
+      let ut=0;dtrDateRangeKeys(s.cutoff.from,s.cutoff.to).forEach(dk=>{if(by[dk]){const u=dayInfo(emp,dk,by[dk]);if(u)ut+=u}});
+      s.undertimeBySchedule=s.undertimeMinutes;s.undertimeMinutes=ut;s.undertimeHHMM=dtrHHMM(ut);s.undertimeRule='8 HOURS WORKED (Management)';
+    }catch(e){}
+    return s};
+  window.rcadsR496={dayInfo};
+})();
+</script>
+<script id="rcadsR499Script">
+/* R499 — 11:00 AM LATE RULE only for positions SUPERVISOR, DEPUTY CHEF and MANAGER (Assistants not included —
+   their schedule can be changed in the ACS, which is then the approved time). Managers (manager list) stay included. */
+(function(){
+  'use strict';
+  const U=s=>String(s??'').trim().toUpperCase();
+  function posOf(emp){let p=U(emp&&(emp.position||emp.pos));try{if(!p&&emp&&emp.code){const b=String(emp.code).split('-')[0];const m=(window.rcadsMasterByCode&&window.rcadsMasterByCode(emp.code))||null;if(m)p=U(m.position)}}catch(e){}return p}
+  function flex(emp){
+    const p=posOf(emp);
+    if(p&&/(ASSIST|ASST)\.?\s*MANAGER/.test(p))return true;   /* R500: Assistant Manager is included */
+    if(p&&/ASSIST|ASST/.test(p))return false;
+    if(/SUPERVISOR|DEPUTY\s*CHEF|MANAGER/.test(p))return true;
+    try{return !!(window.rcadsMgrIsManager&&window.rcadsMgrIsManager(emp))}catch(e){return false}
+  }
+  window.rcadsR405FlexLate=flex;
+  window.rcadsR499={flex};
+})();
+</script>
 </body></html>
