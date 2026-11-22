@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R500 11 AM RULE: SUPERVISOR, DEPUTY CHEF, MANAGER, ASST. MANAGER</title>
+<title>Rustica RCADS App — R501 BORROWED PHONE SHOWS THE GREEN QR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -26112,7 +26112,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
      The employee opens RCADS → if the phone is within 50 m of a Rustica branch, the attendance QR shows (changes every minute).
      Not at the branch / Location OFF → NO QR (so it cannot be sent to somebody else).
      The old way (employee scans the Guard's QR first) stays as a backup. */
-  const ONE_R=50;let ONE=null,oneBusy=false;
+  const ONE_R=50;let ONE=null;const ONES={},oneBusy={};const OK=c=>String(c||'').trim().toUpperCase();   /* R501: one QR per person (a borrowed phone shows the borrower's QR without fighting the phone owner's) */
   /* R487 — ONE SCAN, NO EMPLOYEE LOCATION: the employee QR changes every 15 seconds and works once.
      Only the GUARD's phone must be at the branch (R283 guard location check stays). */
   const GO_MS=15000,GO_OK=30000,GO_SKEW=20000,GO_USED='rcads_r487_used_v1';
@@ -26132,21 +26132,23 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       res(ok?{ok:true,branch:best.k,d,acc}:{ok:false,d,acc,branch:best.k,msg:'You are '+(d>=1000?(d/1000).toFixed(1)+' km':d+' m')+' from '+bName(best.k)+'. The QR shows only within '+ONE_R+' m of the branch.'+(acc>ONE_R?' (GPS is weak: ±'+acc+' m — go outside / near the entrance.)':'')})},
       e=>res({ok:false,msg:e&&e.code===1?'Location is BLOCKED for this app. Allow Location, then press CHECK AGAIN.':'Location is OFF or not available. Turn ON Location, then press CHECK AGAIN.'}),{enableHighAccuracy:true,timeout:15000,maximumAge:10000})})}
   async function oneMake(who,force){
-    if(oneBusy)return;if(!force&&ONE&&ONE.code===who.code&&Date.now()-ONE.at<(ONE.ok?GO_MS:10000))return;oneBusy=true;
-    try{if(!ONE||ONE.code!==who.code)ONE={code:who.code,at:0,checking:true};
+    const k=OK(who.code);if(!k||oneBusy[k])return;const c=ONES[k];if(!force&&c&&!c.checking&&Date.now()-c.at<(c.ok?GO_MS:10000))return;oneBusy[k]=true;
+    try{if(!c)ONES[k]={code:who.code,at:0,checking:true,who};
       const g={ok:true,branch:who.branch||''};let txt='';
       try{txt=await makePayload(who.code,who.branch||'','GO',null,'GUARD',who.ph)}catch(e){g.ok=false;g.msg=e.message}
-      ONE={code:who.code,at:Date.now(),ok:g.ok,txt,msg:g.msg||'',d:g.d,acc:g.acc,branch:g.branch};
-    }finally{oneBusy=false}renderPassAll()}
+      ONES[k]={code:who.code,at:Date.now(),ok:g.ok,txt,msg:g.msg||'',branch:g.branch,who};ONE=ONES[k];
+    }finally{oneBusy[k]=false}renderPassAll()}
   function oneHtml(who){
-    if(!ONE||ONE.code!==who.code||ONE.checking){void oneMake(who);return '<div class="r181-info">Preparing your QR…</div>'}
-    if(Date.now()-ONE.at>(ONE.ok?GO_MS:10000))void oneMake(who);
-    if(ONE.ok&&ONE.txt)return '<div class="r181-pass"><div class="r181-qr">'+qrSvg(ONE.txt)+'</div><b>SHOW THIS TO THE GUARD TO SCAN</b><small>The QR changes every 15 seconds. No location needed.</small></div>'
+    const c=ONES[OK(who.code)];
+    if(!c||c.checking){void oneMake(who);return '<div class="r181-info">Preparing your QR…</div>'}
+    if(Date.now()-c.at>(c.ok?GO_MS:10000))void oneMake(who);
+    if(c.ok&&c.txt)return '<div class="r181-pass"><div class="r181-qr">'+qrSvg(c.txt)+'</div><b>SHOW THIS TO THE GUARD TO SCAN</b><small>The QR changes every 15 seconds. No location needed.</small></div>'
       +'<button type="button" class="r181-btn ghost" data-r181-scanguard style="margin-top:8px;width:100%">📷 Other way: scan the Guard’s QR</button>';
-    return '<div class="r181-warn" role="status"><b>NO QR YET</b><br>'+esc(ONE.msg||'')+'</div><button type="button" class="r181-big" data-r479-retry>🔄 TRY AGAIN</button>';
+    return '<div class="r181-warn" role="status"><b>NO QR YET</b><br>'+esc(c.msg||'')+'</div><button type="button" class="r181-big" data-r479-retry>🔄 TRY AGAIN</button>';
   }
-  setInterval(()=>{try{if(document.hidden||!ONE||!ONE.ok)return;const me=meFromSession();if(!me||ONE.code!==me.code)return;if(!document.querySelector('#r181Pass .r181-qr'))return;if(Date.now()-ONE.at>=GO_MS)void oneMake(me,true)}catch(e){}},1000);   /* R487: new QR every 15 s */
-  document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-r479-retry]')){const me=meFromSession();if(me){ONE=null;void oneMake(me,true);renderPassAll()}}});
+  setInterval(()=>{try{if(document.hidden)return;const shown=!!document.querySelector('#r181Pass .r181-qr,#r181Borrow .r181-qr');if(!shown)return;
+    Object.keys(ONES).forEach(k=>{const c=ONES[k];if(c&&c.ok&&c.who&&Date.now()-c.at>=GO_MS&&Date.now()-c.at<600000)void oneMake(c.who,true)})}catch(e){}},1000);   /* R487/R501: new QR every 15 s, for every QR on the screen */
+  document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-r479-retry]')){Object.keys(ONES).forEach(k=>delete ONES[k]);ONE=null;renderPassAll();try{renderBorrow()}catch(_){}}});
 
   /* ---------------- GUARD: scan the employee PASS ---------------- */
   function guardLabel(){if(window.__r335HrMode)return window.rcadsR335Label;try{return getLoggedGuardLabel()||''}catch(e){return ''}}
