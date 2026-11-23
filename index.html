@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R503 NAME CHANGES FROM RCPS INCLUDE THE MIDDLE INITIAL</title>
+<title>Rustica RCADS App — R504 ID SHOWS THE NEW NAME</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -24128,7 +24128,8 @@ body.r162-has-nav{padding-bottom:78px!important}
   function cardData(code,r){
     const f=findEmp(code)||{};const e=f.emp||{};
     const hx=(r&&r.hrEdit)||{};   /* R423: what HR typed in ✎ HR EDIT wins */
-    return {code:U(code),name:hx.name||(r&&r.name)||e.name||code,position:hx.position||e.position||(r&&r.position)||'',   /* R422: always the CURRENT position (RCPS → RCADS), not the one saved when the ID was approved */
+    return {code:U(code),name:e.name||hx.name||(r&&r.name)||code,   /* R504: the ID always shows the CURRENT name (RCPS → RCADS name changes), not the one saved when the ID was approved */
+      position:hx.position||e.position||(r&&r.position)||'',   /* R422: always the CURRENT position (RCPS → RCADS), not the one saved when the ID was approved */
       branch:(r&&r.branch)||f.branch||curBranch(),rid:rustId(code)||'RUST-—',
       photo:r&&r.photo,sig:(r&&r.sig)||(U(code)==='RUS-HR01'?(hrSig().img||''):''), /* R304: HR's saved signature = his own ID signature */emg:(r&&r.emg)||{},type:hx.type||(r&&r.empType)||empType(code),issued:r&&r.approvedAt,valid:hx.valid||(r&&r.validUntil),status:r?r.status:'NONE',
       branch:hx.branch||(r&&r.branch)||f.branch||curBranch()};
