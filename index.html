@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R534 REGULARIZED: OLD PUNCHES + SCHEDULES (ALL BRANCHES), NO HANG</title>
+<title>Rustica RCADS App — R535 GET LATEST OPENS THE FOLDER WINDOW (NO HIDDEN ALLOW)</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34608,13 +34608,13 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   if(!wrapExcelLib()){const iv=setInterval(()=>{if(wrapExcelLib())clearInterval(iv)},700);setTimeout(()=>clearInterval(iv),60000)}
 
   /* ================= the sync folder (HR laptop, Edge / Chrome) ================= */
-  function idb(){return new Promise(res=>{try{const q=indexedDB.open('rcads-r399-sync',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)}catch(e){res(null)}})}
+  function idb(){return new Promise(res=>{setTimeout(()=>res(null),3000);/* R535: never hang */try{const q=indexedDB.open('rcads-r399-sync',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)}catch(e){res(null)}})}
   let DIRMEM=null;   /* the chosen folder, kept in memory for this session too */
   async function dirGet(){if(DIRMEM)return DIRMEM;const d=await idb();if(!d)return null;return new Promise(res=>{try{const r=d.transaction('kv').objectStore('kv').get('dir');r.onsuccess=()=>res(r.result||null);r.onerror=()=>res(null)}catch(e){res(null)}})}
   async function dirPut(h){DIRMEM=h;const d=await idb();if(!d)return;return new Promise(res=>{try{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(h,'dir');t.oncomplete=()=>res();t.onerror=()=>res()}catch(e){res()}})}
   const folderOK=()=>typeof window.showDirectoryPicker==='function';
-  async function chooseFolder(){
-    let h;try{h=await window.showDirectoryPicker({id:'rustica-sync',mode:'readwrite',startIn:'documents'})}catch(e){if(e&&e.name==='AbortError')return null;throw e}
+  async function chooseFolder(start){
+    let h;try{h=await window.showDirectoryPicker({id:'rustica-sync',mode:'readwrite',startIn:start||'documents'})}catch(e){if(e&&e.name==='AbortError')return null;if(start&&e&&e.name==='TypeError'){try{h=await window.showDirectoryPicker({id:'rustica-sync',mode:'readwrite'})}catch(e2){if(e2&&e2.name==='AbortError')return null;throw e2}}else throw e}
     if(h.name===IN_NAME||h.name===OUT_NAME||h.name===OLD){alert('Please choose the MAIN folder "'+SYNC_NAME+'" — not the "'+h.name+'" folder inside it.');return null}
     if(h.name!==SYNC_NAME&&!confirm('The folder you chose is "'+h.name+'".\n\nThe agreed folder name is "'+SYNC_NAME+'". Use "'+h.name+'" anyway?'))return null;
     await dirPut(h);return h;
@@ -34622,8 +34622,11 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   /* returns a usable folder handle; must be called from a click (the browser asks 1 permission) */
   async function syncDir(ask){
     if(!folderOK())return null;let h=await dirGet();
-    if(h){try{let p=await h.queryPermission({mode:'readwrite'});if(p!=='granted'&&ask)p=await h.requestPermission({mode:'readwrite'});if(p==='granted')return h}catch(e){}if(!ask)return null}
-    if(!ask)return null;return await chooseFolder();
+    if(h){try{const p=await h.queryPermission({mode:'readwrite'});if(p==='granted')return h}catch(e){}if(!ask)return null}
+    /* R535: never wait for the small hidden "Allow" question (it does not show in the RCADS app window) —
+       open the folder window right away, already inside the saved folder: press Select folder, then Edit files / Allow */
+    if(!ask)return null;GL.msg='📁 A folder window opens — choose '+SYNC_NAME+' → Select folder → Edit files / Allow.';GL.err=false;try{drawHr()}catch(_){}
+    try{return await chooseFolder(h||null)}catch(e){if(e&&(e.name==='SecurityError'||e.name==='NotAllowedError')){GL.msg='Press the green GET LATEST button once more — the folder window will open.';GL.err=true;try{drawHr()}catch(_){}return null}throw e}
   }
   async function sub(dir,name){return await dir.getDirectoryHandle(name,{create:true})}
   async function moveOld(dirH,fileH){
@@ -34753,7 +34756,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(typeof XLSX==='undefined'||!XLSX.CFB){GL.msg='The Excel library did not load. Connect to the internet and open RCADS again.';GL.err=true;drawHr();return}
     if(!folderOK()){document.getElementById('r399Pick').click();return}
     let dir=null;try{dir=await syncDir(true)}catch(e){GL.msg='Could not open the folder: '+e.message;GL.err=true;drawHr();return}
-    if(!dir){GL.msg='No folder chosen.';GL.err=true;drawHr();return}
+    if(!dir){if(!/once more/.test(GL.msg||''))GL.msg='No folder chosen.';GL.err=true;drawHr();return}
     GL.busy=true;GL.err=false;GL.msg='Reading '+dir.name+' / '+IN_NAME+' …';GL.folder=dir.name;drawHr();
     try{
       const inbox=await sub(dir,IN_NAME);await sub(dir,OUT_NAME);
