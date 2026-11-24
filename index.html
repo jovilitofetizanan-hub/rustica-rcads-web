@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R528 ZOOM − + FIT FOR HR</title>
+<title>Rustica RCADS App — R530 DTR SUMMARY LOG: FROZEN EMPCODE / NAME / POSITION</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34013,7 +34013,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function isAcs(x){return /\bACS\b/.test(U(x.category||x.fileName))}
   function scheduleCell(x,code,day){
     const row=(x.rowData||[]).find(r=>U(r['EMPLOYEE ID'])===U(code)&&excelDateToISO(r.DATE)===day);if(row){const i=excelTimeToHHMM(row['TIME IN']),o=excelTimeToHHMM(row['TIME OUT']);return {text:i&&o?i+' – '+o:String(row['TIME IN']||''),breakHours:row['LONG BREAK(HRS)']??'',ot:row['APPROVE O.T.']??''};}
-    for(const w of x.weeklyBlocks||[]){const col=(w.dateCols||[]).find(c=>c.date===day);if(!col)continue;const r=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===U(code));if(!r)continue;const raw=r[col.idx],out=col.outIdx!==undefined?r[col.outIdx]:null;let text=raw==null?'':String(raw);const sub=(w.matrix[w.headerRow+1]||[]).map(U);if(out!==null&&out!==undefined&&out!==''&&!/BREAK/.test(sub[col.idx+1]||'')){const i=excelTimeToHHMM(raw),o=excelTimeToHHMM(out);if(i&&o)text=i+' – '+o;}else if(typeof raw==='number'){const i=excelTimeToHHMM(raw);if(i)text=i}   /* R527: the cell after "New Sched" is LONG BREAK, not TIME OUT */return {text,breakHours:/BREAK/.test(sub[col.idx+1]||'')?r[col.idx+1]??'':'',ot:/OT|O\.T/.test(sub[col.idx+2]||'')?r[col.idx+2]??'':''};}return null;
+    for(const w of x.weeklyBlocks||[]){const col=(w.dateCols||[]).find(c=>c.date===day);if(!col)continue;const r=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===U(code));if(!r)continue;const raw=r[col.idx],out=col.outIdx!==undefined?r[col.outIdx]:null;let text=raw==null?'':String(raw);let sub=(w.matrix[w.headerRow+1]||[]).map(U);for(let k=1;k<=3;k++){const t=(w.matrix[w.headerRow+k]||[]).map(v=>U(v).replace(/\s+/g,' '));if(t.some(v=>/LONG|APRVD|NEW SCHED/.test(v))){sub=t;break}}   /* R529 */
+      if(out!==null&&out!==undefined&&out!==''&&!/BREAK/.test(sub[col.idx+1]||'')){const i=excelTimeToHHMM(raw),o=excelTimeToHHMM(out);if(i&&o)text=i+' – '+o;}else if(typeof raw==='number'){const i=excelTimeToHHMM(raw);if(i)text=i}   /* R527: the cell after "New Sched" is LONG BREAK, not TIME OUT */return {text,breakHours:/BREAK/.test(sub[col.idx+1]||'')?r[col.idx+1]??'':'',ot:/OT|O\.T/.test(sub[col.idx+2]||'')?r[col.idx+2]??'':''};}return null;
   }
   function scheduleParts(branch,code,day){const entries=library().filter(x=>U(x.branch)===U(branch)).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));const pick=acs=>{for(const x of entries.filter(x=>isAcs(x)===acs)){const v=scheduleCell(x,code,day);if(v&&(v.text!==''||v.breakHours!==''||v.ot!==''))return v}return null};return {original:pick(false),acs:pick(true)};}
   const hhmm=m=>{m=Math.max(0,Math.round(Number(m)||0));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')};
@@ -35923,6 +35924,50 @@ body.hr-session-active #r528Zoom{display:flex}</style>
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
   setInterval(()=>{if(!document.body.classList.contains('hr-session-active')&&z!==1&&!document.getElementById('r528Keep'))apply(1)},3000);
   window.rcadsR528={apply,fit};
+})();
+</script>
+<style id="rcadsR529Css">.r373-dtr .r373-scroll{max-height:72vh}.r373-dtr .r373-scroll table{border-collapse:separate;border-spacing:0}
+.r373-dtr .r373-scroll th,.r373-dtr .r373-scroll td{white-space:nowrap}.r529-edge{box-shadow:3px 0 0 rgba(76,43,23,.35)}</style>
+<script id="rcadsR529Script">
+/* R529 — DTR (Employee Daily Punches / MY DTR): DATE • ORIGINAL SCHED. • ACS • TIME-IN • BREAK-OUT • BREAK-IN stay in place
+   while you scroll sideways (and the column names stay on top while you scroll down), so the photo always shows them. */
+(function(){'use strict';
+  const T=v=>String(v||'').trim().toUpperCase();
+  function bg(el){const c=getComputedStyle(el).backgroundColor;return (!c||c==='transparent'||/rgba\(0, 0, 0, 0\)/.test(c))?'#fffaf2':''}
+  function freeze(box){const tb=box.querySelector('table');if(!tb||!tb.offsetWidth)return;
+    const key=box.clientWidth+'|'+tb.rows.length+'|'+(tb.rows[1]&&tb.rows[1].cells.length);if(tb.dataset.r529k===key)return;tb.dataset.r529k=key;
+    /* measure the natural layout first (sticky cells report their stuck position) */
+    const sl=box.scrollLeft,st=box.scrollTop;const cells=[...tb.querySelectorAll('th,td')];cells.forEach(c=>{c.style.position='';c.style.left='';c.style.top='';c.style.zIndex='';c.classList.remove('r529-edge')});box.scrollLeft=0;box.scrollTop=0;
+    const ths=[...tb.querySelectorAll('thead th')];const bi=ths.find(th=>T(th.textContent)==='BREAK-IN');const dt=ths.find(th=>T(th.textContent)==='DATE');if(!dt){box.scrollLeft=sl;box.scrollTop=st;return}
+    const T1=tb.getBoundingClientRect().left,RB=x=>Math.round(x.getBoundingClientRect().right-T1);let edge=bi&&box.clientWidth>=RB(bi)+260?RB(bi):RB(dt);   /* small screen: DATE only */
+    const T0=tb.getBoundingClientRect().left;const M=cells.map(c=>{const q=c.getBoundingClientRect();return {c,l:Math.round(q.left-T0),r:Math.round(q.right-T0),h:!!c.closest('thead')}});
+    const hr=tb.tHead?[...tb.tHead.rows]:[];const tops=[];let top=0;hr.forEach(r=>{tops.push(top);top+=r.offsetHeight});
+    box.dataset.r529='1';
+    M.forEach(({c,l,r,h})=>{const b=bg(c);
+      if(h){c.style.position='sticky';c.style.top=(tops[c.parentElement.rowIndex]||0)+'px';c.style.zIndex='3';if(b)c.style.background=b}
+      if(r<=edge+1){c.style.position='sticky';c.style.left=l+'px';c.style.zIndex=h?'5':'2';if(b)c.style.background=b;if(Math.abs(r-edge)<=1)c.classList.add('r529-edge')}});
+    box.scrollLeft=sl;box.scrollTop=st;
+  }
+  /* R530: the same for every DTR SUMMARY LOG table (EDIT / VIEW / FILL): EMPCODE • COMPLETE NAME • POSITION stay in place, column names stay on top */
+  function scroller(el){let p=el.parentElement;while(p&&p!==document.body){const cs=getComputedStyle(p);if(/(auto|scroll)/.test(cs.overflowX)||/(auto|scroll)/.test(cs.overflowY))return p;p=p.parentElement}return null}
+  function freezeLog(tb){const box=scroller(tb);if(!box||!tb.offsetWidth)return;
+    const hRow=(tb.tHead&&tb.tHead.rows[tb.tHead.rows.length-1])||[...tb.rows].find(r=>[...r.cells].some(c=>T(c.textContent)==='EMPCODE'));if(!hRow)return;
+    const hc=[...hRow.cells];const ec=hc.find(c=>T(c.textContent)==='EMPCODE');if(!ec)return;
+    const key=box.clientWidth+'|'+tb.rows.length+'|'+hc.length;if(tb.dataset.r530k===key)return;tb.dataset.r530k=key;
+    const sl=box.scrollLeft,st=box.scrollTop;const cells=[...tb.querySelectorAll('th,td')];cells.forEach(c=>{c.style.position='';c.style.left='';c.style.top='';c.style.zIndex='';c.classList.remove('r529-edge')});box.scrollLeft=0;box.scrollTop=0;
+    const T0=tb.getBoundingClientRect().left,R=x=>Math.round(x.getBoundingClientRect().right-T0);
+    const pos=hc.find(c=>T(c.textContent)==='POSITION'),nm=hc.find(c=>/^(COMPLETE NAME|NAME)$/.test(T(c.textContent)));
+    let edge=R(ec);const want=pos||nm;if(want&&box.clientWidth>=R(want)+260)edge=R(want);else if(nm&&box.clientWidth>=R(nm)+200)edge=R(nm);
+    const hIdx=hRow.rowIndex,headRows=[...tb.rows].slice(0,hIdx+1);const tops=[];let top=0;headRows.forEach(r=>{tops[r.rowIndex]=top;top+=r.offsetHeight});
+    const M=cells.map(c=>{const q=c.getBoundingClientRect();return {c,l:Math.round(q.left-T0),r:Math.round(q.right-T0),h:c.parentElement.rowIndex<=hIdx}});
+    M.forEach(({c,l,r,h})=>{const b=bg(c);
+      if(h&&/(auto|scroll)/.test(getComputedStyle(box).overflowY)){c.style.position='sticky';c.style.top=(tops[c.parentElement.rowIndex]||0)+'px';c.style.zIndex='3';if(b)c.style.background=b}
+      if(r<=edge+1){c.style.position='sticky';c.style.left=l+'px';c.style.zIndex=h?'5':'2';if(b)c.style.background=b;if(Math.abs(r-edge)<=1)c.classList.add('r529-edge')}});
+    box.scrollLeft=sl;box.scrollTop=st}
+  function run(){document.querySelectorAll('.r373-dtr .r373-scroll').forEach(b=>{try{freeze(b)}catch(e){}});
+    document.querySelectorAll('table').forEach(tb=>{if(tb.closest('.r373-dtr'))return;try{if(tb.offsetParent!==null&&/EMPCODE/.test((tb.rows[0]&&tb.rows[0].textContent||'')+(tb.rows[1]&&tb.rows[1].textContent||'')+(tb.rows[2]&&tb.rows[2].textContent||'')))freezeLog(tb)}catch(e){}})}
+  setInterval(run,800);window.addEventListener('resize',()=>{document.querySelectorAll('table').forEach(t=>{t.dataset.r529k='';t.dataset.r530k=''});run()});
+  window.rcadsR529={run};
 })();
 </script>
 <script id="rcadsR421Script">/* R421 — ID print: bigger round logo, RESTAURANT and POSITION in bold, signatures stay in their own space (no more covering "Status" or the note).
