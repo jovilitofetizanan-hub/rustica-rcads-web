@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R520 DTR DOWNLOAD: 5 ROWS FOR NEW EMPLOYEES</title>
+<title>Rustica RCADS App — R521 DTR EXCEL COMES OUT FILLED (HEAD + HR CORRECTIONS)</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -30869,7 +30869,9 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
         else if(t.id==='r264File'&&t.files&&t.files[0]){const f=t.files[0];t.value='';const ww=who();if(ww&&confirm('Send the CORRECTED file "'+f.name+'" to HR?'))sendBack(ww,'CORRECTED',f)}});
       el.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;const ww=who();if(!ww)return;
         const f=t.closest('[data-r264f]');if(f){const [d,k]=f.getAttribute('data-r264f').split('|');try{const s=window.rcadsR215.status(ST.b,d==='ADMIN'?'DINING':d);window.rcadsOrigSchedForm(ST.b,d,k==='ACS'?s.mon:s.nextMon,k)}catch(err){alert('Could not make the form: '+err.message)}return}
-        if(t.closest('#r264D')){const [from,to]=ST.cut.split('|');try{downloadDtr(ST.b,{from,to},ww.dtr)}catch(err){alert('Could not make the DTR Summary Log: '+err.message)}return}
+        if(t.closest('#r264D')){const [from,to]=ST.cut.split('|');   /* R521: filled with HR's and the Head's corrections */
+          if(window.rcadsR521){ST.msg='⏳ Making the Excel…';draw(true);window.rcadsR521.download(ST.b,from,to,ww.dtr,ww.forms&&ww.forms[0]==='KITCHEN'?'KITCHEN':'DINING').then(n=>{ST.msg='⬇ '+n+' Excel file(s) downloaded.';draw(true)}).catch(err=>{try{downloadDtr(ST.b,{from,to},ww.dtr);ST.msg=''}catch(e2){ST.msg='Could not make the DTR Summary Log: '+e2.message}draw(true)});return}
+          try{downloadDtr(ST.b,{from,to},ww.dtr)}catch(err){alert('Could not make the DTR Summary Log: '+err.message)}return}
         if(t.closest('#r264Ok')){const d=(document.getElementById('r264Dept')||{}).value;if(confirm('Send to HR: '+d+' • '+bName(ST.b)+' • CHECKED — OK?'))sendBack(ww,'CHECKED',null)}})}
     const hasMore=!!w.host.querySelector('.r162-nav [data-r162-go="more"]');el.setAttribute('data-r162-tab',hasMore?'more':'home');
     if(el.parentElement!==w.host){const nav=w.host.querySelector(':scope > .r162-nav');w.host.insertBefore(el,nav||null)}
@@ -34798,7 +34800,13 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(others.length)h+='<div class="r399-n"><b>Other forms filled:</b> '+others.map(r=>esc(bName(r.branch))+' '+r.dept+' '+(r.kind==='ACS'?'ACS':'SCHEDULE')+' '+esc(fmtD(r.week))+' <button type="button" class="r399-btn l" data-r399-get="'+r.id+'">⬇</button>').join(' • ')+'</div>';
     return h;
   }
-  async function hrDownload(id){try{const d=await rpc('rustica_sched_filled_get',{p_key:myKey(),p_id:+id});saveU8(unb64(d.data_b64),d.file_name)}catch(e){alert(e.message)}}
+  async function hrDownload(id){
+    /* R521: a DTR SUMMARY LOG sent by a branch downloads FILLED (RCADS + the Head's corrections + HR's own corrections) */
+    {const r=(FL.rows||[]).find(x=>String(x.id)===String(id));if(r&&r.kind==='DTR'){try{let ed={};
+        if(!isOk(r.id)){const d=await rpc('rustica_sched_filled_get',{p_key:myKey(),p_id:+id});const x=XLSX.read(unb64(d.data_b64),{type:'array'});const ws=x.Sheets.R461_EDITS;if(ws&&ws.A1)ed=JSON.parse(String(ws.A1.v)||'{}')||{}}
+        try{const dr=JSON.parse(localStorage.getItem('r461draft_HR_'+r.branch+'_'+String(r.week).slice(0,10)+'_'+U(r.dept))||'null');if(dr&&dr.edits)ed=Object.assign({},ed,dr.edits)}catch(e){}
+        const from=String(r.week).slice(0,10);r521Download(r.branch,from,cutTo(from),ed,U(r.dept)==='KITCHEN'?['KITCHEN']:null);return}catch(e){alert('Could not make the filled Excel: '+e.message+' — downloading the file as sent.')}}}
+    try{const d=await rpc('rustica_sched_filled_get',{p_key:myKey(),p_id:+id});saveU8(unb64(d.data_b64),d.file_name)}catch(e){alert(e.message)}}
   function saveU8(u8,name){const blob=new Blob([u8],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     // R399: on the HR laptop with the sync folder, SEND TO RCPS files go to "RCADS to RCPS" (see below); this is a normal download
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
@@ -34909,6 +34917,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       {const X={'ANG-EMP43':{branches:['SAN_RAFAEL','SAN_FERNANDO','ANGELES'],forms:['DINING'],label:'DINING SCHEDULE • 3 BRANCHES'}}[U(w.e&&w.e.code)];   /* R490: also when she is a Manager / Approver */
        if(X)return Object.assign({},w,{kind:'HEAD',branches:X.branches.slice(),forms:X.forms.slice(),dtr:[],label:X.label})}
       if(w.kind==='MGR'){if(!isSchedMgr(w.e))return null;return Object.assign({},w,{forms:['DINING'],label:'MANAGER (DINING SCHEDULE)'})}
+      if(w.dtrB&&!w.forms.length)return Object.assign({},w,{forms:['DINING'],dtrOnly:true});   /* R521: DTR Summary Log makers (R518) */
       if(w.kind!=='HEAD'&&w.kind!=='HRA')return null;return w}catch(e){return null}}
   const HD={b:'',forms:{},filled:{},at:{},busy:false,msg:'',err:false};
   function fmtTime(hhmm){if(!hhmm)return '';let [h,m]=hhmm.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(m)+' '+ap}
@@ -35034,7 +35043,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const b=HD.b;const bsel=w.branches.length>1?'<select id="r399B">'+w.branches.map(c=>'<option value="'+c+'"'+(c===b?' selected':'')+'>'+esc(bName(c))+'</option>').join('')+'</select>':'';
     let h='<div class="r399-h">📝 FILL SCHEDULE / ACS IN RCADS</div><div class="r399-sub">'+esc(w.label)+' • '+esc(bName(b))+'</div>'+bsel;
     if(!HD.forms[b]){h+='<div class="r399-n">'+(HD.busy?'Loading the forms from HR…':'')+'</div>'}
-    else{const rows=headRows(w,b);
+    else{const rows=w.dtrOnly?[]:headRows(w,b);
       h+='<div class="r399-n" style="margin-top:2px"><b>RULES:</b> ORIGINAL SCHEDULE — shows here as soon as HR sends it; send it back <b>before the week starts</b> (by the Sunday before). ACS — fill it in during the week, send it to HR every <b>CUT-OFF (10th and 25th)</b> for the review of change of schedule, long break and overtime.</div>';
       {const mons=[...new Set(rows.map(x=>x.mon))].sort();if(mons.length){const hl=holidaysFor(b,mons[0],addD(mons[mons.length-1],6)).filter(x=>x.date>=addD(today(),-1));h+=holBox(hl)}}
       rows.forEach(x=>{if(x.wait){h+='<div class="r399-item"><b>'+esc(x.label)+(w.forms.length>1||x.dept==='ADMIN'?' • '+esc(x.dept):'')+'</b><small>'+esc(fmtWk(x.mon))+' • '+esc(x.why)+'</small></div>';return}
@@ -35057,6 +35066,30 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function ctxFor(b,from,to){const c={from,to};const type=Number(String(from).slice(8,10))===11?'11-25':'26-10';let m=Number(String(to).slice(5,7));if(type==='11-25')m+=1;if(m>12)m-=12;
     return {cutoff:c,type,month:'M'+String(m).padStart(2,'0'),branch:b,branchName:bName(b)}}
   function withCtx(c,fn){const o=window.rcadsR158DtrExportContext;window.rcadsR158DtrExportContext=function(){return c};try{return fn()}finally{window.rcadsR158DtrExportContext=o}}
+  /* R521: the DTR SUMMARY LOG Excel always comes out FILLED — RCADS numbers + HR's own corrections + the Head's corrections
+     (draft on this phone, or what was submitted), same look as the HR file, + 5 empty rows for NEW employees (Extra). */
+  function r521Wb(b,from,to,edits){const c=ctxFor(b,from,to);const K='rcads_r371_dtr_edits_'+encodeURIComponent([c.branch,from,to].join('|'));
+    let st={cells:{}};try{st=JSON.parse(localStorage.getItem(K)||'null')||{cells:{}}}catch(e){}st=JSON.parse(JSON.stringify(st));if(!st.cells)st.cells={};
+    Object.keys(edits||{}).forEach(k=>{try{const [tag,code,h]=JSON.parse(k);st.cells[JSON.stringify([c.month+'_DTR Log ('+tag+' '+c.type+')',U(code),U(h)])]={value:edits[k],by:'R521'}}catch(e){}});
+    const P=Storage.prototype,og=P.getItem;P.getItem=function(k){return k===K?JSON.stringify(st):og.call(this,k)};
+    try{return withCtx(c,()=>window.buildEditableDTRWorkbook())}finally{P.getItem=og}}
+  function r521Slots(ws,b){const a=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});const h=a.findIndex(r=>r&&U(r[0])==='EMPCODE');if(h<0)return ws;
+    let end=h;for(let i=h+1;i<a.length;i++){const r=a[i]||[];if(r.some(v=>v!=null&&v!==''))end=i;else break}
+    const X=extraMax(b,a.slice(h+1,end+1).map(r=>U(r&&r[0])));const add=[];for(let k=1;k<=NEW_N;k++)add.push([exCode(X.P,X.mx+k)]);a.splice(end+1,0,...add);return XLSX.utils.aoa_to_sheet(a)}
+  function r521Download(b,from,to,edits,depts,tagName){
+    if(typeof XLSX==='undefined'||!window.rcadsDtrStyledBlob)throw new Error('The Excel library did not load. Connect to the internet and open RCADS again.');
+    const wb=r521Wb(b,from,to,edits);if(!wb)throw new Error('Could not prepare the DTR Summary Log.');let k=0;
+    wb.SheetNames.forEach(n=>{const t=tagOf(n);if(!t)return;const d=DTAG[t];if(depts&&depts.length&&!depts.includes(d))return;
+      let ws=wb.Sheets[n];if(t==='Extra'){try{ws=r521Slots(ws,b)}catch(e){console.warn('R521',e)}}
+      const blob=window.rcadsDtrStyledBlob({SheetNames:[n],Sheets:{[n]:ws}});const nm='DTR_SUMMARY_'+U(bName(b)).replace(/[^A-Z]+/g,'_')+'_'+from+'_to_'+to+'_'+d+(tagName?'_'+tagName:'')+'.xlsx';
+      setTimeout(()=>{const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=nm;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(u);a.remove()},1500)},k++*900)});
+    if(!k)throw new Error('No DTR Summary Log rows for this branch yet.');return k}
+  async function r521Edits(b,from,dept){let ed={};
+    try{const d=await rpc('rustica_sched_filled_mine',{p_key:myKey(),p_branch:b,p_week:from});const r=(d.rows||[]).find(x=>x.kind==='DTR'&&U(x.dept)===U(dept)&&x.data_b64);
+      if(r){const x=XLSX.read(unb64(r.data_b64),{type:'array'});const ws=x.Sheets.R461_EDITS;if(ws&&ws.A1)ed=JSON.parse(String(ws.A1.v)||'{}')||{}}}catch(e){}
+    try{const dr=JSON.parse(localStorage.getItem('r461draft_'+b+'_'+from+'_'+U(dept))||'null');if(dr&&dr.edits)ed=Object.assign({},ed,dr.edits)}catch(e){}
+    return ed}
+  window.rcadsR521={download:async function(b,from,to,depts,dept){const ed=await r521Edits(b,from,dept||'DINING');return r521Download(b,from,to,ed,depts)}};
   const HR_ONLY=/^(SSS LOAN|PAG-IBIG LOAN|COMPANY LOAN & OTHERS|MONTHLY RATE)$/;   /* R463: loans / rate = HR only */
   const dEdit=(h,c)=>c>=3&&!!U(h)&&U(h)!=='SIGNATURE'&&(!HR_ONLY.test(U(h))||!!(DE&&DE.hr));
   const isTime=h=>/\[h\]:mm/i.test(h);
@@ -35102,7 +35135,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function dDraw(){const el=document.getElementById('r461Ed');if(!el||!DE)return;const sh=DE.sheets[DE.tab];const sc=el.querySelector('.gw');const top=sc?sc.scrollTop:0,left=sc?sc.scrollLeft:0;
     const n=Object.keys(DE.edits).length;
     let t='<div class="ed"><div class="ed-h"><b>📝 DTR SUMMARY LOG — '+esc(bName(DE.b))+'</b><small>'+esc(fmtD(DE.from)+' – '+fmtD(DE.to)+', '+DE.to.slice(0,4))+' • '+n+' correction(s)</small>'+
-      '<div class="r446-top">'+(DE.hr?'<button type="button" class="r399-btn ok" data-d="approve">✅ APPROVE</button>':'<button type="button" class="r399-btn ok" data-d="submit">📤 SUBMIT TO HR</button>')+'<button type="button" class="r399-btn l" data-d="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-d="close">✕ CLOSE</button></div></div>'+
+      '<div class="r446-top">'+(DE.hr?'<button type="button" class="r399-btn ok" data-d="approve">✅ APPROVE</button>':'<button type="button" class="r399-btn ok" data-d="submit">📤 SUBMIT TO HR</button>')+'<button type="button" class="r399-btn l" data-d="draft">💾 SAVE DRAFT</button><button type="button" class="r399-btn l" data-d="xls">⬇ EXCEL</button><button type="button" class="r399-btn l" data-d="close">✕ CLOSE</button></div></div>'+
       '<div class="ed-b"><div class="r440-v">'+DE.sheets.map((s,i)=>'<button type="button" class="r399-btn'+(i===DE.tab?'':' l')+'" data-tab="'+i+'">'+DTAG[s.tag]+'</button>').join('')+'</div>'+
       (DE.hr?'<div class="r442-pend">HR CHECK — sent by '+esc(DE.by)+'. Yellow = changed by the Head or by you. Correct anything, then ✅ APPROVE.</div>':'')+'<div class="r399-n">Numbers come from RCADS (punches + approved schedule). Change only what is wrong. LATE / UNDERTIME as hours:minutes (e.g. <b>1:30</b>). Changed cells are yellow. HR approves before it goes to payroll.</div>'+
       '<div class="gw"><table class="g"><thead><tr>'+sh.headers.map((h,c)=>'<th class="'+(c===0?'s1':c===1?'s2':'sub')+'">'+esc(h)+'</th>').join('')+'</tr></thead><tbody>';
@@ -35122,6 +35155,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   async function dClick(e){const t=e.target;if(!DE||!t.closest)return;const tb=t.closest('[data-tab]');if(tb){DE.tab=+tb.dataset.tab;dDraw();return}
     const a=t.closest('[data-d]');if(!a)return;const act=a.dataset.d;
     if(act==='close'){if(DE.dirty&&!confirm('Close? Press 💾 SAVE DRAFT first if you want to continue later.'))return;document.getElementById('r461Ed').remove();DE=null;return}
+    if(act==='xls'){try{r521Download(DE.b,DE.from,DE.to,DE.edits,DE.sheets.map(s=>DTAG[s.tag]))}catch(err){alert('Could not make the Excel: '+err.message)}return}   /* R521 */
     if(act==='draft'){try{localStorage.setItem(dDraftKey(),JSON.stringify({at:Date.now(),edits:DE.edits}));DE.dirty=false;alert('💾 Draft saved on this phone.')}catch(err){alert('Could not save the draft: '+err.message)}return}
     if(act==='approve'){if(!confirm('✅ APPROVE the DTR Summary Log of '+bName(DE.b)+' with '+Object.keys(DE.edits).length+' correction(s)?'))return;a.disabled=true;
       const n=applyDtrEdits(DE.b,DE.from,DE.to,DE.edits,DE.by);setOk(DE.id,'HR');try{localStorage.removeItem(dDraftKey())}catch(err){}
@@ -35158,6 +35192,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     try{const src=sourceU8(b,id,mon,kind,dept);let u8=src.u8;if(!src.filled){const wb=XLSX.read(u8,{type:'array'});const sn=sheetOf(wb,kind,dept);if(!sn)throw new Error('No '+dept+' sheet in this form.');u8=deptSheetOnly(u8,sn);{const ff=formById(b,id);if(ff&&String(ff.from).slice(0,10)!==mon)u8=retarget(u8,sn,mon)}}
       saveU8(u8,fileNameFor(b,dept,kind,mon))}catch(e){alert('Could not download: '+e.message)}}
   async function dtrDownload(id,w){const b=HD.b;const f=formById(b,id);if(!f)return;
+    /* R521: FILLED Excel (RCADS + HR corrections + this Head's corrections) */
+    {const from=String(f.from).slice(0,10),to=String(f.to).slice(0,10),dept=w.forms[0]||'DINING',all=dept==='DINING';
+     try{HD.msg='⏳ Making the DTR Summary Log Excel…';HD.err=false;drawHead();const ed=await r521Edits(b,from,dept);const n=r521Download(b,from,to,ed,all?null:[dept]);HD.msg='⬇ '+n+' Excel file(s) downloaded — filled with the numbers and the corrections.';drawHead();return}
+     catch(e){HD.msg='Could not make the filled Excel ('+e.message+') — downloading the blank form instead.';HD.err=true;drawHead()}}
     try{const u8=unb64(f.data_b64);const all=w.forms[0]==='DINING';   /* R401: the Dining Head 1 double-checks ALL departments of the branch */
       let out=u8;if(!all){const wb=XLSX.read(u8,{type:'array'});const tag=DTRSHEET[w.forms[0]]||'';const sn=wb.SheetNames.find(n=>new RegExp('\\('+tag,'i').test(n));if(sn)out=deptSheetOnly(u8,sn)}
       saveU8(out,'DTR_'+U(bName(b)).replace(/[^A-Z]+/g,'_')+'_'+(all?'ALL_DEPTS':w.forms[0])+'_'+String(f.from).slice(0,10)+'_to_'+String(f.to).slice(0,10)+'.xlsx')}catch(e){alert('Could not download: '+e.message)}}
