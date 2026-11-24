@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R517 CATERING: DAY BEFORE AND AFTER ALSO FREE (+ ASST. DEPUTY, SUPERVISOR)</title>
+<title>Rustica RCADS App — R520 DTR DOWNLOAD: 5 ROWS FOR NEW EMPLOYEES</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -30790,16 +30790,35 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
     window.rcadsR158DtrExportContext=function(){const x=oCtx.apply(this,arguments);x.cutoff={from:c.from,to:c.to};x.branch=b;x.branchName=bName(b);return x};
     try{return {wb:window.buildEditableDTRWorkbook(),ctx:window.rcadsR158DtrExportContext()}}finally{window.rcadsR158DtrExportContext=oCtx;window.getSavedHrCutoffPeriod=oCut}
   }
+  /* R520: the downloaded DTR Summary Log (Extra) gets 5 EMPTY rows for NEW employees, with the next EXTRAEMP codes */
+  function r520AddNew(ws,b){const a=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});const h=a.findIndex(r=>r&&U(r[0])==='EMPCODE');if(h<0)return ws;
+    let end=h;for(let i=h+1;i<a.length;i++){const r=a[i]||[];if(r.some(v=>v!=null&&v!==''))end=i;else break}
+    const codes=staff(b).map(e=>U(e.code)).concat(a.slice(h+1,end+1).map(r=>U(r&&r[0])));let P='';const f=codes.find(c=>/^[A-Z]{2,6}-/.test(c));P=f?f.split('-')[0]:'X';
+    let mx=0;codes.forEach(c=>{const m=new RegExp('^'+P+'-EXTRAEMP(\\d+)$').exec(c);if(m)mx=Math.max(mx,+m[1])});
+    const add=[];for(let k=1;k<=5;k++)add.push([P+'-EXTRAEMP'+pad(mx+k)]);a.splice(end+1,0,...add);return XLSX.utils.aoa_to_sheet(a)}
   function downloadDtr(b,c,depts){
     if(typeof XLSX==='undefined'||!window.rcadsDtrStyledBlob){alert('The Excel library did not load. Connect to the internet and open RCADS again.');return}
     const {wb,ctx}=buildDtr(b,c);if(!wb)return;let k=0;
     wb.SheetNames.forEach(nm=>{const d=Object.keys(DEPT_TAG).find(x=>new RegExp('\\('+DEPT_TAG[x]+'\\b').test(nm));if(!d||!depts.includes(d))return;
+      if(d==='EXTRA'){try{wb.Sheets[nm]=r520AddNew(wb.Sheets[nm],b)}catch(e){console.warn('R520',e)}}
       const blob=window.rcadsDtrStyledBlob({SheetNames:[nm],Sheets:{[nm]:wb.Sheets[nm]}});
       setTimeout(()=>save(blob,'RCADS_'+b+'_DTR_LOG_'+ctx.month+'_'+ctx.type+'_'+c.from+'_to_'+c.to+'_'+d+'.xlsx'),k++*900)});
   }
 
   /* ---------- who is using the app ---------- */
+  /* R518: DTR SUMMARY LOG makers chosen by HR (all departments of the branch; they check / correct it, then SEND BACK TO HR) */
+  const R518_DTR={'SJ-EMP39':{b:['SAN_JUAN'],label:'DTR SUMMARY LOG • SAN JUAN'},'ANG-EMP43':{b:['SAN_RAFAEL','ANGELES'],label:'DTR SUMMARY LOG • SAN RAFAEL / ANGELES'},'SF-EMP03':{b:['SAN_FERNANDO'],label:'DTR SUMMARY LOG • SAN FERNANDO'}};
+  const R518_ALL=['MANAGEMENT','KITCHEN','DINING','EXTRA'];
   function who(){
+    let e=null;try{e=currentEmployee}catch(_){}if(!e||!e.code)return null;
+    const X=R518_DTR[U(e.code)];const w=who0();if(!X)return w;
+    if(w){if(w.kind==='MGR')return w;const br=w.branches.slice();X.b.forEach(b=>{if(!br.includes(b))br.push(b)});return Object.assign({},w,{branches:br,dtr:R518_ALL.slice(),dtrB:X.b.slice(),label:w.label+' + '+X.label})}
+    const app=document.getElementById('rcadsR131ApproverApp'),shell=app&&app.querySelector('.r131-shell');
+    const appr=shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none';
+    const panel=document.getElementById('employeeSimplePanel');const host=appr?shell:(panel&&document.body.classList.contains('employee-simple-mode')?panel:null);if(!host)return null;
+    return {kind:'HEAD',e,host,branches:X.b.slice(),forms:[],dtr:R518_ALL.slice(),dtrB:X.b.slice(),label:X.label};
+  }
+  function who0(){
     let e=null;try{e=currentEmployee}catch(_){}if(!e||!e.code)return null;
     const app=document.getElementById('rcadsR131ApproverApp'),shell=app&&app.querySelector('.r131-shell');
     const appr=shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none';
@@ -30821,9 +30840,9 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
     const s0=window.rcadsR215&&window.rcadsR215.status?(()=>{try{return window.rcadsR215.status(w.branches[0],w.forms[0]==='ADMIN'?'DINING':w.forms[0])}catch(e){return null}})():null;
     const bsel=w.branches.length>1?'<select id="r264B">'+w.branches.map(c=>'<option value="'+c+'"'+(c===ST.b?' selected':'')+'>'+esc(bName(c))+'</option>').join('')+'</select>':'<div class="r264-br">'+esc(bName(ST.b))+'</div>';
     let h='<div class="r264-h">📄 FORMS &amp; DTR SUMMARY LOG • '+esc(w.label)+'</div>'+bsel;
-    h+='<div class="r264-sec">SCHEDULE FORMS'+(s0?' <small>Schedule = next week ('+esc(lbl(s0.nextMon,iso(new Date(new Date(s0.nextMon+'T00:00').getTime()+6*864e5))))+') • ACS = this week</small>':'')+'</div><div class="r264-row">'
+    if(w.forms.length)h+='<div class="r264-sec">SCHEDULE FORMS'+(s0?' <small>Schedule = next week ('+esc(lbl(s0.nextMon,iso(new Date(new Date(s0.nextMon+'T00:00').getTime()+6*864e5))))+') • ACS = this week</small>':'')+'</div><div class="r264-row">'
       +w.forms.map(d=>'<span><i>'+d+'</i><button type="button" data-r264f="'+d+'|ORIG">⬇ SCHEDULE</button><button type="button" class="l" data-r264f="'+d+'|ACS">⬇ ACS</button></span>').join('')+'</div>';
-    if(w.dtr.length){const C=cutoffs();
+    if(w.dtr.length&&(!w.dtrB||w.dtrB.includes(ST.b))){const C=cutoffs();
       h+='<div class="r264-sec">DTR SUMMARY LOG</div><select id="r264C">'+C.map(c=>{const v=c.from+'|'+c.to;return '<option value="'+v+'"'+(v===ST.cut?' selected':'')+'>'+lbl(c.from,c.to)+'</option>'}).join('')+'</select>'
         +'<div class="r264-row"><button type="button" id="r264D">⬇ DOWNLOAD DTR SUMMARY LOG ('+w.dtr.map(d=>d.slice(0,1)+d.slice(1).toLowerCase()).join(', ')+')</button></div>'
         +'<div class="r264-n">Check it. If it is correct, send ✅ CHECKED. If you corrected it in Excel, attach the corrected file.</div>'
@@ -35047,8 +35066,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(!/^\d+(\.\d+)?$/.test(s))throw Error(h+': enter a number (e.g. 1 or 0.5)');return Number(s)}
   let DE=null;
   const dDraftKey=()=>'r461draft_'+(DE.hr?'HR_':'')+DE.b+'_'+DE.from+'_'+DE.dept;
-  function dSheets(b,from,to,only){let wb;try{wb=withCtx(ctxFor(b,from,to),()=>window.buildEditableDTRWorkbook())}catch(e){alert('Could not prepare the DTR Summary Log: '+e.message);return null}
-    if(!wb){alert('Could not prepare the DTR Summary Log.');return null}
+  function dSheets(b,from,to,only){let wb;try{wb=withCtx(ctxFor(b,from,to),()=>window.buildEditableDTRWorkbook())}catch(e){HD.msg='Could not prepare the DTR Summary Log: '+e.message;HD.err=true;return null}
+    if(!wb){HD.msg='Could not prepare the DTR Summary Log (no data on this phone yet — open RCADS with internet, wait for sync, then try again).';HD.err=true;return null}
     const sheets=[];wb.SheetNames.forEach(n=>{const t=tagOf(n);if(!t)return;if(only&&DTAG[t]!==only)return;
       const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true});const h=a.findIndex(r=>U(r[0])==='EMPCODE');if(h<0)return;
       const rows=[];for(let i=h+1;i<a.length;i++){const c=U(a[i][0]);if(/^[A-Z0-9]+-[A-Z0-9-]+$/.test(c))rows.push(a[i].slice())}
@@ -35057,7 +35076,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     {const all=[];sheets.forEach(sh=>sh.rows.forEach(r=>all.push(U(r[0]))));const X=extraMax(b,all);
       sheets.forEach(sh=>{if(sh.tag!=='Extra')return;for(let i=1;i<=NEW_N;i++){const code=exCode(X.P,X.mx+i);NEWSET.add(code);const row=sh.headers.map(()=>'');row[0]=code;sh.rows.push(row)}
         sh.rows.sort((x,y)=>(isNewCode(x[0])?1:0)-(isNewCode(y[0])?1:0))})}
-    if(!sheets.length){alert('No DTR Summary Log rows for this branch yet.');return null}return sheets}
+    if(!sheets.length){HD.msg='No DTR Summary Log rows for this branch yet (no employees / attendance on this phone).';HD.err=true;return null}return sheets}
   function cutTo(from){const [y,m,dd]=from.split('-').map(Number);if(dd===11)return from.slice(0,8)+'25';const t=new Date(y,m,10);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-10'}
   function dEnsureEl(){let el=document.getElementById('r461Ed');if(!el){el=document.createElement('div');el.id='r461Ed';document.documentElement.appendChild(el);el.addEventListener('change',dChange);el.addEventListener('click',dClick)}return el}
   /* HR: ✏ CHECK & EDIT what the Head sent, then ✅ APPROVE from inside the table */
@@ -35271,7 +35290,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
         const f=t.closest('[data-r399-fill]');if(f){openEditor(f.getAttribute('data-r399-fill'));return}
         const d=t.closest('[data-r399-dl]');if(d){headDownload(d.getAttribute('data-r399-dl'));return}
         const x=t.closest('[data-r399-dtr]');if(x){dtrDownload(x.getAttribute('data-r399-dtr'),ww);return}
-        const fz=t.closest('[data-r461-fill]');if(fz){openDtrFill(fz.getAttribute('data-r461-fill'),ww)}});
+        const fz=t.closest('[data-r461-fill]');if(fz){   /* R519: show that it is working, and show any problem in the card (never silent) */
+          const id=fz.getAttribute('data-r461-fill');if(!formById(HD.b,id)){HD.msg='This DTR Summary Log is not loaded yet. Press ↻ REFRESH, then try again.';HD.err=true;drawHead();return}
+          HD.msg='⏳ Preparing the DTR Summary Log… (this can take a few seconds)';HD.err=false;drawHead();fz.disabled=true;
+          setTimeout(()=>{Promise.resolve().then(()=>openDtrFill(id,ww)).then(()=>{if(!document.getElementById('r461Ed')||!DE){if(/Preparing/.test(HD.msg)){HD.msg='The DTR Summary Log could not be opened. Press ↻ REFRESH and try again, or tell HR.';HD.err=true}}else if(/Preparing/.test(HD.msg))HD.msg='';drawHead()}).catch(err=>{HD.msg='Could not open the DTR Summary Log: '+(err&&err.message||err);HD.err=true;drawHead()})},60)}});
       el.addEventListener('change',e=>{if(e.target.id==='r399B'){HD.b=e.target.value;HD.msg='';drawHead();loadHead(HD.b,false)}});
     }
     const r215=document.getElementById('r215Card');
