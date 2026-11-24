@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R532 REGULARIZED: OLD-CODE PUNCHES GO WITH THE NEW CODE</title>
+<title>Rustica RCADS App — R533 REGULARIZED: OLD-CODE PUNCHES AND SCHEDULES GO WITH THE NEW CODE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -37204,7 +37204,14 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
         rs.forEach(r=>{const key=String(r.type)+'|'+String(r.kind||'')+'|'+String(r.date)+'|'+String(r.time||'');if(!seen.has(key)){seen.add(key);out.push(Object.assign({},r,{r532From:o}))}})});
       out.sort((a,b)=>String(a.date).localeCompare(String(b.date)));return out};
     f.__r532=true;window.getEmployeeAttendanceRecordsForDtr=f}
-  hook();setInterval(hook,2000);window.rcadsR532={oldCodes};
+  /* R533: the SCHEDULE / ACS written under the OLD code goes with the person too (used only when the new code has none that day) */
+  const none=x=>!x||!x.type||/^(MISSING|EMPTY|NONE|OTHER)$/i.test(String(x.type));
+  function hookS(){const inner=window.getScheduleEntryForEmployeeDate;if(typeof inner!=='function'||inner.__r533)return;
+    const f=function(emp,dk){const r=inner.apply(this,arguments);if(!emp||!emp.code||!none(r))return r;
+      for(const o of oldCodes(emp.code)){let x=null;try{x=inner.call(this,Object.assign({},emp,{code:o}),dk)}catch(e){}if(!none(x))return Object.assign({},x,{r533From:o})}
+      return r};
+    f.__r533=true;window.getScheduleEntryForEmployeeDate=f}
+  hook();hookS();setInterval(()=>{hook();hookS()},2000);window.rcadsR532={oldCodes};
 })();
 </script>
 </body></html>
