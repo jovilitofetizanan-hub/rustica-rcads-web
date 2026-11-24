@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R521 DTR EXCEL COMES OUT FILLED (HEAD + HR CORRECTIONS)</title>
+<title>Rustica RCADS App — R522 DAYS NOT YET COME ARE NOT ABSENT</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -6328,7 +6328,7 @@ function calculateEmployeeDtrSummary(emp, cutoff=null){
     }
 
     // ABSENT is only a record/count. Payroll must NOT deduct it again.
-    if(sched.type==="TIME" && !hasWorked){
+    if(sched.type==="TIME" && !hasWorked && dateKey<(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})()){   // R522: not yet = not absent
       absent++;
     }
 
@@ -30163,16 +30163,18 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
     try{getEmployeeAttendanceRecordsForDtr(emp).forEach(r=>{if(r&&r.type==='IN'){const k=dtrDateKey(r.date);if(!k)return;W.add(k);if(!first||k<first)first=k}})}catch(_){}
     const partial=!!first&&first>keys[0]&&isNewHire(emp.code);
     const days=partial?keys.filter(k=>k>=first):keys;const inSet=new Set(days);
-    let worked=0,paidOff=0;days.forEach(k=>{if(W.has(k))worked++});
+    /* R522: days that have NOT come yet (and today before the TIME IN) are not counted as ABSENT */
+    const TD=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})(),due=k=>k<TD||W.has(k);
+    let worked=0,paidOff=0,offDue=0;days.forEach(k=>{if(W.has(k))worked++});
     [...new Set(days.map(monOf))].forEach(m=>{
       const wk=week(m),S=wk.map(k=>sched(emp,k));const offs=wk.filter((k,i)=>isOff(S[i]));
-      if(offs.length){const k=offs[0];if(inSet.has(k)&&!W.has(k))paidOff++;return}
+      if(offs.length){const k=offs[0];if(inSet.has(k)&&!W.has(k)){paidOff++;if(k<TD)offDue++}return}
       // no schedule at all in this week (inside the cutoff) → 1 day not worked = the paid day off
       const part=wk.filter(k=>inSet.has(k));
-      if(!part.some(k=>hasSched(sched(emp,k)))&&part.some(k=>!W.has(k)))paidOff++;
+      if(!part.some(k=>hasSched(sched(emp,k)))&&part.some(k=>!W.has(k))){paidOff++;if(part.some(k=>k<TD&&!W.has(k)))offDue++}
     });
-    if(!worked)paidOff=0; // no time-in at all this cutoff → no paid day off, nothing to pay
-    const absent=Math.max(0,days.length-worked-paidOff);
+    if(!worked){paidOff=0;offDue=0} // no time-in at all this cutoff → no paid day off, nothing to pay
+    const absent=Math.max(0,days.filter(due).length-worked-offDue);
     const paidDays=partial?worked+paidOff:Math.max(0,15-absent);
     return {paidDayOff:paidOff,absent,paidDays,partial,firstIn:first,cutoffDays:keys.length}};
   const prev=window.calculateEmployeeDtrSummary;
