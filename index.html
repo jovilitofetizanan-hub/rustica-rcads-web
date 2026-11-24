@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R522 DAYS NOT YET COME ARE NOT ABSENT</title>
+<title>Rustica RCADS App — R526 OT FROM THE ACS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -5122,7 +5122,8 @@ function excelTimeToHHMM(v){
     return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
   }
   const s=String(v).trim();
-  const d=new Date(`1970-01-01 ${s}`);
+  /* R524: "8:00-21" must never be read as 8:00 in time zone −21 (that gave 13:00) — a dash / plus is a range, not a zone */
+  const d=/\d\s*[-–—+]\s*\d/.test(s)?new Date(NaN):new Date(`1970-01-01 ${s}`);
   if(!isNaN(d.getTime())) return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
   const p=s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
   if(p){
@@ -5253,8 +5254,10 @@ function parseScheduleRange(cell){
   // 24h or 12h range: 11:00-21:00 / 8:30 AM - 9:00 PM
   const parts=raw.split(/\s*[-–—]\s*/);
   if(parts.length>=2){
-    const tin=excelTimeToHHMM(parts[0]);
-    const tout=excelTimeToHHMM(parts[1]);
+    /* R524: a whole hour without minutes is OK — "8:00-21", "8-21", "10-9PM" → 08:00 – 21:00 */
+    const hr=x=>{const t=String(x||'').trim();const m=/^(\d{1,2})\s*(AM|PM)?$/i.exec(t);return m?(m[1]+':00'+(m[2]?' '+m[2]:'')):t};
+    const tin=excelTimeToHHMM(hr(parts[0]));
+    const tout=excelTimeToHHMM(hr(parts[1]));
     if(tin && tout) return {type:"TIME",in:tin,out:tout,raw};
   }
   return {type:"OTHER",raw};
@@ -29117,6 +29120,9 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
       const acsLay=acsCols(w,col);
       const rawIn=row[col.idx],rawOut=(!acsLay&&col.outIdx!==undefined)?row[col.outIdx]:'';const tin=excelTimeToHHMM(rawIn),tout=excelTimeToHHMM(rawOut);
       if(tin&&tout){const p=fixPair(tin,tout);return {type:'TIME',in:p.tin,out:p.tout,status:''}}
+      /* R525: ACS "New Sched" = the new TIME IN only ("8:00", "8:00-21") → new IN + the ORIGINAL TIME OUT of that day.
+         Only a full second time with minutes ("8:00-17:00") is read as a new TIME OUT. */
+      if(acsLay&&tin&&!/[-–—]\s*\d{1,2}:\d{2}/.test(String(rawIn||''))&&!/\b(CATER|OFF|LEAVE|ABSENT|SUSPEN|VL|SL)/i.test(String(rawIn||''))){const o=origOut(x.branch,code,dk);if(o){const q=fixPair(tin,o);return {type:'TIME',in:q.tin,out:q.tout,status:'',acsNewIn:true}}}
       const p=parseScheduleRange(rawIn);if(p.type==='STATUS')return {type:'STATUS',status:p.status};if(p.type==='TIME'){const q=fixPair(p.in,p.out);return {type:'TIME',in:q.tin,out:q.tout,status:'',dutyBranch:p.dutyBranch||'',branchDuty:p.branchDuty||''}}
       /* R436: ACS "New Sched" = only the new TIME IN (e.g. 10:00) → new IN + the ORIGINAL TIME OUT of that day (10 AM – 9 PM) */
       if(acsLay&&tin){const o=origOut(x.branch,code,dk);if(o){const q=fixPair(tin,o);return {type:'TIME',in:q.tin,out:q.tout,status:'',acsNewIn:true}}}
@@ -29358,9 +29364,13 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     let base=0;try{base=prev.apply(this,arguments)||0}catch(e){}
     try{if(typeof isManagementEmployee==='function'&&isManagementEmployee(emp))return window.rcadsR333?window.rcadsR333.otMin(emp,dk,excess):0; /* R333: management = HR approval only */
       const a=appMin(emp&&emp.code,dk),c=acsMin(emp&&emp.code,dk);
-      if(a||c){if(!(a&&c&&a===c))return 0; /* R332: OT counts ONLY when the Head 1 approval and the ACS APRVD OT are the SAME — otherwise INVALID (0) */return hoursFloor(Math.min(Math.max(0,excess||0),a))}
+      /* R526 (HR): the ACS APRVD O.T. is enough (Head 1s are still learning the app). OT = whole hours, up to the ACS hours,
+         and only time really worked: after the schedule TIME OUT, or beyond 8 hours of actual work (breaks not counted). */
+      if(c){let ex=Math.max(0,excess||0);
+        try{const P=(getEmployeeAttendanceRecordsForDtr(emp)||[]).filter(r=>{try{return dtrDateKey(r.date)===dk}catch(_){return false}});const w=window.rcadsR348&&window.rcadsR348.workedMin?window.rcadsR348.workedMin(P):null;if(w!=null)ex=Math.max(ex,w-480)}catch(_){}
+        return hoursFloor(Math.min(ex,c))}
       }catch(e){}
-    return 0; /* R332: no Head 1 approval + ACS = no OT (old approvals do not count) */};
+    return 0; /* no APRVD O.T. in the ACS = no OT */};
 
   /* ---- match app ⇄ ACS ---- */
   function acsAll(b){const out=[];try{const L=(rcadsGetScheduleLibrary()||[]).filter(x=>x&&String(x.branch||'').toUpperCase()===b&&/\bACS\b/.test(U(x.category)));
@@ -30175,7 +30185,9 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
     });
     if(!worked){paidOff=0;offDue=0} // no time-in at all this cutoff → no paid day off, nothing to pay
     const absent=Math.max(0,days.filter(due).length-worked-offDue);
-    const paidDays=partial?worked+paidOff:Math.max(0,15-absent);
+    /* R523: while the cut-off is still running, PAID DAYS = only what is earned so far (days still to come are added when they come) */
+    const pending=Math.max(0,days.filter(k=>!due(k)).length-(paidOff-offDue));
+    const paidDays=partial?worked+offDue:Math.max(0,15-absent-pending);
     return {paidDayOff:paidOff,absent,paidDays,partial,firstIn:first,cutoffDays:keys.length}};
   const prev=window.calculateEmployeeDtrSummary;
   if(typeof prev==='function')window.calculateEmployeeDtrSummary=function(emp,cutoff){
