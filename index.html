@@ -34020,7 +34020,8 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     for(const w of x.weeklyBlocks||[]){const col=(w.dateCols||[]).find(c=>c.date===day);if(!col)continue;const r=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===U(code));if(!r)continue;const raw=r[col.idx],out=col.outIdx!==undefined?r[col.outIdx]:null;let text=raw==null?'':String(raw);let sub=(w.matrix[w.headerRow+1]||[]).map(U);for(let k=1;k<=3;k++){const t=(w.matrix[w.headerRow+k]||[]).map(v=>U(v).replace(/\s+/g,' '));if(t.some(v=>/LONG|APRVD|NEW SCHED/.test(v))){sub=t;break}}   /* R529 */
       if(out!==null&&out!==undefined&&out!==''&&!/BREAK/.test(sub[col.idx+1]||'')){const i=excelTimeToHHMM(raw),o=excelTimeToHHMM(out);if(i&&o)text=i+' – '+o;}else if(typeof raw==='number'){const i=excelTimeToHHMM(raw);if(i)text=i}   /* R527: the cell after "New Sched" is LONG BREAK, not TIME OUT */return {text,breakHours:/BREAK/.test(sub[col.idx+1]||'')?r[col.idx+1]??'':'',ot:/OT|O\.T/.test(sub[col.idx+2]||'')?r[col.idx+2]??'':''};}return null;
   }
-  function scheduleParts(branch,code,day){const entries=library().filter(x=>U(x.branch)===U(branch)).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));const pick=acs=>{for(const x of entries.filter(x=>isAcs(x)===acs)){const v=scheduleCell(x,code,day);if(v&&(v.text!==''||v.breakHours!==''||v.ot!==''))return v}return null};return {original:pick(false),acs:pick(true)};}
+  function scheduleParts(branch,code,day){const entries=library().filter(x=>U(x.branch)===U(branch)).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));let codes=[code];try{if(window.rcadsR532){codes=codes.concat(window.rcadsR532.oldCodes(code));const f=find(code);if(f)codes=codes.concat(window.rcadsR532.schedAlias(code,f.e.name))}codes=[...new Set(codes)]}catch(_){}   /* R538: the schedule under the OLD code (EXTRA) shows too */
+    const pick=acs=>{for(const c of codes)for(const x of entries.filter(x=>isAcs(x)===acs)){const v=scheduleCell(x,c,day);if(v&&(v.text!==''||v.breakHours!==''||v.ot!==''))return v}return null};return {original:pick(false),acs:pick(true)};}
   const hhmm=m=>{m=Math.max(0,Math.round(Number(m)||0));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')};
   function punchText(r){
     const raw=String(r.time||'').trim(),m=raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
@@ -37207,15 +37208,30 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   const nk=v=>String(v||'').toUpperCase().replace(/[^A-Z]+/g,' ').trim().split(/\s+/).filter(t=>t.length>1).sort().join(' ');
   function build(){const m=new Map(),add=(n,o)=>{n=U(n);o=U(o);if(!n||!o||n===o)return;if(!m.has(n))m.set(n,new Set());m.get(n).add(o)};
     try{const R=window.rcadsR190&&window.rcadsR190.regs&&window.rcadsR190.regs();if(R)R.forEach((r,old)=>add(r.code,old))}catch(e){}
-    try{const db=JSON.parse(localStorage.getItem('rcads_r160_emp_access_v1')||'{}');Object.entries(db.people||{}).forEach(([c,p])=>{if(p&&p.movedTo)add(p.movedTo,c)})}catch(e){}
+    try{const db=JSON.parse(localStorage.getItem('rcads_r160_emp_access_v1')||'{}');Object.entries(db.people||{}).forEach(([c,p])=>{if(p&&p.movedTo)add(p.movedTo,c);if(p&&p.movedFrom)add(c,p.movedFrom)})}catch(e){}
+    /* R538: links HR made by hand (🔗 LINK OLD CODE in Employee Daily Punches) */
+    try{const L=JSON.parse(localStorage.getItem('rcads_r538_links_v1')||'{}')||{};Object.entries(L).forEach(([n,a])=>(Array.isArray(a)?a:[a]).forEach(o=>add(n,o)))}catch(e){}
     /* last fallback: punches saved under an EXTRA code that is no longer in any employee list, with the SAME NAME as a current employee of the same branch */
     try{const cur=new Map(),inList=new Set();Object.values(window.RUSTICA_BRANCHES||{}).forEach(b=>{let L=[];try{L=(window.rusticaManagerLoadBranchEmployeeMaster||rusticaManagerLoadBranchEmployeeMaster)(b.code)||[]}catch(e){}
         L.forEach(e=>{if(!e||!e.code)return;inList.add(U(e.code));const k=nk(e.name);if(k){if(!cur.has(k))cur.set(k,[]);cur.get(k).push(U(e.code))}})});
-      if(inList.size)for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i)||'';const mm=/^rustica_srf_local_attendance_(.+)$/i.exec(key);if(!mm)continue;const oc=U(mm[1]);if(!/EXTRAEMP/.test(oc)||inList.has(oc))continue;
-        let nm='';try{nm=(JSON.parse(localStorage.getItem(key)||'{}')||{}).employeeName||''}catch(e){}const hit=cur.get(nk(nm));if(hit&&hit.length===1&&hit[0].split('-')[0]===oc.split('-')[0])add(hit[0],oc)}}catch(e){}
+      if(inList.size)for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i)||'';const mm=/^rustica_srf_local_attendance_(.+)$/i.exec(key);if(!mm)continue;const oc=U(mm[1]);if(!/EXTRA/.test(oc))continue;
+        let nm='';try{nm=(JSON.parse(localStorage.getItem(key)||'{}')||{}).employeeName||''}catch(e){}if(!nk(nm))continue;
+        /* R538: same name (order, commas, dots and middle names do not matter), same branch, and the new code is a REGULAR code */
+        const pre=oc.split('-')[0];let hit=[...new Set((cur.get(nk(nm))||[]).filter(c=>c.split('-')[0]===pre&&!/EXTRA/.test(c)))];   /* R538: the same person listed twice is still ONE person */
+        if(!hit.length){const a=nk(nm).split(' ');const cand=[];cur.forEach((codes,k)=>{const b=k.split(' ');const [sm,lg]=a.length<=b.length?[a,b]:[b,a];if(sm.length>=2&&sm.every(t=>lg.includes(t)))codes.forEach(c=>{if(c.split('-')[0]===pre&&!/EXTRA/.test(c))cand.push(c)})});hit=[...new Set(cand)]}
+        if(hit.length===1)add(hit[0],oc)}}catch(e){}
     m.forEach((set,n)=>{[...set].forEach(o=>{const more=m.get(o);if(more)more.forEach(x=>{if(x!==n)set.add(x)})})});
     return m}
-  function oldCodes(code){const now=Date.now();if(!MAP||now-MAPAT>15000||(!MAP.size&&now-MAPAT>3000)){let sig='';try{sig=String((localStorage.getItem('rcads_r160_emp_access_v1')||'').length)+'|'+String((localStorage.getItem('rcads_r190_rcps_positions_v1')||'').length)+'|'+localStorage.length}catch(e){}
+  /* R539: a schedule / ACS row that has the person's NAME but another code (the old Extra code, or no code) is theirs too */
+  let SA=null,SAAT=0,SASIG='';
+  const same=(a,b)=>{a=nk(a);b=nk(b);if(!a||!b)return false;if(a===b)return true;const x=a.split(' '),y=b.split(' ');const [sm,lg]=x.length<=y.length?[x,y]:[y,x];return sm.length>=2&&sm.every(t=>lg.includes(t))};
+  function schedAlias(code,name){code=U(code);if(!name)return [];const now=Date.now();let sig='';try{sig=String((localStorage.getItem(RCADS_SCHEDULE_LIBRARY_KEY)||'').length)}catch(e){}if(!SA||(now-SAAT>5000&&sig!==SASIG)){SA=[];SAAT=now;SASIG=sig;let lib=[];try{lib=rcadsGetScheduleLibrary()||[]}catch(e){}
+      lib.forEach(x=>(x.weeklyBlocks||[]).forEach(w=>(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).forEach(r=>{if(!r)return;const v=U(r[w.empIdx]);const nm=r.filter((c,i)=>i!==w.empIdx&&typeof c==='string'&&/[A-Za-z]{2,}/.test(c)&&!/\d/.test(c)).slice(0,2).join(' ');if(nm)SA.push({v,raw:r[w.empIdx],nm,br:U(x.branch)})})));}
+    const pre=code.split('-')[0],out=new Set();
+    SA.forEach(o=>{if(o.v===code||!same(o.nm,name))return;if(o.v&&/-EMP\d+$/.test(o.v)&&!/EXTRA/.test(o.v))return;   /* never another regular employee's row */
+      if(o.v&&o.v.split('-')[0]!==pre&&/-/.test(o.v))return;out.add(o.v||'')});
+    return [...out].filter(Boolean)}
+  function oldCodes(code){const now=Date.now();if(!MAP||now-MAPAT>15000||(!MAP.size&&now-MAPAT>3000)){let sig='';try{sig=String((localStorage.getItem('rcads_r538_links_v1')||'').length)+'|'+String((localStorage.getItem('rcads_r160_emp_access_v1')||'').length)+'|'+String((localStorage.getItem('rcads_r190_rcps_positions_v1')||'').length)+'|'+localStorage.length}catch(e){}
       if(!MAP||sig!==MAPSIG||!MAP.size){MAP=build();MAPSIG=sig}MAPAT=now}
     const s=MAP.get(U(code));return s?[...s]:[]}
   function hook(){const inner=window.getEmployeeAttendanceRecordsForDtr;if(typeof inner!=='function'||inner.__r532)return;
@@ -37229,7 +37245,7 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   const none=x=>!x||!x.type||/^(MISSING|EMPTY|NONE|OTHER)$/i.test(String(x.type));
   function hookS(){const inner=window.getScheduleEntryForEmployeeDate;if(typeof inner!=='function'||inner.__r533)return;
     const f=function(emp,dk){const r=inner.apply(this,arguments);if(!emp||!emp.code||!none(r))return r;
-      for(const o of oldCodes(emp.code)){let x=null;try{x=inner.call(this,Object.assign({},emp,{code:o}),dk)}catch(e){}if(!none(x))return Object.assign({},x,{r533From:o})}
+      for(const o of [...new Set(oldCodes(emp.code).concat(schedAlias(emp.code,emp.name)))]){let x=null;try{x=inner.call(this,Object.assign({},emp,{code:o}),dk)}catch(e){}if(!none(x))return Object.assign({},x,{r533From:o})}
       return r};
     f.__r533=true;window.getScheduleEntryForEmployeeDate=f}
   function hookP(){const inner=window.rcadsFindAttendancePayload;if(typeof inner!=='function'||inner.__r534)return;
@@ -37238,7 +37254,57 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
       olds.forEach(o=>{let p=null;try{p=inner.call(this,branch,o)}catch(e){}(p&&p.records||[]).forEach(r=>{const k=String(r.type)+'|'+String(r.kind||'')+'|'+String(r.date)+'|'+String(r.time||'');if(!seen.has(k)){seen.add(k);recs.push(r)}})});
       if(!recs.length)return base;recs.sort((a,b)=>String(a.date).localeCompare(String(b.date)));return Object.assign({},base||{},{records:recs})};
     f.__r534=true;window.rcadsFindAttendancePayload=f}
-  hook();hookS();hookP();setInterval(()=>{hook();hookS();hookP()},2000);window.rcadsR532={oldCodes};
+  hook();hookS();hookP();setInterval(()=>{hook();hookS();hookP()},2000);window.rcadsR532={oldCodes,schedAlias,reset:()=>{MAP=null;MAPSIG=''},used:()=>{oldCodes('');const s=new Map();if(MAP)MAP.forEach((v,n)=>v.forEach(x=>s.set(x,n)));return s}};
+})();
+</script>
+<style id="rcadsR538Css">
+.r538{border:2px solid #2f6b3a;background:#f2fbf3;border-radius:10px;padding:8px 10px;margin:8px 0;font:700 12.5px system-ui,sans-serif;color:#24452a}
+.r538.no{border-color:#c0392b;background:#fff4f2;color:#7a1f15}
+.r538 select{max-width:100%;margin:6px 6px 0 0;padding:6px;border-radius:7px;border:1px solid #b89a6a;font-weight:700}
+.r538 button{margin-top:6px;border:0;border-radius:8px;padding:7px 12px;font-weight:900;cursor:pointer;background:#2f6b3a;color:#fff}
+.r538 button.un{background:#fff;color:#a1281f;border:1px solid #a1281f;padding:3px 8px;margin-left:6px}
+.r538 small{display:block;font-weight:600;color:#5d6872;margin-top:3px}
+</style>
+<script id="rcadsR538Script">
+/* R538 — EMPLOYEE DAILY PUNCHES (HR): shows which OLD code (EXTRA) is joined to this employee and how many TIME IN / OUT it has.
+   If RCADS could not find it by itself, HR picks the old code once (🔗 LINK) — the punches and the schedule of the old code then show
+   under the new code everywhere (DTR, DTR Summary Log, Late Summary, payroll). Nothing is moved or deleted. */
+(function(){'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const LK='rcads_r538_links_v1';
+  const links=()=>{try{return JSON.parse(localStorage.getItem(LK)||'{}')||{}}catch(e){return {}}};
+  const att=c=>{try{return JSON.parse(localStorage.getItem('rustica_srf_local_attendance_'+U(c))||'null')}catch(e){return null}};
+  const count=c=>{const a=att(c);return a&&Array.isArray(a.records)?a.records.length:0};
+  function schedCodes(pre){const out=new Map();let lib=[];try{lib=rcadsGetScheduleLibrary()||[]}catch(e){}
+    lib.forEach(x=>(x.weeklyBlocks||[]).forEach(w=>(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).forEach(r=>{const c=U(r&&r[w.empIdx]);if(/EXTRA/.test(c)&&c.split('-')[0]===pre&&!out.has(c)){const nm=(r||[]).find((v,i)=>i!==w.empIdx&&/[A-Z]{2,}/i.test(String(v||''))&&!/\d/.test(String(v||'')));out.set(c,String(nm||''))}})));return out}
+  function candidates(code){const pre=U(code).split('-')[0];const m=new Map();
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i)||'';const mm=/^rustica_srf_local_attendance_(.+)$/i.exec(k);if(!mm)continue;const c=U(mm[1]);if(!/EXTRA/.test(c)||c.split('-')[0]!==pre)continue;const a=att(c)||{};m.set(c,{name:a.employeeName||'',n:(a.records||[]).length,sch:false})}
+    schedCodes(pre).forEach((nm,c)=>{const o=m.get(c);if(o)o.sch=true;else m.set(c,{name:nm,n:0,sch:true})});
+    return [...m.entries()].sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true}))}
+  function html(code){const olds=(window.rcadsR532&&window.rcadsR532.oldCodes(code))||[];const mine=links()[U(code)]||[];
+    if(/EXTRA/.test(U(code)))return '';
+    let used=new Map();try{used=window.rcadsR532.used()}catch(e){}const cand=candidates(code).filter(([c])=>!olds.includes(c)&&!(used.has(c)&&used.get(c)!==U(code)));   /* an old code already joined to someone else is not offered */
+    const opts='<option value="">— choose the OLD code (Extra) of this person —</option>'+cand.map(([c,v])=>'<option value="'+esc(c)+'">'+esc(c)+(v.name?' • '+esc(v.name):'')+' • '+v.n+' punch(es)'+(v.sch?' • has schedule':'')+'</option>').join('');
+    if(olds.length)return '<div class="r538" data-r538="'+esc(code)+'">🔗 OLD CODE JOINED: '+olds.map(o=>'<b>'+esc(o)+'</b> ('+count(o)+' punch(es))'+(mine.includes(o)?'<button type="button" class="un" data-r538-un="'+esc(o)+'">remove link</button>':'')).join(' • ')+
+      '<small>Its TIME IN / OUT and schedule are shown here under '+esc(code)+'.</small>'+(cand.length?'<details><summary style="cursor:pointer">add another old code</summary><select data-r538-sel>'+opts+'</select><button type="button" data-r538-go>🔗 LINK</button></details>':'')+'</div>';
+    return '<div class="r538 no" data-r538="'+esc(code)+'">⚠ No old code (Extra) is joined to '+esc(code)+'.'+
+      (cand.length?'<small>If this person was Extra before, choose the old code and press LINK. The old TIME IN / OUT and schedule will show here.</small><select data-r538-sel>'+opts+'</select><button type="button" data-r538-go>🔗 LINK</button>'
+        :'<small>No TIME IN / OUT or schedule of an Extra code of this branch is saved on this device. If the person was not Extra before, this is normal.</small>')+'</div>'}
+  function tick(){try{const body=document.querySelector('#r334M .r334-body');if(!body)return;const em=body.querySelector('[data-r334-code]');const old=body.querySelector('.r538');
+      if(!em){if(old)old.remove();return}const code=U(em.getAttribute('data-r334-code'));if(old&&(old.contains(document.activeElement)||old.querySelector('details[open]')))return;
+      const h=html(code);if(old&&old.dataset.h===h)return;if(old)old.remove();if(!h)return;
+      const anchor=body.querySelector('[data-r358-addbtn]')||em;anchor.insertAdjacentHTML('afterend',h);const n=body.querySelector('.r538');if(n)n.dataset.h=h}catch(e){}}
+  let CUR='';function refresh(){try{window.rcadsR532&&window.rcadsR532.reset()}catch(e){}
+    /* re-open the same employee so the DTR is drawn again with the old punches */
+    try{const body=document.querySelector('#r334M .r334-body');const n=body&&body.querySelector('.r538');if(n)n.remove()}catch(e){}
+    setTimeout(()=>{try{window.rcadsR334&&window.rcadsR334.empPunches(CUR)}catch(e){}},50)}
+  document.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;const box=t.closest('.r538');if(!box)return;const code=U(box.getAttribute('data-r538'));CUR=code;
+    if(t.closest('[data-r538-go]')){const v=U((box.querySelector('[data-r538-sel]')||{}).value);if(!v){alert('Choose the old code first.');return}
+      if(!confirm('Join '+v+' to '+code+'?\n\nThe TIME IN / OUT and schedule saved under '+v+' will show under '+code+'. Nothing is deleted.'))return;
+      const L=links();L[code]=[...new Set([].concat(L[code]||[],v))];localStorage.setItem(LK,JSON.stringify(L));try{rcadsCloudFlushQueue()}catch(_){}refresh();return}
+    const un=t.closest('[data-r538-un]');if(un){const o=U(un.getAttribute('data-r538-un'));if(!confirm('Remove the link '+o+' → '+code+'?'))return;const L=links();L[code]=(L[code]||[]).filter(x=>U(x)!==o);if(!L[code].length)delete L[code];localStorage.setItem(LK,JSON.stringify(L));try{rcadsCloudFlushQueue()}catch(_){}refresh()}});
+  setInterval(tick,900);window.rcadsR538={links,candidates};
 })();
 </script>
 </body></html>
