@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R530 DTR SUMMARY LOG: FROZEN EMPCODE / NAME / POSITION</title>
+<title>Rustica RCADS App — R532 REGULARIZED: OLD-CODE PUNCHES GO WITH THE NEW CODE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -6133,6 +6133,9 @@ function dtrDateKey(v){
     return `${v.getFullYear()}-${dtrPad2(v.getMonth()+1)}-${dtrPad2(v.getDate())}`;
   }
   const s=String(v);
+  /* R531: a saved punch like "2026-11-20T22:49:17Z" is Nov 21, 6:49 AM in the Philippines — never take the UTC date
+     (that moved every TIME IN before 8:00 AM to the day before: wrong LATE, FOR REVIEW, missing OT) */
+  if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)&&/(Z|[+-]\d{2}:?\d{2})$/i.test(s)){const d=new Date(s);if(!isNaN(d.getTime())){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(d)}catch(e){return `${d.getFullYear()}-${dtrPad2(d.getMonth()+1)}-${dtrPad2(d.getDate())}`}}}
   const iso=s.match(/^(\d{4}-\d{2}-\d{2})/);
   if(iso) return iso[1];
   const d=new Date(v);
@@ -37181,6 +37184,27 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   }
   window.rcadsR405FlexLate=flex;
   window.rcadsR499={flex};
+})();
+</script>
+<script id="rcadsR532Script">
+/* R532 — REGULARIZED (CAB-EXTRAEMP03 → CAB-EMP44 …): the TIME IN / OUT saved under the OLD code go with the person to the NEW code
+   (DTR, DTR Summary Log, Late Summary, payroll). Nothing is moved or deleted — the old punches are only read together. */
+(function(){'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function oldCodes(code){const k=U(code),out=new Set();
+    try{const R=window.rcadsR190&&window.rcadsR190.regs&&window.rcadsR190.regs();if(R)R.forEach((r,old)=>{if(U(r.code)===k&&U(old)!==k)out.add(U(old))})}catch(e){}
+    try{const db=JSON.parse(localStorage.getItem('rcads_r160_emp_access_v1')||'{}');Object.entries(db.people||{}).forEach(([c,p])=>{if(p&&U(p.movedTo)===k&&U(c)!==k)out.add(U(c))})}catch(e){}
+    /* one more step back (EXTRA → EMP → new EMP) */
+    [...out].forEach(o=>{try{const db=JSON.parse(localStorage.getItem('rcads_r160_emp_access_v1')||'{}');Object.entries(db.people||{}).forEach(([c,p])=>{if(p&&U(p.movedTo)===o&&U(c)!==k)out.add(U(c))})}catch(e){}});
+    return [...out]}
+  function hook(){const inner=window.getEmployeeAttendanceRecordsForDtr;if(typeof inner!=='function'||inner.__r532)return;
+    const f=function(emp){const base=inner.apply(this,arguments)||[];if(!emp||!emp.code)return base;const olds=oldCodes(emp.code);if(!olds.length)return base;
+      const seen=new Set(base.map(r=>String(r.type)+'|'+String(r.kind||'')+'|'+String(r.date)+'|'+String(r.time||'')));const out=base.slice();
+      olds.forEach(o=>{let rs=[];try{rs=inner.call(this,Object.assign({},emp,{code:o}))||[]}catch(e){}
+        rs.forEach(r=>{const key=String(r.type)+'|'+String(r.kind||'')+'|'+String(r.date)+'|'+String(r.time||'');if(!seen.has(key)){seen.add(key);out.push(Object.assign({},r,{r532From:o}))}})});
+      out.sort((a,b)=>String(a.date).localeCompare(String(b.date)));return out};
+    f.__r532=true;window.getEmployeeAttendanceRecordsForDtr=f}
+  hook();setInterval(hook,2000);window.rcadsR532={oldCodes};
 })();
 </script>
 </body></html>
