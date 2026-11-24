@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R533 REGULARIZED: OLD-CODE PUNCHES AND SCHEDULES GO WITH THE NEW CODE</title>
+<title>Rustica RCADS App — R534 REGULARIZED: OLD PUNCHES + SCHEDULES (ALL BRANCHES), NO HANG</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -27041,7 +27041,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
   const origPos=new Map(),origName=new Map();             // employees (San Rafael built-in) original positions
   function overrides(){const m=new Map();read().rows.forEach(r=>{if(r&&r.code)m.set(U(r.code),r)});return m}
   /* R493: REGULARIZED / PROMOTED with a NEW EMPCODE in RCPS (e.g. SRF-EXTRAEMP07 → SRF-EMP46): the old code is replaced by the new one */
-  function regs(){const m=new Map();read().rows.forEach(r=>{if(r&&r.kind==='REG'&&r.oldCode)m.set(U(r.oldCode),r)});return m}
+  function regs(){const m=new Map();read().rows.forEach(r=>{if(r&&r.oldCode&&(r.kind==='REG'||U(r.oldCode)!==U(r.code)))m.set(U(r.oldCode),r)});return m}
   const regSaved=new Map();
   /* R494: the SAME PIN goes with the NEW code (no new setup code), the old code is closed, and the employee's own phone
      switches to the new code by itself. Nothing is deleted. */
@@ -27180,7 +27180,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const np=pick.filter(x=>x.kind==='POS').length,nn=pick.filter(x=>x.kind==='NEW').length,nr=pick.filter(x=>x.kind==='REG').length;
     if(!confirm('Apply '+np+' position change(s), '+nr+' new code / department (regularized / promoted) and add '+nn+' new employee(s)?\n\nThis syncs to all devices.'))return;
     const d=read(),by=new Map(d.rows.map(r=>[U(r.code),r]));
-    pick.forEach(x=>by.set(U(x.code),{kind:x.kind,branch:x.b,code:U(x.code),oldCode:x.oldCode||'',oldName:x.oldName||'',name:(x.kind==='POS'||x.kind==='REG')?x.name:x.r.name,dept:x.dept||x.r.dept,position:x.r.position,old:x.old||'',basis:x.r.basis,at:new Date().toISOString()}));
+    pick.forEach(x=>by.set(U(x.code),{kind:x.kind,branch:x.b,code:U(x.code),oldCode:x.oldCode||((by.get(U(x.code))||{}).oldCode)||'',   /* R534: keep the old code */oldName:x.oldName||'',name:(x.kind==='POS'||x.kind==='REG')?x.name:x.r.name,dept:x.dept||x.r.dept,position:x.r.position,old:x.old||'',basis:x.r.basis,at:new Date().toISOString()}));
     d.rows=[...by.values()];d.at=new Date().toISOString();d.file=pending.file;d.by='HR OPERATION OFFICER';
     (d.log=d.log||[]).push({at:d.at,file:pending.file,pos:np,neu:nn});d.log=d.log.slice(-30);
     let nPin=0;pick.filter(x=>x.kind==='REG').forEach(x=>{if(carryPin({code:x.code,oldCode:x.oldCode,branch:x.b,name:x.name}))nPin++});
@@ -32381,7 +32381,8 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   function U(c){return String(c||'').trim().toUpperCase()}
   function ctx(){try{return window.rcadsR158DtrExportContext()}catch(e){return null}}
   function staff(b){let l=[];try{l=(window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code)}catch(e){}if(b==='SAN_RAFAEL'){try{const seen=new Set(l.map(x=>U(x.code)));Object.values(employees||{}).forEach(e=>{if(e&&e.code&&!seen.has(U(e.code)))l.push(e)})}catch(e){}}return l}
-  function recs(code){try{const s=JSON.parse(localStorage.getItem('rustica_srf_local_attendance_'+U(code))||'null');return s&&Array.isArray(s.records)?s.records:[]}catch(e){return []}}
+  function recs1(code){try{const s=JSON.parse(localStorage.getItem('rustica_srf_local_attendance_'+U(code))||'null');return s&&Array.isArray(s.records)?s.records:[]}catch(e){return []}}
+  function recs(code){let out=recs1(code);try{const olds=window.rcadsR532?window.rcadsR532.oldCodes(code):[];olds.forEach(o=>{out=out.concat(recs1(o))})}catch(e){}return out}   /* R534: + punches under the old (EXTRA) code */
   function pad(n){return String(n).padStart(2,'0')}
   function dk(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
   function modal(title,body){let m=document.getElementById('r334M');if(!m){m=document.createElement('div');m.id='r334M';document.body.appendChild(m)}
@@ -37191,12 +37192,22 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
    (DTR, DTR Summary Log, Late Summary, payroll). Nothing is moved or deleted — the old punches are only read together. */
 (function(){'use strict';
   const U=c=>String(c||'').trim().toUpperCase();
-  function oldCodes(code){const k=U(code),out=new Set();
-    try{const R=window.rcadsR190&&window.rcadsR190.regs&&window.rcadsR190.regs();if(R)R.forEach((r,old)=>{if(U(r.code)===k&&U(old)!==k)out.add(U(old))})}catch(e){}
-    try{const db=JSON.parse(localStorage.getItem('rcads_r160_emp_access_v1')||'{}');Object.entries(db.people||{}).forEach(([c,p])=>{if(p&&U(p.movedTo)===k&&U(c)!==k)out.add(U(c))})}catch(e){}
-    /* one more step back (EXTRA → EMP → new EMP) */
-    [...out].forEach(o=>{try{const db=JSON.parse(localStorage.getItem('rcads_r160_emp_access_v1')||'{}');Object.entries(db.people||{}).forEach(([c,p])=>{if(p&&U(p.movedTo)===o&&U(c)!==k)out.add(U(c))})}catch(e){}});
-    return [...out]}
+  /* R534: the map NEW CODE → OLD CODES is built once and reused (rebuilding it on every lookup made RCADS hang) */
+  let MAP=null,MAPAT=0,MAPSIG='';
+  const nk=v=>String(v||'').toUpperCase().replace(/[^A-Z]+/g,' ').trim().split(/\s+/).filter(t=>t.length>1).sort().join(' ');
+  function build(){const m=new Map(),add=(n,o)=>{n=U(n);o=U(o);if(!n||!o||n===o)return;if(!m.has(n))m.set(n,new Set());m.get(n).add(o)};
+    try{const R=window.rcadsR190&&window.rcadsR190.regs&&window.rcadsR190.regs();if(R)R.forEach((r,old)=>add(r.code,old))}catch(e){}
+    try{const db=JSON.parse(localStorage.getItem('rcads_r160_emp_access_v1')||'{}');Object.entries(db.people||{}).forEach(([c,p])=>{if(p&&p.movedTo)add(p.movedTo,c)})}catch(e){}
+    /* last fallback: punches saved under an EXTRA code that is no longer in any employee list, with the SAME NAME as a current employee of the same branch */
+    try{const cur=new Map(),inList=new Set();Object.values(window.RUSTICA_BRANCHES||{}).forEach(b=>{let L=[];try{L=(window.rusticaManagerLoadBranchEmployeeMaster||rusticaManagerLoadBranchEmployeeMaster)(b.code)||[]}catch(e){}
+        L.forEach(e=>{if(!e||!e.code)return;inList.add(U(e.code));const k=nk(e.name);if(k){if(!cur.has(k))cur.set(k,[]);cur.get(k).push(U(e.code))}})});
+      if(inList.size)for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i)||'';const mm=/^rustica_srf_local_attendance_(.+)$/i.exec(key);if(!mm)continue;const oc=U(mm[1]);if(!/EXTRAEMP/.test(oc)||inList.has(oc))continue;
+        let nm='';try{nm=(JSON.parse(localStorage.getItem(key)||'{}')||{}).employeeName||''}catch(e){}const hit=cur.get(nk(nm));if(hit&&hit.length===1&&hit[0].split('-')[0]===oc.split('-')[0])add(hit[0],oc)}}catch(e){}
+    m.forEach((set,n)=>{[...set].forEach(o=>{const more=m.get(o);if(more)more.forEach(x=>{if(x!==n)set.add(x)})})});
+    return m}
+  function oldCodes(code){const now=Date.now();if(!MAP||now-MAPAT>15000||(!MAP.size&&now-MAPAT>3000)){let sig='';try{sig=String((localStorage.getItem('rcads_r160_emp_access_v1')||'').length)+'|'+String((localStorage.getItem('rcads_r190_rcps_positions_v1')||'').length)+'|'+localStorage.length}catch(e){}
+      if(!MAP||sig!==MAPSIG||!MAP.size){MAP=build();MAPSIG=sig}MAPAT=now}
+    const s=MAP.get(U(code));return s?[...s]:[]}
   function hook(){const inner=window.getEmployeeAttendanceRecordsForDtr;if(typeof inner!=='function'||inner.__r532)return;
     const f=function(emp){const base=inner.apply(this,arguments)||[];if(!emp||!emp.code)return base;const olds=oldCodes(emp.code);if(!olds.length)return base;
       const seen=new Set(base.map(r=>String(r.type)+'|'+String(r.kind||'')+'|'+String(r.date)+'|'+String(r.time||'')));const out=base.slice();
@@ -37211,7 +37222,13 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
       for(const o of oldCodes(emp.code)){let x=null;try{x=inner.call(this,Object.assign({},emp,{code:o}),dk)}catch(e){}if(!none(x))return Object.assign({},x,{r533From:o})}
       return r};
     f.__r533=true;window.getScheduleEntryForEmployeeDate=f}
-  hook();hookS();setInterval(()=>{hook();hookS()},2000);window.rcadsR532={oldCodes};
+  function hookP(){const inner=window.rcadsFindAttendancePayload;if(typeof inner!=='function'||inner.__r534)return;
+    const f=function(branch,code){const base=inner.apply(this,arguments);const olds=code?oldCodes(code):[];if(!olds.length)return base;
+      const recs=(base&&Array.isArray(base.records)?base.records.slice():[]);const seen=new Set(recs.map(r=>String(r.type)+'|'+String(r.kind||'')+'|'+String(r.date)+'|'+String(r.time||'')));
+      olds.forEach(o=>{let p=null;try{p=inner.call(this,branch,o)}catch(e){}(p&&p.records||[]).forEach(r=>{const k=String(r.type)+'|'+String(r.kind||'')+'|'+String(r.date)+'|'+String(r.time||'');if(!seen.has(k)){seen.add(k);recs.push(r)}})});
+      if(!recs.length)return base;recs.sort((a,b)=>String(a.date).localeCompare(String(b.date)));return Object.assign({},base||{},{records:recs})};
+    f.__r534=true;window.rcadsFindAttendancePayload=f}
+  hook();hookS();hookP();setInterval(()=>{hook();hookS();hookP()},2000);window.rcadsR532={oldCodes};
 })();
 </script>
 </body></html>
