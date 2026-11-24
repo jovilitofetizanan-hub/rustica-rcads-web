@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R526 OT FROM THE ACS</title>
+<title>Rustica RCADS App — R528 ZOOM − + FIT FOR HR</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -29122,7 +29122,10 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
       if(tin&&tout){const p=fixPair(tin,tout);return {type:'TIME',in:p.tin,out:p.tout,status:''}}
       /* R525: ACS "New Sched" = the new TIME IN only ("8:00", "8:00-21") → new IN + the ORIGINAL TIME OUT of that day.
          Only a full second time with minutes ("8:00-17:00") is read as a new TIME OUT. */
-      if(acsLay&&tin&&!/[-–—]\s*\d{1,2}:\d{2}/.test(String(rawIn||''))&&!/\b(CATER|OFF|LEAVE|ABSENT|SUSPEN|VL|SL)/i.test(String(rawIn||''))){const o=origOut(x.branch,code,dk);if(o){const q=fixPair(tin,o);return {type:'TIME',in:q.tin,out:q.tout,status:'',acsNewIn:true}}}
+      if(acsLay&&tin&&!/[-–—]\s*\d{1,2}:\d{2}/.test(String(rawIn||''))&&!/\b(CATER|OFF|LEAVE|ABSENT|SUSPEN|VL|SL)/i.test(String(rawIn||''))){let o=origOut(x.branch,code,dk);
+        /* R527: no Original Schedule for that day → TIME OUT = new TIME IN + 8 hours + the ACS LONG BREAK (or 1 hour) */
+        if(!o){let lb=null;try{lb=lbMinutes(row[acsLay.lb])}catch(_){}if(lb==null)lb=60;const m=/^(\d{1,2}):(\d{2})/.exec(tin);if(m){const t=(+m[1]*60+ +m[2]+480+lb)%1440;o=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}}
+        if(o){const q=fixPair(tin,o);return {type:'TIME',in:q.tin,out:q.tout,status:'',acsNewIn:true}}}
       const p=parseScheduleRange(rawIn);if(p.type==='STATUS')return {type:'STATUS',status:p.status};if(p.type==='TIME'){const q=fixPair(p.in,p.out);return {type:'TIME',in:q.tin,out:q.tout,status:'',dutyBranch:p.dutyBranch||'',branchDuty:p.branchDuty||''}}
       /* R436: ACS "New Sched" = only the new TIME IN (e.g. 10:00) → new IN + the ORIGINAL TIME OUT of that day (10 AM – 9 PM) */
       if(acsLay&&tin){const o=origOut(x.branch,code,dk);if(o){const q=fixPair(tin,o);return {type:'TIME',in:q.tin,out:q.tout,status:'',acsNewIn:true}}}
@@ -34010,7 +34013,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function isAcs(x){return /\bACS\b/.test(U(x.category||x.fileName))}
   function scheduleCell(x,code,day){
     const row=(x.rowData||[]).find(r=>U(r['EMPLOYEE ID'])===U(code)&&excelDateToISO(r.DATE)===day);if(row){const i=excelTimeToHHMM(row['TIME IN']),o=excelTimeToHHMM(row['TIME OUT']);return {text:i&&o?i+' – '+o:String(row['TIME IN']||''),breakHours:row['LONG BREAK(HRS)']??'',ot:row['APPROVE O.T.']??''};}
-    for(const w of x.weeklyBlocks||[]){const col=(w.dateCols||[]).find(c=>c.date===day);if(!col)continue;const r=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===U(code));if(!r)continue;const raw=r[col.idx],out=col.outIdx!==undefined?r[col.outIdx]:null;let text=raw==null?'':String(raw);if(out!==null&&out!==undefined&&out!==''){const i=excelTimeToHHMM(raw),o=excelTimeToHHMM(out);if(i&&o)text=i+' – '+o;}const sub=(w.matrix[w.headerRow+1]||[]).map(U);return {text,breakHours:/BREAK/.test(sub[col.idx+1]||'')?r[col.idx+1]??'':'',ot:/OT|O\.T/.test(sub[col.idx+2]||'')?r[col.idx+2]??'':''};}return null;
+    for(const w of x.weeklyBlocks||[]){const col=(w.dateCols||[]).find(c=>c.date===day);if(!col)continue;const r=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===U(code));if(!r)continue;const raw=r[col.idx],out=col.outIdx!==undefined?r[col.outIdx]:null;let text=raw==null?'':String(raw);const sub=(w.matrix[w.headerRow+1]||[]).map(U);if(out!==null&&out!==undefined&&out!==''&&!/BREAK/.test(sub[col.idx+1]||'')){const i=excelTimeToHHMM(raw),o=excelTimeToHHMM(out);if(i&&o)text=i+' – '+o;}else if(typeof raw==='number'){const i=excelTimeToHHMM(raw);if(i)text=i}   /* R527: the cell after "New Sched" is LONG BREAK, not TIME OUT */return {text,breakHours:/BREAK/.test(sub[col.idx+1]||'')?r[col.idx+1]??'':'',ot:/OT|O\.T/.test(sub[col.idx+2]||'')?r[col.idx+2]??'':''};}return null;
   }
   function scheduleParts(branch,code,day){const entries=library().filter(x=>U(x.branch)===U(branch)).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));const pick=acs=>{for(const x of entries.filter(x=>isAcs(x)===acs)){const v=scheduleCell(x,code,day);if(v&&(v.text!==''||v.breakHours!==''||v.ot!==''))return v}return null};return {original:pick(false),acs:pick(true)};}
   const hhmm=m=>{m=Math.max(0,Math.round(Number(m)||0));return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')};
@@ -35899,6 +35902,27 @@ body.r373-doclocked #employeeSimplePanel [data-r159-doc],body.r373-doclocked #em
   const memo=new Map();let memoAt=0;
   window.rcadsR516Why=function(emp,dk){if(!emp||!dk||!role(emp))return '';if(cat(emp,addDay(dk,-1)))return 'AFTER CATERING';if(cat(emp,addDay(dk,1)))return 'CATERING PREP';return ''};
   window.rcadsR515Free=function(emp,dk){try{if(Date.now()-memoAt>20000){memo.clear();memoAt=Date.now()}const k=U(emp&&emp.code)+'|'+dk;if(memo.has(k))return memo.get(k);const v=!!window.rcadsR516Why(emp,dk);memo.set(k,v);return v}catch(e){return false}};
+})();
+</script>
+<style id="rcadsR528Css">#r528Zoom{position:fixed;left:10px;bottom:10px;z-index:2147483646;display:none;align-items:center;gap:4px;background:rgba(43,26,14,.92);color:#fff;border-radius:999px;padding:5px 7px;box-shadow:0 4px 14px rgba(0,0,0,.3);font:800 12px system-ui,sans-serif}
+#r528Zoom button{border:0;background:#fff;color:#4c2b17;border-radius:999px;min-width:30px;height:28px;padding:0 9px;font:900 13px system-ui,sans-serif;cursor:pointer;width:auto!important}
+#r528Zoom button.fit{background:#f1c27a}#r528Zoom span{min-width:42px;text-align:center}
+body.hr-session-active #r528Zoom{display:flex}</style>
+<script id="rcadsR528Script">
+/* R528 — HR: ZOOM − / + / FIT for the whole RCADS screen (DTR, DTR Summary Log, punches…), so a photo shows every column.
+   FIT = zoom out until the open table fits the width. Remembered on this device only. */
+(function(){'use strict';
+  const K='r528_zoom';let z=1;try{z=+localStorage.getItem(K)||1}catch(e){}
+  function apply(v){z=Math.max(0.35,Math.min(1.6,Math.round(v*100)/100));document.documentElement.style.zoom=z===1?'':String(z);try{localStorage.setItem(K,String(z))}catch(e){}const t=document.querySelector('#r528Zoom span');if(t)t.textContent=Math.round(z*100)+'%'}
+  function wide(){let worst=1;document.querySelectorAll('table').forEach(t=>{let p=t.parentElement;while(p&&p!==document.body){const cs=getComputedStyle(p);if(/(auto|scroll)/.test(cs.overflowX)&&p.clientWidth>0){if(p.offsetParent!==null&&p.scrollWidth>p.clientWidth+4)worst=Math.min(worst,p.clientWidth/p.scrollWidth);break}p=p.parentElement}});return worst}
+  function fit(){let n=0;const step=()=>{const r=wide();if(r<0.995&&n++<4){apply(z*r*0.98);requestAnimationFrame(step)}};step()}
+  function mount(){if(document.getElementById('r528Zoom'))return;const d=document.createElement('div');d.id='r528Zoom';
+    d.innerHTML='🔍<button type="button" data-z="-">−</button><span>100%</span><button type="button" data-z="+">＋</button><button type="button" class="fit" data-z="fit">FIT</button><button type="button" data-z="1">100</button>';
+    d.addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(!b)return;const a=b.getAttribute('data-z');if(a==='-')apply(z-0.1);else if(a==='+')apply(z+0.1);else if(a==='1')apply(1);else fit()});
+    document.body.appendChild(d);apply(z)}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
+  setInterval(()=>{if(!document.body.classList.contains('hr-session-active')&&z!==1&&!document.getElementById('r528Keep'))apply(1)},3000);
+  window.rcadsR528={apply,fit};
 })();
 </script>
 <script id="rcadsR421Script">/* R421 — ID print: bigger round logo, RESTAURANT and POSITION in bold, signatures stay in their own space (no more covering "Status" or the note).
