@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R512 NO COMPANY LOAN CARD FOR OWNERS</title>
+<title>Rustica RCADS App — R517 CATERING: DAY BEFORE AND AFTER ALSO FREE (+ ASST. DEPUTY, SUPERVISOR)</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -5236,7 +5236,9 @@ function parseScheduleRange(cell){
   if(/^DAY\s*-?\s*OFF\b|^DAYOFF\b|^D\s*\/\s*O$/i.test(raw)) raw="DAY OFF";
   const upper=raw.toUpperCase();
   // R405: CATERING (worked outside, from the ACS) and separated staff are statuses, never times
-  if(/^CATERING\b/.test(upper)) return {type:"STATUS",status:"CATERING"};
+  /* R515: the word CATERING anywhere in the ACS cell ("CATERING", "Nov. 24, 2026 Catering", "9:00-21:00 CATERING") = a CATERING day:
+     no LATE, no UNDERTIME and no OVER-BREAK that day (before and after the catering), and it counts as a worked day */
+  if(/\bCATER(ING)?\b/.test(upper)) return {type:"STATUS",status:"CATERING"};
   if(/^(RESIGNED|TERMINATED|AWOL)\b/.test(upper)) return {type:"STATUS",status:upper.split(/\s+/)[0]};
 
   const statusWords=[
@@ -6344,7 +6346,7 @@ function calculateEmployeeDtrSummary(emp, cutoff=null){
 
       if(firstIn!==undefined && firstIn!==null && schedIn!==null){
         const threshold=getEmployeeLateThresholdMinutes(emp,sched.in);
-        lateMinutes+=Math.max(0,firstIn-threshold);
+        if(!(window.rcadsR515Free&&window.rcadsR515Free(emp,dateKey))) lateMinutes+=Math.max(0,firstIn-threshold);   // R516
       }
 
       if(finalOut!==undefined && finalOut!==null && schedOut!==null){
@@ -6352,7 +6354,7 @@ function calculateEmployeeDtrSummary(emp, cutoff=null){
         if(schedOut<schedIn) schedOut+=1440;
         if(adjustedOut<schedIn && schedOut>1440) adjustedOut+=1440;
 
-        undertimeMinutes+=Math.max(0,schedOut-adjustedOut);
+        if(!(window.rcadsR515Free&&window.rcadsR515Free(emp,dateKey))) undertimeMinutes+=Math.max(0,schedOut-adjustedOut);   // R516
         const actualExcess=Math.max(0,adjustedOut-schedOut);
         approvedOtMinutes+=getApprovedOtMinutesForDate(emp,dateKey,actualExcess);
       }
@@ -11997,7 +11999,7 @@ function rcadsTodayScheduleFlags(branchCode,emp){
   if(firstInVals.length){
     let threshold=schedIn;
     try{ threshold=getEmployeeLateThresholdMinutes(emp,sched.in); }catch(e){}
-    const late=Math.max(0,firstInVals[0]-threshold);
+    const late=(window.rcadsR515Free&&window.rcadsR515Free(emp,dateKey))?0:Math.max(0,firstInVals[0]-threshold);   // R516
     if(late>0) flags.push({type:"LATE",detail:`${late} min`});
   }
 
@@ -21776,6 +21778,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
       if(ins.length){
         if(first&&schedIn!==null){let th=schedIn;try{th=getEmployeeLateThresholdMinutes(emp,s.in)}catch(e){}row.late=Math.max(0,first.m-th)}
         if(last&&schedIn!==null&&schedOut!==null){if(schedOut<schedIn)schedOut+=1440;let o=last.m;if(o<schedIn&&schedOut>1440)o+=1440;row.under=Math.max(0,schedOut-o)}
+        if((window.rcadsR515Free&&window.rcadsR515Free(emp,dk))){row.late=0;row.under=0}   /* R516 */
         row.status=row.late?'LATE':'PRESENT';row.cls=row.late?'late':'ok';
         if(row.under&&last)row.status+=' • UNDERTIME';
         if(!outs.length&&dk===today){row.status+=' • ON DUTY'}
@@ -22023,7 +22026,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
       const sig=JSON.stringify([board().updatedAt||'',localStorage.length]);
       if(sec.dataset.sig!==sig){sec.dataset.sig=sig;renderNoticeList();renderMcList();renderGeo();renderLocLog()}
       const org=read('rcads_r373_org_chart_v1',null),saved=sec.querySelector('#r373OrgSaved');if(saved)saved.textContent=org?'Saved: '+(org.att&&org.att.name||org.title)+' • '+fmtStamp(org.updatedAt):'No Organizational Chart saved on this device yet.';
-      ensureLate(sec,'r159HrLate');
+      {const ol=document.getElementById('r159HrLate');if(ol)ol.remove()}   /* R513: replaced by ⏰ Late Summary (monthly) */
     }
   }
   document.addEventListener('click',async function(e){
@@ -22144,7 +22147,7 @@ R144 preserved behavior: HR-targeted rotating QR. HR selects the exact Rustica i
       const gOut=document.getElementById('rcadsGuardOwnDtrOutput');const gv=guardViewer();
       if(gOut&&gv){const box=gOut.closest('.rcads-employee-dtr-box');ensureBoard(box?box.parentElement:gOut.parentElement,'r159GuardBoard',gv,box||null)}
       const ov=ownerViewer();const content=document.querySelector('#topManagementHomeScreen .r100-content')||document.getElementById('topManagementHomeScreen');
-      if(ov&&content){ensureLate(content,'r159OwnerLate','prepend');ensureBoard(content,'r159OwnerBoard',ov,'prepend')}
+      if(ov&&content){const ol=document.getElementById('r159OwnerLate');if(ol)ol.remove();ensureBoard(content,'r159OwnerBoard',ov,'prepend')}   /* R513: the late monitor is in HR RCADS only */
       const mv=managerViewer();const mh=document.getElementById('managerHomeScreen');
       if(mv&&mh)ensureBoard(mh,'r159MgrBoard',mv,null);
       ensureHr();
@@ -23842,7 +23845,7 @@ body.r162-has-nav{padding-bottom:78px!important}
       if(c.id==='r159OwnerLate')tag(c,'late');else if(c.id==='r159OwnerBoard')tag(c,'notices');
       else if(c.classList.contains('r100-close')){c.setAttribute('data-r162-logout','1');tag(c,'none')}
       else if(!c.getAttribute('data-r162-tab'))tag(c,'home')});
-    ensureNav(root,[{k:'home',i:'🏠',l:'OVERVIEW'},{k:'late',i:'⏰',l:'LATE'},{k:'notices',i:'📢',l:'NOTICES'}]);
+    ensureNav(root,[{k:'home',i:'🏠',l:'OVERVIEW'},{k:'notices',i:'📢',l:'NOTICES'}]);   /* R513: no LATE tab for owners */
     const head=home.querySelector('.r100-topbar');
     if(head&&!head.querySelector('.r162-gear')){
       head.style.position='relative';
@@ -28292,6 +28295,7 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
       const p=byDate[dk]||[],ins=p.filter(r=>r.type==='IN'),outs=p.filter(r=>r.type==='OUT');
       const sIn=dtrMinutesFromHHMM(sched.in);let sOut=dtrMinutesFromHHMM(sched.out);
       if(!ins.length){if(dk<t&&!excused(emp.code,dk,'ABSENT'))out.push({kind:'ABSENT',date:dk,mins:0,detail:'Scheduled '+t12(sIn)+' – '+t12(sOut)+', no TIME IN'});return}
+      if((window.rcadsR515Free&&window.rcadsR515Free(emp,dk)))return;   /* R516: day before / after CATERING */
       const firstIn=ins.map(dtrPunchMinutes).filter(x=>x!==null).sort((a,b)=>a-b)[0];
       if(firstIn!=null&&sIn!=null){const th=getEmployeeLateThresholdMinutes(emp,sched.in);const late=Math.max(0,firstIn-th);if(late>0&&!excused(emp.code,dk,'LATE'))out.push({kind:'LATE',date:dk,mins:late,detail:'TIME IN '+t12(firstIn)+', schedule '+t12(sIn)})}
       const finalOut=outs.map(dtrPunchMinutes).filter(x=>x!==null).sort((a,b)=>a-b).slice(-1)[0];
@@ -29270,6 +29274,7 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
   function bName(c){const b=branches().find(x=>x.code===c);return b?b.name:String(c||'').replace(/_/g,' ')}
   function overBreakDay(emp,dk,punches){
     let s=null;try{s=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!s||s.type!=='TIME')return 0;
+    if((window.rcadsR515Free&&window.rcadsR515Free(emp,dk)))return 0;   /* R516 */
     let a=dtrMinutesFromHHMM(s.in),b=dtrMinutesFromHHMM(s.out);if(a==null||b==null)return 0;if(b<=a)b+=1440;else if(b-a<NEED)b+=720;/* R435: "08:30 – 09:00" = 8:30 AM to 9:00 PM */let allowed=Math.max(0,(b-a)-NEED);
     /* R405: the LONG BREAK written in the ACS is the allowed total of the 1st + 2nd break */
     try{const lb=window.rcadsR215&&window.rcadsR215.acsLongBreakMinutes?window.rcadsR215.acsLongBreakMinutes(emp.code,dk):null;if(lb!=null)allowed=lb}catch(e){}
@@ -32963,6 +32968,7 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
     const sIn=dtrMinutesFromHHMM(s.in);let sOut=dtrMinutesFromHHMM(s.out);
     if(firstIn!=null&&sIn!==null){try{late=Math.max(0,firstIn-getEmployeeLateThresholdMinutes(emp,s.in))}catch(e){}}
     if(finalOut!=null&&sOut!==null){let o=finalOut;if(sOut<sIn)sOut+=1440;if(o<sIn&&sOut>1440)o+=1440;ut=Math.max(0,sOut-o)}
+    if((window.rcadsR515Free&&window.rcadsR515Free(emp,dk))){late=0;ut=0}   /* R516 */
     return {late,ut};
   }
   function dLabel(k){const d=new Date(k+'T00:00:00');return isNaN(d)?k:d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
@@ -33087,6 +33093,7 @@ body.r345-guard #guardHomeScreen{padding-bottom:84px}
     const sIn=dtrMinutesFromHHMM(s.in);let sOut=dtrMinutesFromHHMM(s.out);
     if(firstIn!=null&&sIn!==null){try{late=Math.max(0,firstIn-getEmployeeLateThresholdMinutes(emp,s.in))}catch(e){}}
     if(finalOut!=null&&sOut!==null){let o=finalOut;if(sOut<sIn)sOut+=1440;if(o<sIn&&sOut>1440)o+=1440;ut=Math.max(0,sOut-o)}
+    if((window.rcadsR515Free&&window.rcadsR515Free(emp,dk))){late=0;ut=0}   /* R516 */
     return {late,ut,sched:s};
   }
   function paidReason(P){const o=P.filter(r=>r.type==='OUT'&&String(r.reasonApproved||'').toUpperCase()==='YES').map(r=>String(r.reason||''));return o.find(x=>PAID.some(rx=>rx.test(x)))||''}
@@ -35732,6 +35739,94 @@ body.r373-doclocked #employeeSimplePanel [data-r159-doc],body.r373-doclocked #em
   setInterval(()=>{try{mount()}catch(e){console.warn('R511',e)}},1500);
 })();
 </script>
+<style id="rcadsR513Css">
+#r513Sec .h{font-size:16px;font-weight:900;color:#4c2b17}#r513Sec .s{font-size:12px;color:#6b5848;margin:4px 0 10px}
+#r513Sec .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}#r513Sec .bar select,#r513Sec .bar input{padding:8px 10px;border:1px solid #d9c3a2;border-radius:9px;font-size:13px;font-weight:700;background:#fff;width:auto!important}
+#r513Sec .bar button{padding:9px 14px;border:0;border-radius:9px;background:#5b3519;color:#fff;font-weight:900;cursor:pointer;width:auto!important}
+#r513Sec .tot{font-size:12.5px;font-weight:800;color:#4c2b17;margin:6px 0}
+#r513Sec .row{border:1px solid #ece0cf;border-radius:11px;background:#fff;margin:6px 0;overflow:hidden}
+#r513Sec .row>summary{list-style:none;display:flex;gap:10px;align-items:center;padding:10px 12px;cursor:pointer}#r513Sec .row>summary::-webkit-details-marker{display:none}
+#r513Sec .rk{flex:0 0 30px;height:30px;border-radius:50%;background:#f3e6d3;color:#5b3519;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:12px}
+#r513Sec .row.top .rk{background:#b3261e;color:#fff}
+#r513Sec .who{flex:1 1 auto;min-width:0}#r513Sec .who b{display:block;font-size:13px;color:#2b1a0e}#r513Sec .who small{display:block;font-size:11px;color:#7a6654}
+#r513Sec .num{flex:0 0 auto;text-align:right}#r513Sec .num b{display:block;font-size:14px;color:#b3261e}#r513Sec .num small{font-size:11px;color:#7a6654}
+#r513Sec table{width:100%;border-collapse:collapse;font-size:12px}#r513Sec td,#r513Sec th{padding:6px 10px;border-top:1px solid #f1e7d9;text-align:left}#r513Sec th{background:#fbf5ec;font-size:11px;color:#6b5848}
+#r513Sec td.m{text-align:right;font-weight:800;color:#b3261e}
+#r513Sec .empty{padding:14px;text-align:center;color:#7a6654;font-size:12.5px}
+</style>
+<script id="rcadsR513Script">
+/* R513 — HR → ⏰ LATE SUMMARY (monthly): every employee of all branches (Managers to the lowest position),
+   ranked by the most LATE minutes in the month, with the number of days and each date + minutes.
+   Uses the same LATE count as the HR red flags (schedule / ACS, the 11 AM rule by position, excused days not counted).
+   The LATE monitor is removed from the Owners' app. */
+(function(){'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code).sort((a,b)=>String(a.name).localeCompare(String(b.name)))}
+  function staff(b){try{return ((window.rusticaManagerLoadBranchEmployeeMaster||rusticaManagerLoadBranchEmployeeMaster)(b)||[]).filter(x=>x&&x.code)}catch(e){return []}}
+  function off(code){try{const db=JSON.parse(localStorage.getItem('rcads_r160_emp_access_v1')||'{}');const r=db&&db.people&&db.people[U(code)];return !!(r&&r.status==='DISABLED')}catch(e){return false}}
+  const pad=n=>String(n).padStart(2,'0');
+  function monthRange(ym){const [y,m]=ym.split('-').map(Number);const last=new Date(y,m,0).getDate();return {from:y+'-'+pad(m)+'-01',to:y+'-'+pad(m)+'-'+pad(last)}}
+  function hm(m){m=Math.round(m||0);const h=Math.floor(m/60),x=m%60;return h?h+'h '+pad(x)+'m':x+'m'}
+  function dLabel(dk){const d=new Date(dk+'T00:00:00');return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}
+  let ST={ym:'',br:'ALL',rows:null,busy:false,at:0,q:''};
+  function nowYm(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)}
+  function compute(){const R=window.rcadsR200;if(!R||!R.incidents)return {err:'The DTR module is not ready yet. Wait a few seconds, then press SHOW again.'};
+    const c=monthRange(ST.ym),out=[],seen={},td0=new Date(),today=td0.getFullYear()+'-'+pad(td0.getMonth()+1)+'-'+pad(td0.getDate());
+    branches().forEach(b=>{if(ST.br!=='ALL'&&ST.br!==b.code)return;staff(b.code).forEach(e=>{const k=U(e.code);if(!k||seen[k]||off(k))return;seen[k]=1;
+      let inc=[];try{inc=(R.incidents(e,c)||[]).filter(x=>x.kind==='LATE'&&x.mins>0)}catch(x){inc=[]}
+      const D={};inc.forEach(x=>{D[x.date]={date:x.date,late:x.mins,ob:0,detail:x.detail||''}});
+      /* R514: OVER-BREAK = LATE (1st + 2nd break longer than the ACS long break, to the second) */
+      try{const OB=window.rcadsR217&&window.rcadsR217.overBreakDay;if(OB){const recs=getEmployeeAttendanceRecordsForDtr(e)||[],by={};recs.forEach(r=>{let k='';try{k=dtrDateKey(r.date)}catch(_){}if(k&&k>=c.from&&k<=c.to&&k<=today)(by[k]=by[k]||[]).push(r)});
+        Object.keys(by).forEach(dk=>{let m=0;try{m=OB(e,dk,by[dk])||0}catch(_){}if(m>0){D[dk]=D[dk]||{date:dk,late:0,ob:0,detail:''};D[dk].ob=m}})}}catch(_){}
+      const days=Object.values(D).map(d=>({date:d.date,mins:d.late+d.ob,late:d.late,ob:d.ob,detail:[d.late?'Late TIME IN '+hm(d.late)+(d.detail?' ('+d.detail+')':''):'',d.ob?'Over-break '+hm(d.ob):''].filter(Boolean).join(' • ')})).filter(d=>d.mins>0).sort((a,b)=>a.date<b.date?-1:1);
+      if(!days.length)return;out.push({e,b,days,total:days.reduce((s,x)=>s+x.mins,0),tLate:days.reduce((s,x)=>s+x.late,0),tOb:days.reduce((s,x)=>s+x.ob,0)})})});
+    out.sort((a,b)=>b.total-a.total||b.days.length-a.days.length||String(a.e.name).localeCompare(String(b.e.name)));return {rows:out}}
+  function body(){
+    if(!ST.rows)return '<div class="empty">Choose the month, then press <b>SHOW</b>.</div>';
+    if(ST.err)return '<div class="empty">'+esc(ST.err)+'</div>';
+    const q=U(ST.q),L=ST.rows.filter(x=>!q||U(x.e.name).includes(q)||U(x.e.code).includes(q));
+    if(!ST.rows.length)return '<div class="empty">No LATE in this month (based on the schedules / ACS and attendance synced to this device).</div>';
+    const tm=ST.rows.reduce((s,x)=>s+x.total,0),td=ST.rows.reduce((s,x)=>s+x.days.length,0);
+    return '<div class="tot">'+ST.rows.length+' employee(s) with LATE • '+td+' late day(s) • total '+hm(tm)+'</div>'
+      +L.map((x,i)=>{const rk=ST.rows.indexOf(x)+1;return '<details class="row'+(rk<=3?' top':'')+'"><summary><span class="rk">'+rk+'</span><span class="who"><b>'+esc(x.e.name)+'</b><small>'+esc(x.e.code)+' • '+esc(x.b.name)+(x.e.position?' • '+esc(x.e.position):'')+'</small></span><span class="num"><b>'+hm(x.total)+'</b><small>'+x.days.length+' day'+(x.days.length>1?'s':'')+(x.tOb?' • over-break '+hm(x.tOb):'')+'</small></span></summary>'
+        +'<table><thead><tr><th>DATE</th><th>DETAIL</th><th style="text-align:right">LATE</th></tr></thead><tbody>'+x.days.map(d=>'<tr><td>'+esc(dLabel(d.date))+'</td><td>'+esc(d.detail)+'</td><td class="m">'+hm(d.mins)+'</td></tr>').join('')+'</tbody></table></details>'}).join('')
+      +'<div class="s" style="margin-top:10px">LATE = TIME IN after the schedule / ACS time (Supervisors, Deputy Chefs, Managers and Asst. Managers: after 11:00 AM) + OVER-BREAK (1st + 2nd break longer than the ACS long break). Late days you excused are not counted. Computed '+esc(new Date(ST.at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+'.</div>'}
+  function html(){if(!ST.ym)ST.ym=nowYm();
+    return '<div class="h">⏰ LATE SUMMARY — ALL EMPLOYEES</div><div class="s">Managers to the lowest position, all branches. The one with the <b>most late minutes</b> is on top. Tap a name to see each date and the minutes.</div>'
+      +'<div class="bar"><input type="month" id="r513Ym" value="'+esc(ST.ym)+'"><select id="r513Br"><option value="ALL">ALL BRANCHES</option>'+branches().map(b=>'<option value="'+esc(b.code)+'"'+(ST.br===b.code?' selected':'')+'>'+esc(b.name)+'</option>').join('')+'</select><button type="button" id="r513Go">'+(ST.busy?'⏳ …':'SHOW')+'</button>'
+      +(ST.rows&&ST.rows.length?'<input type="search" id="r513Q" placeholder="Search name / code" value="'+esc(ST.q)+'">':'')+'</div><div id="r513Body">'+body()+'</div>'}
+  function paint(){const sec=document.getElementById('r513Sec');if(sec)sec.innerHTML=html()}
+  function run(){if(ST.busy)return;ST.busy=true;paint();setTimeout(()=>{try{const r=compute();ST.rows=r.rows||[];ST.err=r.err||'';ST.at=Date.now()}catch(e){ST.rows=[];ST.err='Could not compute: '+e.message}ST.busy=false;paint()},30)}
+  function mount(){const admin=document.getElementById('simpleHrAdminModal');if(!admin)return;const main=admin.querySelector('.rcads-hr-main');if(!main)return;const nav=admin.querySelector('.rcads-hr-nav');
+    if(nav&&!document.getElementById('r513NavBtn')){const bt=document.createElement('button');bt.id='r513NavBtn';bt.type='button';bt.textContent='⏰ Late Summary';bt.onclick=()=>{try{rcadsHrGo('r513Sec')}catch(e){}};nav.appendChild(bt)}
+    let sec=document.getElementById('r513Sec');
+    if(!sec){sec=document.createElement('div');sec.id='r513Sec';sec.className='rcads-dashboard-section';main.appendChild(sec);sec.innerHTML=html();
+      sec.addEventListener('click',e=>{if(e.target.id==='r513Go'){const y=sec.querySelector('#r513Ym'),b=sec.querySelector('#r513Br');ST.ym=(y&&y.value)||nowYm();ST.br=(b&&b.value)||'ALL';ST.q='';run()}});
+      sec.addEventListener('input',e=>{if(e.target.id==='r513Q'){ST.q=e.target.value;const bd=sec.querySelector('#r513Body');if(bd)bd.innerHTML=body()}});}
+  }
+  window.rcadsR513={compute,run,state:()=>ST};
+  setInterval(()=>{try{mount()}catch(e){console.warn('R513',e)}},1500);
+})();
+</script>
+<script id="rcadsR516Script">
+/* R516 — CATERING: the DAY BEFORE (preparation) and the DAY AFTER (rest) a CATERING day in the ACS have NO LATE,
+   NO UNDERTIME and NO OVER-BREAK for Deputy Chefs, Asst. Deputy Chefs, Supervisors, Managers / Asst. Managers and Captain Waiters (R517).
+   (The catering day itself is already free — R405/R515.) Absent still counts if they do not come in at all. */
+(function(){'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  function addDay(dk,n){const d=new Date(dk+'T00:00:00');if(isNaN(d))return '';d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function posOf(emp){if(emp&&emp.position)return emp.position;const k=U(emp&&emp.code);if(!k)return '';
+    let bs={};try{bs=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}
+    for(const b of Object.values(bs||{})){try{const x=((window.rusticaManagerLoadBranchEmployeeMaster||rusticaManagerLoadBranchEmployeeMaster)(b.code)||[]).find(e=>U(e.code)===k);if(x&&x.position)return x.position}catch(e){}}return ''}
+  function role(emp){const p=U(posOf(emp)).replace(/\./g,' ').replace(/\s+/g,' ');
+    return /CAPT|MANAGER|DEPUTY|SUPERVISOR/.test(p)}   /* R517: + Asst. Deputy Chef, Supervisor / Trainee Supervisor, Asst. Manager */
+  function cat(emp,dk){let s=null;try{s=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}return !!(s&&s.type==='STATUS'&&/CATERING/i.test(String(s.status||'')))}
+  const memo=new Map();let memoAt=0;
+  window.rcadsR516Why=function(emp,dk){if(!emp||!dk||!role(emp))return '';if(cat(emp,addDay(dk,-1)))return 'AFTER CATERING';if(cat(emp,addDay(dk,1)))return 'CATERING PREP';return ''};
+  window.rcadsR515Free=function(emp,dk){try{if(Date.now()-memoAt>20000){memo.clear();memoAt=Date.now()}const k=U(emp&&emp.code)+'|'+dk;if(memo.has(k))return memo.get(k);const v=!!window.rcadsR516Why(emp,dk);memo.set(k,v);return v}catch(e){return false}};
+})();
+</script>
 <script id="rcadsR421Script">/* R421 — ID print: bigger round logo, RESTAURANT and POSITION in bold, signatures stay in their own space (no more covering "Status" or the note).
    Added to #rcadsR167Css so the printed ID uses it too (the print window copies only that style). */
 (function(){var t="/* R421 */\n.r255 .r313-head{top:1mm!important;height:19mm!important;left:2.2mm!important;gap:2mm!important}\n.r255 .r313-logo{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;border-radius:50%!important}\n.r255 .r313-txt b{font-size:6.6mm!important}\n.r255 .r313-txt span{font-weight:900!important;color:#2b1a0e!important;font-size:2.6mm!important;letter-spacing:.45mm!important}\n.r255 .r255-pos{font-weight:900!important;color:#000!important;-webkit-text-stroke:.06mm #000}\n.r255 .r255-grid{left:3.5mm!important;right:3.5mm!important;top:62.6mm!important;grid-template-columns:20mm 1fr!important;row-gap:1.1mm!important;font-size:2.6mm!important}\n.r255 .r255-grid span{font-weight:700;color:#2b1a0e}\n/* employee signature: inside its own box above the line */\n.r255 .r320-sig{margin-top:1.4mm!important}\n.r255 .r320-img{height:7mm!important;overflow:hidden!important}\n.r255 .r320-img img{bottom:0!important;max-height:7mm!important;width:auto!important;max-width:32mm!important}\n/* HR signature: inside its own box, does not cover the note */\n.r255 .r255-note{margin-bottom:.6mm!important}\n.r255 .r255-hrsig{height:7mm!important;margin-top:.4mm!important;overflow:hidden!important}\n.r255 .r255-hrsig img{bottom:0!important;max-height:7mm!important;width:auto!important;max-width:32mm!important}\n";
@@ -36894,6 +36989,7 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
   function sorted(p){return p.slice().sort((a,b)=>(Date.parse(a.date)||0)-(Date.parse(b.date)||0))}
   function dayInfo(emp,dk,punches){
     let sc=null;try{sc=getScheduleEntryForEmployeeDate(emp,dk)}catch(e){}if(!sc||sc.type!=='TIME')return null;
+    if((window.rcadsR515Free&&window.rcadsR515Free(emp,dk)))return 0;   /* R516: day before / after CATERING */
     const ps=sorted(punches).filter(r=>!r.errand&&!r.errandReturn);
     const ins=ps.filter(r=>r.type==='IN'),outs=ps.filter(r=>r.type==='OUT'&&r.kind!=='Break');if(!ins.length||!outs.length)return null;   /* no TIME OUT → not computed here */
     let work=0,brk=0,inAt=null,brAt=null;
