@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R535 GET LATEST OPENS THE FOLDER WINDOW (NO HIDDEN ALLOW)</title>
+<title>Rustica RCADS App — R536 GET LATEST: ALWAYS SHOWS WHAT IS HAPPENING</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34880,7 +34880,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     let box=document.getElementById('r399HrBox');
     if(!box){box=document.createElement('div');box.id='r399HrBox';box.className='r399-box';sec.insertBefore(box,sec.firstChild);
       box.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
-        if(t.closest('#r399Get')){getLatest();return}
+        if(t.closest('#r399Get')){   /* R536: show at once that it is working, and show ANY problem (never silent) */
+          if(!GL.busy){GL.msg='⏳ Opening the sync folder… (if a folder window opens: choose '+SYNC_NAME+' → Select folder → Edit files / Allow)';GL.err=false;drawHr()}
+          const w=setTimeout(()=>{if(/Opening the sync folder/.test(GL.msg||'')){GL.msg='Still waiting for the folder… If nothing opened, use “or choose the files” below the button, then tell HR support what you see.';GL.err=true;drawHr()}},12000);
+          Promise.resolve().then(()=>getLatest()).catch(err=>{GL.busy=false;GL.msg='⚠ GET LATEST stopped: '+(err&&err.message||err);GL.err=true;drawHr()}).finally(()=>clearTimeout(w));return}
         if(t.closest('#r399Change')){e.preventDefault();chooseFolder().then(h=>{if(h){GL.folder=h.name;GL.msg='Folder: '+h.name;GL.err=false;drawHr()}}).catch(err=>alert(err.message));return}
         if(t.closest('#r399PickL')){e.preventDefault();document.getElementById('r399Pick').click();return}
         if(t.closest('#r399Ref')){FL.at=0;loadFilled();return}
