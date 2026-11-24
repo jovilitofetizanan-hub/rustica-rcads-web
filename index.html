@@ -27111,7 +27111,13 @@ body.r177-hr #simpleHrAdminModal .rcads-hr-main > .rcads-dashboard-section,body.
     const aoa=XLSX.utils.sheet_to_json(sh,{header:1,defval:''});
     if(!/RCPS TO RCADS/i.test(String((aoa[0]||[])[0]||'')))return null;
     const h=aoa.findIndex(r=>U(r[1])==='EMPCODE');if(h<0)return null;
-    return aoa.slice(h+1).filter(r=>U(r[1])&&String(r[2]||'').trim()).map(r=>({branchName:String(r[0]).trim(),code:U(r[1]),name:String(r[2]).trim(),dept:String(r[3]).trim(),position:String(r[4]).trim(),basis:String(r[5]||'').trim()}));
+    const out=aoa.slice(h+1).filter(r=>U(r[1])&&String(r[2]||'').trim()).map(r=>({branchName:String(r[0]).trim(),code:U(r[1]),name:String(r[2]).trim(),dept:String(r[3]).trim(),position:String(r[4]).trim(),basis:String(r[5]||'').trim(),oldCode:U(r[6]||'')}));
+    /* R540: RCPS v80 sends the OLD EMPCODE of a person whose code was changed (Extra → regular, transfer).
+       RCADS joins it by itself — the old TIME IN / OUT and schedule follow the new code. Nothing to press. */
+    try{const LK='rcads_r538_links_v1';const L=JSON.parse(localStorage.getItem(LK)||'{}')||{};let ch=false;
+      out.forEach(r=>{if(!r.oldCode||r.oldCode===r.code)return;const a=L[r.code]||[];if(!a.includes(r.oldCode)){L[r.code]=a.concat(r.oldCode);ch=true}});
+      if(ch){localStorage.setItem(LK,JSON.stringify(L));try{window.rcadsR532&&window.rcadsR532.reset()}catch(_){}}}catch(_){}
+    return out;
   }
   function diff(rows){
     const out=[];
