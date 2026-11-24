@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R536 GET LATEST: ALWAYS SHOWS WHAT IS HAPPENING</title>
+<title>Rustica RCADS App — R537 GET LATEST = ONE CLICK (FILE WINDOW IN THE RCADS APP)</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34841,7 +34841,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       newHtml()+'<button type="button" class="r399-big" id="r399Get"'+(GL.busy?' disabled':'')+'>'+(GL.busy?'⏳ WORKING…':'📥 GET LATEST FROM RCPS')+'</button>'+
       '<div class="r399-n">Reads the newest files that RCPS saved with <b>📤 SEND LATEST TO RCADS</b> in <b>'+esc(SYNC_NAME)+' / '+esc(IN_NAME)+'</b>. The Schedule / ACS and DTR Summary Log go straight to the Kitchen Head 1, Dining Head 1 and HR Assistant (☰ MORE → 📝 FILL). What they send back waits for your <b>✅ APPROVE</b> below — after you approve, it shows in the employees’ apps and is used for the DTR. The employee list is shown below for you to check and ✓ APPLY.'+
       (folderOK()?' <br>Folder: <b>'+esc(GL.folder||'(chosen on the first press)')+'</b> • <a href="#" id="r399Change">change folder</a> • <a href="#" id="r399PickL">or choose the files</a>':' <br>This browser cannot open a folder — you will choose the files.')+'</div>'+
-      '<input type="file" id="r399Pick" accept=".xlsx,.json" multiple hidden>'+
+      '<input type="file" id="r399Pick" accept=".xlsx,.json,.pdf" multiple hidden>'+
       (GL.msg?'<div class="r399-msg'+(GL.err?' err':'')+'">'+esc(GL.msg)+'</div>':'')+res+
       '<div class="r399-sec">📥 SCHEDULE / ACS FILLED IN RCADS BY THE BRANCHES <button type="button" class="r399-btn l" id="r399Ref">↻</button></div>'+filledHtml()+dtrHrHtml()+hrFillHtml()+holHrHtml();
   }
@@ -34880,6 +34880,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     let box=document.getElementById('r399HrBox');
     if(!box){box=document.createElement('div');box.id='r399HrBox';box.className='r399-box';sec.insertBefore(box,sec.firstChild);
       box.addEventListener('click',e=>{const t=e.target;if(!t.closest)return;
+        if(t.closest('#r399Get')&&!GL.busy&&(function(){try{return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: window-controls-overlay)').matches||matchMedia('(display-mode: minimal-ui)').matches}catch(_){return false}})()){
+          /* R537: in the installed RCADS window the folder permission question never shows — so the button simply opens the file window:
+             go to RUSTICA RCPS-RCADS SYNC → RCPS to RCADS, press Ctrl + A, then Open */
+          GL.msg='📂 Choose the files: OneDrive → '+SYNC_NAME+' → '+IN_NAME+' → press Ctrl + A → Open.';GL.err=false;drawHr();document.getElementById('r399Pick').click();return}
         if(t.closest('#r399Get')){   /* R536: show at once that it is working, and show ANY problem (never silent) */
           if(!GL.busy){GL.msg='⏳ Opening the sync folder… (if a folder window opens: choose '+SYNC_NAME+' → Select folder → Edit files / Allow)';GL.err=false;drawHr()}
           const w=setTimeout(()=>{if(/Opening the sync folder/.test(GL.msg||'')){GL.msg='Still waiting for the folder… If nothing opened, use “or choose the files” below the button, then tell HR support what you see.';GL.err=true;drawHr()}},12000);
