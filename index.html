@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R507 QR EVERY 1 SECOND (10 S LIMIT), ONLY AT THE BRANCH</title>
+<title>Rustica RCADS App — R512 NO COMPANY LOAN CARD FOR OWNERS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -17371,10 +17371,28 @@ body.rcads-r107-top-shell #topManagementHomeScreen .r100-note{text-align:center!
       return '<div class="r111-row"><b>'+esc(label)+' — '+esc(emp.name||label)+'</b><br>'+esc((window.RUSTICA_BRANCHES?.[mother]?.name)||mother)+' • IN '+esc(a.timeIn||'—')+' • OUT '+esc(a.timeOut||'—')+' • '+esc(a.status||'NO RECORD')+'</div>';
     }).join('');
   }
+  /* R510: HEAD APPROVERS come from each branch's employee list, by position:
+     Cabanatuan = Asst. Manager, Captain Waiter, Deputy Chef, Asst. Deputy Chef;
+     other branches = Supervisor, Trainee Supervisor, Captain Waiter, Deputy Chef, Asst. Deputy Chef;
+     plus ANG-EMP43 Vivienne Bautista (San Rafael, Angeles, San Fernando) and SJ-EMP39 Edric (San Juan). */
+  const R510_EXTRA={SAN_RAFAEL:[['ANG-EMP43','ANGELES','Trainee Supervisor']],ANGELES:[],SAN_FERNANDO:[['ANG-EMP43','ANGELES','Trainee Supervisor']],SAN_JUAN:[['SJ-EMP39','SAN_JUAN','Senior Waiter']],CABANATUAN:[]};
+  function r510Role(pos,br){const p=String(pos||'').toUpperCase().replace(/\./g,' ').replace(/\s+/g,' ').trim();
+    if(/TRAINEE/.test(p)&&!/SUPERVISOR/.test(p))return 0;
+    if(br==='CABANATUAN'){if(/\b(ASST|ASSISTANT) ?MANAGER/.test(p))return 1;}else if(/SUPERVISOR/.test(p))return /TRAINEE/.test(p)?2:1;
+    if(/CAPT/.test(p))return 3;if(/DEPUTY/.test(p))return /ASST|ASSISTANT/.test(p)?5:4;return 0}
+  function r510Off(code){try{const db=JSON.parse(localStorage.getItem('rcads_r160_emp_access_v1')||'{}');const r=db&&db.people&&db.people[String(code).toUpperCase()];return !!(r&&r.status==='DISABLED')}catch(e){return false}}
+  function r510List(br){const out=[],seen={};
+    const load=c=>{try{return (window.rusticaManagerLoadBranchEmployeeMaster||rusticaManagerLoadBranchEmployeeMaster)(c)||[]}catch(e){return []}};
+    let pk=null;try{const P=JSON.parse(localStorage.getItem('rcads_r511_adc_approvers_v1')||'{}');if(P&&P[br]&&P[br].set)pk=(P[br].codes||[]).map(x=>String(x).toUpperCase())}catch(_){}
+    load(br).forEach(e=>{const k=String(e.code||'').toUpperCase(),r=r510Role(e.position,br);if(!k||!r||seen[k]||r510Off(k))return;if(r===5&&pk&&pk.indexOf(k)<0)return;   /* R511: HR chose which Asst. Deputy Chefs are approvers */
+    seen[k]=1;out.push(Object.assign({},e,{code:k,_r:r}))});
+    (R510_EXTRA[br]||[]).forEach(([code,home,label])=>{if(seen[code]||r510Off(code))return;const e=load(home).find(x=>String(x.code||'').toUpperCase()===code);if(!e)return;seen[code]=1;out.push(Object.assign({},e,{code,position:label+(br!==home?' (from '+((window.RUSTICA_BRANCHES?.[home]?.name)||home)+')':' (Approver)'),_r:6}))});
+    approvers(br).filter(x=>!['restaurantManager','cateringManager'].includes(x.approverKey)).forEach(x=>{const k=String(x.code||x.empCode||'').toUpperCase();if(k&&seen[k])return;if(k)seen[k]=1;out.push(Object.assign({_r:7},x))});
+    return out.sort((a,b)=>a._r-b._r||String(a.name).localeCompare(String(b.name)))}
   function approverRows(){
     let html='';
     for(const b of branches()){
-      const rows=approvers(b.code).filter(x=>!['restaurantManager','cateringManager'].includes(x.approverKey));
+      const rows=r510List(b.code);
       html+='<div class="r111-branch"><div class="r111-branch-title">'+esc(b.name)+' — HEAD APPROVERS</div>';
       html+=rows.length?rows.map(emp=>{const a=attendance(b.code,emp);return '<div class="r111-row"><b>'+esc(emp.name||emp.position||emp.approverKey||'Approver')+'</b><br>'+esc(emp.position||'Approver')+' • IN '+esc(a.timeIn||'—')+' • OUT '+esc(a.timeOut||'—')+' • '+esc(a.status||'NO RECORD')+'</div>'}).join(''):'<div class="r111-row">No Head Approver record loaded.</div>';
       html+='</div>';
@@ -30427,7 +30445,8 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
     // leaving the tab / app closes it again (nothing stays on the screen)
     const act=root.getAttribute('data-r162-active')||th.getAttribute('data-r162-active');if(ST.rows&&act&&act!==el.getAttribute('data-r162-tab')){ST.rows=null;ST.open=''}
     draw(false)}
-  setInterval(()=>{try{tick()}catch(e){console.warn('R253',e)}},1500);
+  /* R512: the COMPANY LOAN MONITOR is removed from the Owners' app (HR asked) — the card is not shown any more */
+  setInterval(()=>{try{const el=document.getElementById('r253Owner');if(el)el.remove()}catch(e){}},1500);
   window.rcadsR253={load};
 })();
 </script>
@@ -35688,6 +35707,31 @@ body.r373-doclocked #employeeSimplePanel [data-r159-doc],body.r373-doclocked #em
   setInterval(()=>{try{wrapWho()}catch(e){}try{mount()}catch(e){console.warn('R420',e)}},1500);
 })();
 </script>
+<style id="rcadsR511Css">#r511Card{margin:12px 0;padding:12px;border:1px solid #e4d2b8;border-radius:14px;background:#fffaf2}#r511Card .t{font-weight:900;color:#4c2b17;font-size:13px}#r511Card .s{font-size:11.5px;color:#6b5848;margin:4px 0 8px}#r511Card .b{margin-top:10px}#r511Card .b>b{display:block;font-size:12.5px;color:#4c2b17;margin-bottom:4px}#r511Card .n{font-size:11px;color:#8c7a68;margin-top:3px}#r511Card .ok{font-size:11px;color:#2f6b3a;font-weight:800;margin-top:8px}</style>
+<script id="rcadsR511Script">
+/* R511 — HR chooses which ASST. DEPUTY CHEFS are Head Approvers, per branch (HR → APPROVERS / GUARDS).
+   Nothing chosen yet in a branch = all its Asst. Deputy Chefs are listed. Saved in the cloud (rcads_ key). */
+(function(){'use strict';
+  const KEY='rcads_r511_adc_approvers_v1';const U=c=>String(c||'').trim().toUpperCase();
+  function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch(e){return {}}}
+  function save(m){try{localStorage.setItem(KEY,JSON.stringify(m));return true}catch(e){return false}}
+  function branches(){let s={};try{s=window.RUSTICA_BRANCHES||(typeof RUSTICA_BRANCHES!=='undefined'?RUSTICA_BRANCHES:{})}catch(e){}return Object.values(s||{}).filter(b=>b&&b.code).sort((a,b)=>String(a.name).localeCompare(String(b.name)))}
+  function adc(b){try{return (window.rusticaManagerLoadBranchEmployeeMaster?.(b)||[]).filter(x=>x&&x.code&&/DEPUTY/.test(U(x.position))&&/ASST|ASSISTANT/.test(U(x.position)))}catch(e){return []}}
+  window.rcadsR511={load};
+  function html(){const m=load();
+    return '<div class="t">👥 ASST. DEPUTY CHEF — who are Head Approvers</div><div class="s">Check the Asst. Deputy Chefs who are approvers in each branch. If you have not chosen yet in a branch, <b>all</b> its Asst. Deputy Chefs are listed. Supervisors, Captain Waiters and Deputy Chefs are always listed.</div>'
+      +branches().map(b=>{const L=adc(b.code),r=m[b.code]||{},set=!!r.set,codes=(r.codes||[]).map(U);
+        return '<div class="b"><b>'+esc(b.name)+'</b>'+(L.length?'<div class="r509-brs">'+L.map(e=>'<label class="r509-row"><input type="checkbox" data-r511="'+esc(b.code)+'" value="'+esc(U(e.code))+'"'+((!set||codes.indexOf(U(e.code))>=0)?' checked':'')+'><span>'+esc(e.name)+' • '+esc(e.code)+'</span></label>').join('')+'</div>'+(set?'':'<div class="n">Not chosen yet — all are listed.</div>'):'<div class="n">No Asst. Deputy Chef in this branch.</div>')+'</div>'}).join('')
+      +(m._at?'<div class="ok">✓ Saved '+esc(new Date(m._at).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+' — the phones get it after sync.</div>':'')}
+  function mount(){const sec=document.getElementById('rcadsApproverAccessSection');if(!sec)return;let c=document.getElementById('r511Card');
+    if(!c){c=document.createElement('div');c.id='r511Card';c.addEventListener('change',ev=>{const i=ev.target;if(!i||!i.getAttribute||!i.hasAttribute('data-r511'))return;const b=i.getAttribute('data-r511');
+      const codes=[...c.querySelectorAll('input[data-r511="'+b+'"]:checked')].map(x=>U(x.value));const m=load();m[b]={set:true,codes};m._at=new Date().toISOString();save(m);c.dataset.h='';paint(true)})}
+    const after=document.getElementById('r420Card');if(after&&after.parentElement===sec){if(after.nextElementSibling!==c)after.insertAdjacentElement('afterend',c)}else if(c.parentElement!==sec)sec.appendChild(c);paint()}
+  function paint(force){const c=document.getElementById('r511Card');if(!c||(!force&&c.contains(document.activeElement)))return;const h=html();if(c.dataset.h!==h){c.dataset.h=h;c.innerHTML=h}}
+  setInterval(()=>{try{mount()}catch(e){console.warn('R511',e)}},1500);
+})();
+</script>
 <script id="rcadsR421Script">/* R421 — ID print: bigger round logo, RESTAURANT and POSITION in bold, signatures stay in their own space (no more covering "Status" or the note).
    Added to #rcadsR167Css so the printed ID uses it too (the print window copies only that style). */
 (function(){var t="/* R421 */\n.r255 .r313-head{top:1mm!important;height:19mm!important;left:2.2mm!important;gap:2mm!important}\n.r255 .r313-logo{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;border-radius:50%!important}\n.r255 .r313-txt b{font-size:6.6mm!important}\n.r255 .r313-txt span{font-weight:900!important;color:#2b1a0e!important;font-size:2.6mm!important;letter-spacing:.45mm!important}\n.r255 .r255-pos{font-weight:900!important;color:#000!important;-webkit-text-stroke:.06mm #000}\n.r255 .r255-grid{left:3.5mm!important;right:3.5mm!important;top:62.6mm!important;grid-template-columns:20mm 1fr!important;row-gap:1.1mm!important;font-size:2.6mm!important}\n.r255 .r255-grid span{font-weight:700;color:#2b1a0e}\n/* employee signature: inside its own box above the line */\n.r255 .r320-sig{margin-top:1.4mm!important}\n.r255 .r320-img{height:7mm!important;overflow:hidden!important}\n.r255 .r320-img img{bottom:0!important;max-height:7mm!important;width:auto!important;max-width:32mm!important}\n/* HR signature: inside its own box, does not cover the note */\n.r255 .r255-note{margin-bottom:.6mm!important}\n.r255 .r255-hrsig{height:7mm!important;margin-top:.4mm!important;overflow:hidden!important}\n.r255 .r255-hrsig img{bottom:0!important;max-height:7mm!important;width:auto!important;max-width:32mm!important}\n";
@@ -35761,7 +35805,7 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
 .r426-ed{min-height:220px;max-height:520px;overflow:auto;border:1px solid #c8a46a;border-radius:8px;background:#fff;color:#000;padding:12px 14px;font:15px/1.45 Arial,Helvetica,sans-serif;outline:none}
 .r426-ed table{border-collapse:collapse}.r426-ed td,.r426-ed th{border:1px solid #555;padding:3px 6px}
 .r426-tb{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}.r426-tb button{border:1px solid #c8a46a;background:#fffaf2;color:#4c2b17;border-radius:6px;padding:5px 9px;font-weight:900;cursor:pointer;min-width:34px}
-.r426-brs{display:flex;flex-wrap:wrap;gap:6px 12px;margin:4px 0 8px;font-size:12px;font-weight:800}.r426-brs label{display:flex;align-items:center;gap:4px}
+.r426-brs{display:flex;flex-wrap:wrap;gap:6px 12px;margin:4px 0 8px;font-size:12px;font-weight:800}.r426-brs label{display:flex;align-items:center;gap:4px}.r509-brs{display:block;margin:4px 0 8px;border:1px solid #e4d2b8;border-radius:10px;overflow:hidden;background:#fff}.r509-brs .r509-row{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;width:100%!important;box-sizing:border-box;padding:10px 12px!important;margin:0!important;border-bottom:1px solid #f0e4d2;font-size:14px;font-weight:800;text-align:left!important;cursor:pointer}.r509-brs .r509-row:last-child{border-bottom:0}.r509-brs .r509-row input{width:20px!important;height:20px!important;min-width:20px!important;max-width:20px!important;flex:0 0 20px!important;margin:0!important;padding:0!important;position:static!important}.r509-brs .r509-row span{flex:1 1 auto;min-width:0;white-space:normal}.r426-brs input[type=checkbox],.r426-brs input[type=radio]{width:auto!important;min-width:0!important;flex:0 0 auto!important;margin:0 4px 0 0!important}
 .r426-msg{font-size:12px;font-weight:800;margin-top:6px;color:#4c2b17}.r426-msg.bad{color:#a1281f}
 .r426-prev{display:flex;gap:8px;overflow-x:auto;margin-top:8px}.r426-prev img{height:360px;border:1px solid #ccc;background:#fff}
 .r426-rem{border:2px solid #e0b64a;background:#fff8e1;border-radius:12px;padding:8px 10px;margin:0 0 10px}
@@ -35898,8 +35942,10 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
       out.push(c.toDataURL('image/jpeg',0.72))}
     host.remove();return out}
   window.rcadsR426Paginate=paginate;
-  function brChecks(name){return '<div class="r426-brs" data-r426-brs="'+name+'"><label><input type="checkbox" value="ALL" checked> ALL BRANCHES</label>'+branches().map(b=>'<label><input type="checkbox" value="'+esc(b.code)+'"> '+esc(b.name)+'</label>').join('')+'</div>'}
-  function chosen(name){const box=document.querySelector('[data-r426-brs="'+name+'"]');if(!box)return [];const v=[...box.querySelectorAll('input:checked')].map(i=>i.value);return v.includes('ALL')?branches().map(b=>b.code):v}
+  /* R509: SEND TO = check boxes again, one branch per line (in order), the box never covers the name */
+  function brChecks(name){const row=(v,t,ck,bold)=>'<label class="r509-row"><input type="checkbox" value="'+esc(v)+'"'+(ck?' checked':'')+'><span'+(bold?' style="font-weight:900"':'')+'>'+esc(t)+'</span></label>';
+    return '<div class="r509-brs" data-r426-brs="'+name+'">'+row('ALL','ALL BRANCHES',true,true)+branches().map(b=>row(b.code,b.name,false,false)).join('')+'</div>'}
+  function chosen(name){const box=document.querySelector('[data-r426-brs="'+name+'"]');if(!box)return [];const sel=box.querySelector('select');if(sel){const v=sel.value||'ALL';return v==='ALL'?branches().map(b=>b.code):[v]}const v=[...box.querySelectorAll('input:checked')].map(i=>i.value);return v.includes('ALL')?branches().map(b=>b.code):v}
   document.addEventListener('change',e=>{const i=e.target;if(!i.closest||!i.closest('[data-r426-brs]'))return;const box=i.closest('[data-r426-brs]');if(i.value==='ALL'&&i.checked)box.querySelectorAll('input:not([value="ALL"])').forEach(x=>x.checked=false);else if(i.value!=='ALL'&&i.checked){const a=box.querySelector('input[value="ALL"]');if(a)a.checked=false}});
   function writerHtml(){return '<h4>✍ WRITE A MEMO — type here or PASTE from WPS / Word (always LEGAL size, with your signature)</h4>'
     +'<div class="r426-brs"><label><input type="radio" name="r426Kind" value="MC" checked> 📄 MEMO CIRCULAR (goes to MEMO CIRCULARS)</label><label><input type="radio" name="r426Kind" value="PM"> 📝 PERSONAL MEMO / NTE (one employee → 201)</label></div>'
