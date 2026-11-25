@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R540 NEW EMPCODE: OLD PUNCHES + SCHEDULE FOLLOW THE PERSON</title>
+<title>Rustica RCADS App — R542 DTR SUMMARY LOG: JUDITH = ALL CABANATUAN, MICHAEL HELPS KITCHEN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -30833,16 +30833,19 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
 
   /* ---------- who is using the app ---------- */
   /* R518: DTR SUMMARY LOG makers chosen by HR (all departments of the branch; they check / correct it, then SEND BACK TO HR) */
-  const R518_DTR={'SJ-EMP39':{b:['SAN_JUAN'],label:'DTR SUMMARY LOG • SAN JUAN'},'ANG-EMP43':{b:['SAN_RAFAEL','ANGELES'],label:'DTR SUMMARY LOG • SAN RAFAEL / ANGELES'},'SF-EMP03':{b:['SAN_FERNANDO'],label:'DTR SUMMARY LOG • SAN FERNANDO'}};
+  const R518_DTR={'SJ-EMP39':{b:['SAN_JUAN'],label:'DTR SUMMARY LOG • SAN JUAN'},'ANG-EMP43':{b:['SAN_RAFAEL','ANGELES'],label:'DTR SUMMARY LOG • SAN RAFAEL / ANGELES'},'SF-EMP03':{b:['SAN_FERNANDO'],label:'DTR SUMMARY LOG • SAN FERNANDO'},
+    /* R541: one department only */
+    'SRF-EMP14':{b:['SAN_RAFAEL'],d:['KITCHEN'],label:'DTR SUMMARY LOG • SAN RAFAEL KITCHEN'},'CAB-EMP02':{b:['CABANATUAN'],label:'DTR SUMMARY LOG • CABANATUAN (ALL)'},'CAB-EMP03':{b:['CABANATUAN'],d:['KITCHEN'],label:'DTR SUMMARY LOG • CABANATUAN KITCHEN'}};
   const R518_ALL=['MANAGEMENT','KITCHEN','DINING','EXTRA'];
   function who(){
     let e=null;try{e=currentEmployee}catch(_){}if(!e||!e.code)return null;
     const X=R518_DTR[U(e.code)];const w=who0();if(!X)return w;
-    if(w){if(w.kind==='MGR')return w;const br=w.branches.slice();X.b.forEach(b=>{if(!br.includes(b))br.push(b)});return Object.assign({},w,{branches:br,dtr:R518_ALL.slice(),dtrB:X.b.slice(),label:w.label+' + '+X.label})}
+    const XD=X.d?X.d.slice():R518_ALL.slice();
+    if(w){if(w.kind==='MGR')return w;const br=w.branches.slice();X.b.forEach(b=>{if(!br.includes(b))br.push(b)});const dd=R518_ALL.filter(d=>XD.includes(d)||(w.dtr||[]).includes(d));return Object.assign({},w,{branches:br,dtr:dd,dtrB:X.b.slice(),label:w.label+' + '+X.label})}
     const app=document.getElementById('rcadsR131ApproverApp'),shell=app&&app.querySelector('.r131-shell');
     const appr=shell&&document.body.classList.contains('approver-only-mode')&&getComputedStyle(app).display!=='none';
     const panel=document.getElementById('employeeSimplePanel');const host=appr?shell:(panel&&document.body.classList.contains('employee-simple-mode')?panel:null);if(!host)return null;
-    return {kind:'HEAD',e,host,branches:X.b.slice(),forms:[],dtr:R518_ALL.slice(),dtrB:X.b.slice(),label:X.label};
+    return {kind:'HEAD',e,host,branches:X.b.slice(),forms:[],dtr:XD,dtrB:X.b.slice(),label:X.label};
   }
   function who0(){
     let e=null;try{e=currentEmployee}catch(_){}if(!e||!e.code)return null;
@@ -32116,7 +32119,7 @@ body.r330-locked #employeeSimplePanel .r162-nav [data-r162-go]:not([data-r162-go
   function lockTick(){
     const panel=document.getElementById('employeeSimplePanel');const e=emp();
     const on=!!(panel&&e&&document.body.classList.contains('employee-simple-mode')&&getComputedStyle(panel).display!=='none');
-    const exempt=on&&(['HRA','DH1','MANAGER'].includes(staffRole(e.code))||(window.rcadsR373&&window.rcadsR373.management(e)));
+    const exempt=on&&(['HRA','DH1','MANAGER'].includes(staffRole(e.code))||(window.rcadsR373&&window.rcadsR373.management(e))||['SJ-EMP39','ANG-EMP43','SF-EMP03','SRF-EMP14','CAB-EMP02','CAB-EMP03'].includes(U(e.code)));   /* R541: DTR SUMMARY LOG makers (Edric, Vivienne, Angeline) — RCADS stays open even when off duty */
     const st=on&&!exempt?state(e.code):{open:true};
     const locked=on&&!exempt&&!st.open;
     document.body.classList.toggle('r330-locked',locked);
@@ -34956,7 +34959,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       {const X={'ANG-EMP43':{branches:['SAN_RAFAEL','SAN_FERNANDO','ANGELES'],forms:['DINING'],label:'DINING SCHEDULE • 3 BRANCHES'}}[U(w.e&&w.e.code)];   /* R490: also when she is a Manager / Approver */
        if(X)return Object.assign({},w,{kind:'HEAD',branches:X.branches.slice(),forms:X.forms.slice(),dtr:[],label:X.label})}
       if(w.kind==='MGR'){if(!isSchedMgr(w.e))return null;return Object.assign({},w,{forms:['DINING'],label:'MANAGER (DINING SCHEDULE)'})}
-      if(w.dtrB&&!w.forms.length)return Object.assign({},w,{forms:['DINING'],dtrOnly:true});   /* R521: DTR Summary Log makers (R518) */
+      if(w.dtrB&&!w.forms.length)return Object.assign({},w,{forms:[(w.dtr&&w.dtr.length===1&&w.dtr[0]==='KITCHEN')?'KITCHEN':'DINING'],dtrOnly:true});   /* R521: DTR Summary Log makers (R518) */
       if(w.kind!=='HEAD'&&w.kind!=='HRA')return null;return w}catch(e){return null}}
   const HD={b:'',forms:{},filled:{},at:{},busy:false,msg:'',err:false};
   function fmtTime(hhmm){if(!hhmm)return '';let [h,m]=hhmm.split(':').map(Number);const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(m)+' '+ap}
