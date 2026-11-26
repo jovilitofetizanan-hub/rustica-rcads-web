@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R545 SEND TO RCPS WORKS IN THE RCADS APP WINDOW (FILES TO DOWNLOADS)</title>
+<title>Rustica RCADS App — R546 SEND TO RCPS = DOWNLOADS (NEVER WAITS FOR THE FOLDER)</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34927,7 +34927,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     try{if(OUTCAP&&Date.now()<OUTCAP.until&&this.download&&/\.xlsx$/i.test(this.download)&&/^blob:/.test(this.href)){
       const cap=OUTCAP,name=this.download,href=this.href;cap.n++;
       const bp=fetch(href).then(r=>r.blob());   /* read the file NOW — the page frees the link a moment later */
-      cap.p=cap.p.then(()=>bp).then(async b=>{const fh=await cap.dir.getFileHandle(name,{create:true});const w=await fh.createWritable();await w.write(b);await w.close();cap.names.push(name)})
+      cap.p=cap.p.then(()=>bp).then(b=>Promise.race([(async()=>{const fh=await cap.dir.getFileHandle(name,{create:true});const w=await fh.createWritable();await w.write(b);await w.close();cap.names.push(name)})(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('the folder did not answer')),8000))]))
         .catch(err=>{cap.err=err.message;return bp.then(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);oClick.call(a);setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}).catch(()=>{})});
       clearTimeout(cap.t);cap.t=setTimeout(()=>finishOut(cap),2500);return}}catch(e){}
     return oClick.apply(this,arguments)};
@@ -34940,9 +34940,11 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
       if(!folderOK()||!isHrDevice())return cur.apply(self,args);
       /* R545: in the installed RCADS app window the "Allow / Edit files" question is hidden and SEND TO RCPS waited forever.
          Now it never waits: folder already allowed → files go to "RCADS to RCPS"; otherwise they are DOWNLOADED (Downloads) at once. */
-      const APPWIN=(()=>{try{return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: window-controls-overlay)').matches}catch(e){return false}})();
+      const APPWIN=(()=>{try{return ['standalone','window-controls-overlay','minimal-ui','fullscreen'].some(m=>matchMedia('(display-mode: '+m+')').matches)||navigator.standalone===true}catch(e){return false}})();
       const toDl=()=>{const r=cur.apply(self,args);setTimeout(()=>{alert('✓ The DTR Summary Log files were DOWNLOADED (folder: Downloads).\n\nIn RCPS: DTR Log Form → Import from RCADS → open Downloads → choose the RCADS_…_DTR_LOG files of this branch and cut-off → Open.')},2500);return r};
-      return (async()=>{let dir=null;try{dir=await syncDir(false);
+      /* R546: in the app window the folder is NOT used at all (writing to it could wait forever) → straight to Downloads */
+      if(APPWIN)return toDl();
+      return (async()=>{let dir=null;try{dir=await Promise.race([syncDir(false),new Promise(r=>setTimeout(()=>r(null),4000))]);
           if(!dir&&!APPWIN){const h=await dirGet();if(h){const p=await Promise.race([h.requestPermission({mode:'readwrite'}),new Promise(r=>setTimeout(()=>r('timeout'),4000))]);if(p==='granted')dir=h}}}catch(e){dir=null}
         if(!dir)return toDl();
         try{const out=await sub(dir,OUT_NAME);for(const fh of await listFiles(out)){try{await moveOld(out,fh)}catch(e){}}
