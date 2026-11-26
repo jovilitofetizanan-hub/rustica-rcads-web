@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R547 OLD EXTRAEMP CODES OF REGULARIZED STAFF ARE HIDDEN</title>
+<title>Rustica RCADS App — R549 ACS: NEW TIME IN ONLY • NORMAL BREAK IS NEVER OVER-BREAK</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -5125,6 +5125,9 @@ function excelTimeToHHMM(v){
   /* R524: "8:00-21" must never be read as 8:00 in time zone −21 (that gave 13:00) — a dash / plus is a range, not a zone */
   const d=/\d\s*[-–—+]\s*\d/.test(s)?new Date(NaN):new Date(`1970-01-01 ${s}`);
   if(!isNaN(d.getTime())) return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  /* R548: a whole hour written with AM / PM and no minutes — "11AM", "11 am", "11 a.m.", "9PM" */
+  const q=s.match(/^(\d{1,2})\s*([AP])\.?\s*M?\.?$/i);
+  if(q){let h=Number(q[1]);const ap=q[2].toUpperCase();if(h>=1&&h<=12){if(ap==='P'&&h<12)h+=12;if(ap==='A'&&h===12)h=0;return `${String(h).padStart(2,"0")}:00`}}
   const p=s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
   if(p){
     let h=Number(p[1]), m=Number(p[2]);
@@ -29295,7 +29298,9 @@ body.r209-home #rcadsR143HrNormalQr,body.r209-home #rcadsR143HrNormalStatus{disp
     if((window.rcadsR515Free&&window.rcadsR515Free(emp,dk)))return 0;   /* R516 */
     let a=dtrMinutesFromHHMM(s.in),b=dtrMinutesFromHHMM(s.out);if(a==null||b==null)return 0;if(b<=a)b+=1440;else if(b-a<NEED)b+=720;/* R435: "08:30 – 09:00" = 8:30 AM to 9:00 PM */let allowed=Math.max(0,(b-a)-NEED);
     /* R405: the LONG BREAK written in the ACS is the allowed total of the 1st + 2nd break */
-    try{const lb=window.rcadsR215&&window.rcadsR215.acsLongBreakMinutes?window.rcadsR215.acsLongBreakMinutes(emp.code,dk):null;if(lb!=null)allowed=lb}catch(e){}
+    /* R549: a SHORTER ACS long break (made shorter to make room for OT) is never an over-break when the person takes
+       only the NORMAL break of the schedule (schedule − 8 h) — they simply do not earn that OT. A LONGER ACS break is allowed. */
+    try{const lb=window.rcadsR215&&window.rcadsR215.acsLongBreakMinutes?window.rcadsR215.acsLongBreakMinutes(emp.code,dk):null;if(lb!=null)allowed=Math.max(lb,allowed)}catch(e){}
     const ps=punches.slice().sort((x,y)=>(Date.parse(x.date)||0)-(Date.parse(y.date)||0));let brk=0,at=null;
     /* R435: exact to the second — the break may last the allowed hours counted from the exact BREAK-OUT time
        (out 2:23:19 PM + 4 h ACS long break → back by 6:23:19 PM). Coffee + lunch breaks share the allowance. */
@@ -34027,7 +34032,10 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   function scheduleCell(x,code,day){
     const row=(x.rowData||[]).find(r=>U(r['EMPLOYEE ID'])===U(code)&&excelDateToISO(r.DATE)===day);if(row){const i=excelTimeToHHMM(row['TIME IN']),o=excelTimeToHHMM(row['TIME OUT']);return {text:i&&o?i+' – '+o:String(row['TIME IN']||''),breakHours:row['LONG BREAK(HRS)']??'',ot:row['APPROVE O.T.']??''};}
     for(const w of x.weeklyBlocks||[]){const col=(w.dateCols||[]).find(c=>c.date===day);if(!col)continue;const r=(w.matrix||[]).slice(w.dataStartRow,w.dataEndRow).find(r=>U(r[w.empIdx])===U(code));if(!r)continue;const raw=r[col.idx],out=col.outIdx!==undefined?r[col.outIdx]:null;let text=raw==null?'':String(raw);let sub=(w.matrix[w.headerRow+1]||[]).map(U);for(let k=1;k<=3;k++){const t=(w.matrix[w.headerRow+k]||[]).map(v=>U(v).replace(/\s+/g,' '));if(t.some(v=>/LONG|APRVD|NEW SCHED/.test(v))){sub=t;break}}   /* R529 */
-      if(out!==null&&out!==undefined&&out!==''&&!/BREAK/.test(sub[col.idx+1]||'')){const i=excelTimeToHHMM(raw),o=excelTimeToHHMM(out);if(i&&o)text=i+' – '+o;}else if(typeof raw==='number'){const i=excelTimeToHHMM(raw);if(i)text=i}   /* R527: the cell after "New Sched" is LONG BREAK, not TIME OUT */return {text,breakHours:/BREAK/.test(sub[col.idx+1]||'')?r[col.idx+1]??'':'',ot:/OT|O\.T/.test(sub[col.idx+2]||'')?r[col.idx+2]??'':''};}return null;
+      if(out!==null&&out!==undefined&&out!==''&&!/BREAK/.test(sub[col.idx+1]||'')){const i=excelTimeToHHMM(raw),o=excelTimeToHHMM(out);if(i&&o)text=i+' – '+o;}else if(typeof raw==='number'){const i=excelTimeToHHMM(raw);if(i)text=i}   /* R527: the cell after "New Sched" is LONG BREAK, not TIME OUT */
+      if(/BREAK/.test(sub[col.idx+1]||'')&&text&&!/CATER|OFF|LEAVE|ABSENT|SUSPEN|RESIGN|AWOL|\bVL\b|\bSL\b/i.test(text)){   /* R548: ACS CHANGE SCHED. = the new TIME IN only, e.g. "11:00 AM" */
+        const first=String(raw).split(/\s*[-–—]\s*/)[0].trim();const hm=excelTimeToHHMM(typeof raw==='number'?raw:(/^\d{1,2}$/.test(first)?first+':00':first));
+        if(hm){const h=+hm.slice(0,2),m=hm.slice(3);text=((h%12)||12)+':'+m+(h<12?' AM':' PM')}}return {text,breakHours:/BREAK/.test(sub[col.idx+1]||'')?r[col.idx+1]??'':'',ot:/OT|O\.T/.test(sub[col.idx+2]||'')?r[col.idx+2]??'':''};}return null;
   }
   function scheduleParts(branch,code,day){const entries=library().filter(x=>U(x.branch)===U(branch)).sort((a,b)=>String(b.savedAt||'').localeCompare(String(a.savedAt||'')));let codes=[code];try{if(window.rcadsR532){codes=codes.concat(window.rcadsR532.oldCodes(code));const f=find(code);if(f)codes=codes.concat(window.rcadsR532.schedAlias(code,f.e.name))}codes=[...new Set(codes)]}catch(_){}   /* R538: the schedule under the OLD code (EXTRA) shows too */
     const pick=acs=>{for(const c of codes)for(const x of entries.filter(x=>isAcs(x)===acs)){const v=scheduleCell(x,c,day);if(v&&(v.text!==''||v.breakHours!==''||v.ot!==''))return v}return null};return {original:pick(false),acs:pick(true)};}
@@ -37176,8 +37184,9 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
     let late=0,over=0,noBreak=!ps.some(r=>r.type==='OUT'&&r.kind==='Break');
     if(a!=null){try{const th=getEmployeeLateThresholdMinutes(emp,sc.in);const f=dtrPunchMinutes(ins[0]);if(f!=null)late=Math.max(0,f-th)}catch(e){}}
     if(a!=null&&b!=null){if(b<=a)b+=1440;else if(b-a<NEED)b+=720;let allowed=Math.max(0,(b-a)-NEED);
+      const normal=allowed;   /* R549: schedule − 8 h */
       try{const lb=window.rcadsR215&&window.rcadsR215.acsLongBreakMinutes?window.rcadsR215.acsLongBreakMinutes(emp.code,dk):null;if(lb!=null)allowed=lb}catch(e){}
-      over=Math.max(0,Math.floor(brk-allowed));
+      over=Math.max(0,Math.floor(brk-Math.max(allowed,normal)));
       /* R497: NO BREAK OUT / BREAK IN scanned → the LONG BREAK of the day (ACS long break, or scheduled hours minus 8 h: 9 AM – 9 PM = 4 h) is taken out of the work */
       /* R498: the break is taken only from time ABOVE 8 hours — a short day (less than 8 h IN → OUT) has nothing deducted */
       if(noBreak&&allowed>0&&work>NEED)work=Math.max(NEED,work-allowed)}
