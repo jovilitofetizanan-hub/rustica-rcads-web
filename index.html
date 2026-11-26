@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R546 SEND TO RCPS = DOWNLOADS (NEVER WAITS FOR THE FOLDER)</title>
+<title>Rustica RCADS App — R547 OLD EXTRAEMP CODES OF REGULARIZED STAFF ARE HIDDEN</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -37323,6 +37323,24 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
       const L=links();L[code]=[...new Set([].concat(L[code]||[],v))];localStorage.setItem(LK,JSON.stringify(L));try{rcadsCloudFlushQueue()}catch(_){}refresh();return}
     const un=t.closest('[data-r538-un]');if(un){const o=U(un.getAttribute('data-r538-un'));if(!confirm('Remove the link '+o+' → '+code+'?'))return;const L=links();L[code]=(L[code]||[]).filter(x=>U(x)!==o);if(!L[code].length)delete L[code];localStorage.setItem(LK,JSON.stringify(L));try{rcadsCloudFlushQueue()}catch(_){}refresh()}});
   setInterval(tick,900);window.rcadsR538={links,candidates};
+})();
+</script>
+<script id="rcadsR547Script">
+/* R547 — the OLD Extra codes (…-EXTRAEMPxx) of people who are now regular (…-EMPxx) are HIDDEN from every RCADS list.
+   Their TIME IN / OUT and schedule stay joined to the new code (R532/R538/R540). Nothing is deleted.
+   The phone that is still logged in with an old code is never locked out (that code stays visible on that phone only). */
+(function(){'use strict';
+  const U=c=>String(c||'').trim().toUpperCase();
+  let IN=false;
+  function hidden(){try{if(!window.rcadsR532||!window.rcadsR532.used)return new Map();IN=true;return window.rcadsR532.used()}catch(e){return new Map()}finally{IN=false}}
+  function me(){try{return U(window.__r339Ok||'')}catch(e){return ''}}
+  function wrap(){const cur=window.rusticaManagerLoadBranchEmployeeMaster;if(typeof cur!=='function'||cur._r547)return;
+    const w=function(code){const L=cur.apply(this,arguments);if(IN||!Array.isArray(L))return L;
+      const H=hidden();if(!H.size)return L;const keep=me();
+      return L.filter(e=>{const c=U(e&&e.code);return !(c&&/EXTRA/.test(c)&&H.has(c)&&c!==keep)})};
+    for(const k in cur)if(/^_r\d+$/.test(k))w[k]=cur[k];w._r547=true;window.rusticaManagerLoadBranchEmployeeMaster=w}
+  wrap();setInterval(wrap,1500);
+  window.rcadsR547={hidden:()=>[...hidden().entries()]};
 })();
 </script>
 </body></html>
