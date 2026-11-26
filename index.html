@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R544 DTR SUMMARY LOG: ROSA SEES KITCHEN + MANAGEMENT TABS</title>
+<title>Rustica RCADS App — R545 SEND TO RCPS WORKS IN THE RCADS APP WINDOW (FILES TO DOWNLOADS)</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -34938,8 +34938,13 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const cur=window.exportEditableDTRLog;if(typeof cur!=='function'||cur._r399)return;
     const w=function(){const self=this,args=arguments;
       if(!folderOK()||!isHrDevice())return cur.apply(self,args);
-      return (async()=>{let dir=null;try{dir=await syncDir(false);if(!dir){const h=await dirGet();if(h){const p=await h.requestPermission({mode:'readwrite'});if(p==='granted')dir=h}}}catch(e){dir=null}
-        if(!dir)return cur.apply(self,args);
+      /* R545: in the installed RCADS app window the "Allow / Edit files" question is hidden and SEND TO RCPS waited forever.
+         Now it never waits: folder already allowed → files go to "RCADS to RCPS"; otherwise they are DOWNLOADED (Downloads) at once. */
+      const APPWIN=(()=>{try{return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: window-controls-overlay)').matches}catch(e){return false}})();
+      const toDl=()=>{const r=cur.apply(self,args);setTimeout(()=>{alert('✓ The DTR Summary Log files were DOWNLOADED (folder: Downloads).\n\nIn RCPS: DTR Log Form → Import from RCADS → open Downloads → choose the RCADS_…_DTR_LOG files of this branch and cut-off → Open.')},2500);return r};
+      return (async()=>{let dir=null;try{dir=await syncDir(false);
+          if(!dir&&!APPWIN){const h=await dirGet();if(h){const p=await Promise.race([h.requestPermission({mode:'readwrite'}),new Promise(r=>setTimeout(()=>r('timeout'),4000))]);if(p==='granted')dir=h}}}catch(e){dir=null}
+        if(!dir)return toDl();
         try{const out=await sub(dir,OUT_NAME);for(const fh of await listFiles(out)){try{await moveOld(out,fh)}catch(e){}}
           OUTCAP={dir:out,root:dir.name,until:Date.now()+30000,n:0,names:[],p:Promise.resolve(),err:'',t:0};}catch(e){OUTCAP=null}
         return cur.apply(self,args)})();
