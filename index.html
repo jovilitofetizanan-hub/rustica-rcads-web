@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R543 DTR SUMMARY LOG: ROSA = SAN RAFAEL KITCHEN + MANAGEMENT</title>
+<title>Rustica RCADS App — R544 DTR SUMMARY LOG: ROSA SEES KITCHEN + MANAGEMENT TABS</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -35143,7 +35143,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   const dDraftKey=()=>'r461draft_'+(DE.hr?'HR_':'')+DE.b+'_'+DE.from+'_'+DE.dept;
   function dSheets(b,from,to,only){let wb;try{wb=withCtx(ctxFor(b,from,to),()=>window.buildEditableDTRWorkbook())}catch(e){HD.msg='Could not prepare the DTR Summary Log: '+e.message;HD.err=true;return null}
     if(!wb){HD.msg='Could not prepare the DTR Summary Log (no data on this phone yet — open RCADS with internet, wait for sync, then try again).';HD.err=true;return null}
-    const sheets=[];wb.SheetNames.forEach(n=>{const t=tagOf(n);if(!t)return;if(only&&DTAG[t]!==only)return;
+    const sheets=[];wb.SheetNames.forEach(n=>{const t=tagOf(n);if(!t)return;if(only&&!(Array.isArray(only)?only.includes(DTAG[t]):DTAG[t]===only))return;   /* R544: a list of departments is allowed */
       const a=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true});const h=a.findIndex(r=>U(r[0])==='EMPCODE');if(h<0)return;
       const rows=[];for(let i=h+1;i<a.length;i++){const c=U(a[i][0]);if(/^[A-Z0-9]+-[A-Z0-9-]+$/.test(c))rows.push(a[i].slice())}
       sheets.push({tag:t,name:n,headers:a[h].map(x=>String(x)),rows})});
@@ -35157,14 +35157,16 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
   /* HR: ✏ CHECK & EDIT what the Head sent, then ✅ APPROVE from inside the table */
   async function openDtrHr(id){const r=(FL.rows||[]).find(x=>String(x.id)===String(id));if(!r)return;
     let edits={};try{const d=await rpc('rustica_sched_filled_get',{p_key:myKey(),p_id:+id});const x=XLSX.read(unb64(d.data_b64),{type:'array'});const ws=x.Sheets.R461_EDITS;if(ws&&ws.A1)edits=JSON.parse(String(ws.A1.v)||'{}')||{}}catch(e){alert('Could not open: '+e.message);return}
-    const from=String(r.week).slice(0,10),to=cutTo(from);const only=U(r.dept)==='KITCHEN'?'KITCHEN':'';
+    const from=String(r.week).slice(0,10),to=cutTo(from);let only=U(r.dept)==='KITCHEN'?['KITCHEN']:'';
+    if(only){Object.keys(edits).forEach(k=>{try{const d=DTAG[JSON.parse(k)[0]];if(d&&!only.includes(d))only.push(d)}catch(_){}});}   /* R544: e.g. Rosa = Kitchen + Management */
     const sheets=dSheets(r.branch,from,to,only);if(!sheets)return;
     DE={b:r.branch,from,to,id:r.id,dept:U(r.dept),w:{kind:'HR'},hr:true,by:r.by||'',sheets,tab:0,edits,dirty:false};
     try{const dr=JSON.parse(localStorage.getItem(dDraftKey())||'null');if(dr&&dr.edits&&confirm('Continue your saved HR draft of this DTR Summary Log?'))DE.edits=dr.edits}catch(e){}
     dEnsureEl();dDraw()}
   async function openDtrFill(id,w){const b=HD.b;const f=formById(b,id);if(!f)return;
     const from=String(f.from).slice(0,10),to=String(f.to).slice(0,10),dept=w.forms[0];const all=dept==='DINING';
-    const sheets=dSheets(b,from,to,all?'':dept);if(!sheets)return;
+    let only=all?'':dept;if(!all&&Array.isArray(w.dtr)&&w.dtr.length>1&&w.dtr.includes(dept))only=w.dtr.slice();   /* R544: Kitchen maker who also does Management (Rosa) */
+    const sheets=dSheets(b,from,to,only);if(!sheets)return;
     let wb=null;
 
     let edits={};   /* JSON[tag,code,header] → value */
