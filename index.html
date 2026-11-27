@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R549 ACS: NEW TIME IN ONLY • NORMAL BREAK IS NEVER OVER-BREAK</title>
+<title>Rustica RCADS App — R552 DTR SUMMARY EDIT: AUTO-SAVE EVERY CHANGE (HR + HEADS) • LOGOUT LOSES NOTHING</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -33781,7 +33781,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
 })();
 
 </script>
-<style id="rcadsR371Css">#r371Editor[hidden]{display:none}#r371Editor{position:fixed;inset:0;z-index:2147483300;background:#26170edb;padding:12px;display:flex;align-items:stretch;justify-content:center}#r371Editor *{box-sizing:border-box}.r371-box{background:#fffaf2;color:#3d2412;border-radius:14px;width:100%;max-width:1600px;display:flex;flex-direction:column;overflow:hidden}.r371-box header{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#3d2412;color:white;padding:14px}.r371-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px;border-bottom:1px solid #dec6a8}.r371-box button{padding:10px 14px;border:0;border-radius:8px;background:#c8902a;color:#24160e;font-weight:bold;cursor:pointer}.r371-tools span{flex:1;min-width:220px;font-size:13px}.r371-box main{overflow:auto;padding:12px}.r371-box h3{margin:8px 0;font-size:15px}.r371-scroll{overflow:auto;max-height:55vh;margin-bottom:22px}.r371-box table{border-collapse:collapse;font-size:12px}.r371-box td,.r371-box th{border:1px solid #dec6a8;padding:5px;white-space:nowrap}.r371-box th{position:sticky;top:0;background:#f2e5cf;z-index:1}.r371-box input{width:125px;padding:9px;border:1px solid #b99b73;border-radius:5px;background:#fff;color:#26170e;font-size:14px}.r371-box input:focus{outline:2px solid #2f6b3a}.r371-box input.remarks{width:320px}</style>
+<style id="rcadsR371Css">#r371Editor input.r552-saved{background:#fff3b0!important;border-color:#d4a017!important;font-weight:800}#r371Editor[hidden]{display:none}#r371Editor{position:fixed;inset:0;z-index:2147483300;background:#26170edb;padding:12px;display:flex;align-items:stretch;justify-content:center}#r371Editor *{box-sizing:border-box}.r371-box{background:#fffaf2;color:#3d2412;border-radius:14px;width:100%;max-width:1600px;display:flex;flex-direction:column;overflow:hidden}.r371-box header{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#3d2412;color:white;padding:14px}.r371-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px;border-bottom:1px solid #dec6a8}.r371-box button{padding:10px 14px;border:0;border-radius:8px;background:#c8902a;color:#24160e;font-weight:bold;cursor:pointer}.r371-tools span{flex:1;min-width:220px;font-size:13px}.r371-box main{overflow:auto;padding:12px}.r371-box h3{margin:8px 0;font-size:15px}.r371-scroll{overflow:auto;max-height:55vh;margin-bottom:22px}.r371-box table{border-collapse:collapse;font-size:12px}.r371-box td,.r371-box th{border:1px solid #dec6a8;padding:5px;white-space:nowrap}.r371-box th{position:sticky;top:0;background:#f2e5cf;z-index:1}.r371-box input{width:125px;padding:9px;border:1px solid #b99b73;border-radius:5px;background:#fff;color:#26170e;font-size:14px}.r371-box input:focus{outline:2px solid #2f6b3a}.r371-box input.remarks{width:320px}</style>
 <script id="rcadsR371Script">
 (function(){
   'use strict';
@@ -33840,33 +33840,43 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
         tables+='<section><h3>'+esc(n)+'</h3><div class="r371-scroll"><table><thead><tr>'+l.headers.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>';
         l.rows.forEach((row,r)=>{if(r<=l.h||!employee(row))return;tables+='<tr>'+l.headers.map((h,col)=>{const ref=XLSX.utils.encode_cell({r,c:col}),value=display(ws[ref],h);if(!editable(h,col))return '<td>'+esc(value)+'</td>';
           const i=state.fields.length;state.fields.push({n,code:row[0],h,ref,initial:value});
-          return '<td><input data-r371-field="'+i+'" aria-label="'+esc(row[0]+' '+h)+'" value="'+esc(value)+'"'+(U(h)==='REMARKS'?' class="remarks"':'')+'></td>'}).join('')+'</tr>'});tables+='</tbody></table></div></section>';
+          let ed=null;try{ed=read(state.k).cells[id(n,row[0],h)]||null}catch(_){}   /* R552: a saved correction shows YELLOW, with who saved it */
+          const cls=[U(h)==='REMARKS'?'remarks':'',ed?'r552-saved':''].filter(Boolean).join(' ');
+          return '<td><input data-r371-field="'+i+'" aria-label="'+esc(row[0]+' '+h)+'" value="'+esc(value)+'"'+(cls?' class="'+cls+'"':'')+(ed?' title="Saved correction'+(ed.by?' by '+esc(ed.by):'')+(ed.previous!==undefined&&ed.previous!==''?' (was '+esc(ed.previous)+')':'')+'"':'')+'></td>'}).join('')+'</tr>'});tables+='</tbody></table></div></section>';
       });
       m.innerHTML='<div class="r371-box"><header><b>EDIT DTR SUMMARY LOG — '+esc(c.branchName||c.branch)+' • '+esc(c.cutoff.from)+' to '+esc(c.cutoff.to)+'</b><button data-r371-close>CLOSE</button></header><div class="r371-tools"><button data-r371-save>SAVE CHANGES</button><button data-r371-reset>RESTORE CALCULATED SUMMARY</button><span id="r371Status" role="status">Edit values, then save. Time columns use H:MM; overtime uses decimal hours. Saved corrections appear in Excel exports. Original punches remain unchanged.</span></div><main>'+tables+'</main></div>';
       m.hidden=false;
     }catch(e){state=null;alert(e.message)}
   }
+  let r552busy=0;
   function save(){
     if(!state||!hr()){message('HR session ended. Sign in as HR again.');return false}
     try{
       if(key(context())!==state.k)throw Error('Branch or cutoff changed. Reopen the summary before saving.');
-      if(localStorage.getItem(state.k)!==state.raw)throw Error('Saved corrections changed on this device. Reopen the summary to load them before editing.');
+      /* R552: no more blocking — the newest saved corrections are read and this change is added on top */
       const d=read(state.k),now=new Date().toISOString();let changes=0;
-      document.querySelectorAll('#r371Editor [data-r371-field]').forEach(input=>{const f=state.fields[+input.dataset.r371Field];if(input.value===f.initial)return;
-        let v;try{v=parse(input.value,f.h)}catch(e){input.focus();throw e}
-        d.cells[id(f.n,f.code,f.h)]={value:v,previous:state.wb.Sheets[f.n][f.ref]?.v??'',by:'HR OPERATION OFFICER',at:now};changes++;
+      const seen=new Set(),done=[];document.querySelectorAll('#r371Editor [data-r371-field]').forEach(input=>{const ix=input.dataset.r371Field,f=state.fields[+ix];if(!f)return;seen.add(ix);
+        const tv=state.vals&&state.vals[ix],val=(input.value!==f.initial||tv===undefined)?input.value:tv; /* R552: what was TYPED is kept even if the screen refreshed */
+        if(val===f.initial)return;if(input.value!==val)input.value=val;
+        let v;try{v=parse(val,f.h)}catch(e){input.focus();throw e}
+        const prev=state.wb.Sheets[f.n][f.ref]?.v??'';d.cells[id(f.n,f.code,f.h)]={value:v,previous:prev,by:'HR OPERATION OFFICER',at:now};changes++;done.push([input,f,val,prev]);
       });
-      if(!changes){message('No changes to save.');return true}
+      if(!changes&&state.lastSaved){message('✓ ALL SAVED (last save '+state.lastSaved+').');return true}
+      if(!changes){const typed=state.typed&&state.typed.size;message(typed?'✓ Already saved — what you typed is the SAME as the saved value (yellow cells are saved corrections).':(state.lastSaved?'✓ Already saved at '+state.lastSaved+'. Nothing new to save.':'Nothing was changed. Type the new value in the box, then press SAVE CHANGES.'));return true}
       d.branch=state.c.branch;d.from=state.c.cutoff.from;d.to=state.c.cutoff.to;d.updatedAt=now;
       localStorage.setItem(state.k,JSON.stringify(d)); // Atomic save: a quota error leaves the draft open.
-      state.dirty=false;open();message('Saved on this device. Included in the next Excel export; cloud sync follows when connected.');return true;
+      state.raw=localStorage.getItem(state.k);state.dirty=false;const at=new Date().toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'});state.lastSaved=at;
+      done.forEach(([input,f,val,prev])=>{f.initial=val;if(state.vals)delete state.vals[input.dataset.r371Field];input.classList.add('r552-saved');input.title='Saved correction by HR OPERATION OFFICER'+(prev!==''?' (was '+prev+')':'')}); /* stays on screen, no reload, cursor not lost */message('✓ SAVED '+changes+' change(s) at '+at+' — the yellow boxes. Included in the next SEND TO RCPS / Excel export.');return true;
     }catch(e){message('NOT SAVED — '+(e.name==='QuotaExceededError'?'Phone storage is full. Keep this screen open and copy your changes before freeing space.':e.message));return false}
   }
   function close(){if(state?.dirty&&!confirm('Discard unsaved summary changes?'))return;document.getElementById('r371Editor').hidden=true;state=null}
   function reset(){if(!state||!hr())return;if(!confirm('Remove saved summary corrections for this branch and cutoff and return to calculated values?'))return;
     try{if(key(context())!==state.k||localStorage.getItem(state.k)!==state.raw)throw Error('Summary changed. Reopen it first.');localStorage.setItem(state.k,JSON.stringify({cells:{},updatedAt:new Date().toISOString(),by:'HR OPERATION OFFICER'}));state.dirty=false;open()}catch(e){message('NOT RESTORED — '+e.message)}}
   document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-r334-view],[data-r371-save],[data-r371-close],[data-r371-reset]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();if(t.hasAttribute('data-r334-view'))open();else if(t.hasAttribute('data-r371-save'))save();else if(t.hasAttribute('data-r371-close'))close();else reset()},true);
-  document.addEventListener('input',e=>{if(e.target.matches('#r371Editor [data-r371-field]')&&state){state.dirty=true;message('Unsaved changes')}});
+  let r552t=0;const r552auto=()=>{clearTimeout(r552t);if(state)save()};
+  document.addEventListener('change',e=>{if(e.target.matches&&e.target.matches('#r371Editor [data-r371-field]')&&state)r552auto()});
+  document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches&&e.target.matches('#r371Editor [data-r371-field]')&&state){e.preventDefault();r552auto()}});
+  document.addEventListener('input',e=>{if(e.target.matches('#r371Editor [data-r371-field]')&&state){clearTimeout(r552t);r552t=setTimeout(r552auto,1200);state.dirty=true;(state.typed=state.typed||new Set()).add(e.target.dataset.r371Field);(state.vals=state.vals||{})[e.target.dataset.r371Field]=e.target.value;message('Saving…')}});
   window.addEventListener('beforeunload',e=>{if(state?.dirty){e.preventDefault();e.returnValue=''}});
   if(window.rcadsR334)window.rcadsR334.viewSummary=open;
   window.rcadsR371={open,save,apply,parse};
@@ -35168,7 +35178,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
         sh.rows.sort((x,y)=>(isNewCode(x[0])?1:0)-(isNewCode(y[0])?1:0))})}
     if(!sheets.length){HD.msg='No DTR Summary Log rows for this branch yet (no employees / attendance on this phone).';HD.err=true;return null}return sheets}
   function cutTo(from){const [y,m,dd]=from.split('-').map(Number);if(dd===11)return from.slice(0,8)+'25';const t=new Date(y,m,10);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-10'}
-  function dEnsureEl(){let el=document.getElementById('r461Ed');if(!el){el=document.createElement('div');el.id='r461Ed';document.documentElement.appendChild(el);el.addEventListener('change',dChange);el.addEventListener('click',dClick)}return el}
+  function dEnsureEl(){let el=document.getElementById('r461Ed');if(!el){el=document.createElement('div');el.id='r461Ed';document.documentElement.appendChild(el);el.addEventListener('change',dChange);el.addEventListener('click',dClick);let tm=0;el.addEventListener('input',e=>{const t=e.target;if(t.dataset.r===undefined)return;clearTimeout(tm);tm=setTimeout(()=>{try{if(!DE)return;const sh=DE.sheets[DE.tab];dParse(t.value,sh.headers[+t.dataset.c]);dChange({target:t})}catch(_){}},1000)})}return el}   /* R552: auto-save 1 second after typing stops */
   /* HR: ✏ CHECK & EDIT what the Head sent, then ✅ APPROVE from inside the table */
   async function openDtrHr(id){const r=(FL.rows||[]).find(x=>String(x.id)===String(id));if(!r)return;
     let edits={};try{const d=await rpc('rustica_sched_filled_get',{p_key:myKey(),p_id:+id});const x=XLSX.read(unb64(d.data_b64),{type:'array'});const ws=x.Sheets.R461_EDITS;if(ws&&ws.A1)edits=JSON.parse(String(ws.A1.v)||'{}')||{}}catch(e){alert('Could not open: '+e.message);return}
@@ -35176,7 +35186,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(only){Object.keys(edits).forEach(k=>{try{const d=DTAG[JSON.parse(k)[0]];if(d&&!only.includes(d))only.push(d)}catch(_){}});}   /* R544: e.g. Rosa = Kitchen + Management */
     const sheets=dSheets(r.branch,from,to,only);if(!sheets)return;
     DE={b:r.branch,from,to,id:r.id,dept:U(r.dept),w:{kind:'HR'},hr:true,by:r.by||'',sheets,tab:0,edits,dirty:false};
-    try{const dr=JSON.parse(localStorage.getItem(dDraftKey())||'null');if(dr&&dr.edits&&confirm('Continue your saved HR draft of this DTR Summary Log?'))DE.edits=dr.edits}catch(e){}
+    try{const dr=JSON.parse(localStorage.getItem(dDraftKey())||'null');if(dr&&dr.edits)DE.edits=dr.edits}catch(e){}
     dEnsureEl();dDraw()}
   async function openDtrFill(id,w){const b=HD.b;const f=formById(b,id);if(!f)return;
     const from=String(f.from).slice(0,10),to=String(f.to).slice(0,10),dept=w.forms[0];const all=dept==='DINING';
@@ -35188,7 +35198,7 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     try{const d=await rpc('rustica_sched_filled_mine',{p_key:myKey(),p_branch:b,p_week:from});const r=(d.rows||[]).find(x=>x.kind==='DTR'&&U(x.dept)===dept&&x.data_b64);
       if(r){const x=XLSX.read(unb64(r.data_b64),{type:'array'});const ws=x.Sheets.R461_EDITS;if(ws&&ws.A1)edits=JSON.parse(String(ws.A1.v)||'{}')||{}}}catch(e){}
     DE={b,from,to,id:f.id,dept,w,sheets,tab:0,edits,dirty:false};
-    try{const dr=JSON.parse(localStorage.getItem(dDraftKey())||'null');if(dr&&dr.edits&&confirm('Continue your saved draft of the DTR Summary Log?'))DE.edits=dr.edits}catch(e){}
+    try{const dr=JSON.parse(localStorage.getItem(dDraftKey())||'null');if(dr&&dr.edits)DE.edits=dr.edits}catch(e){}
     dEnsureEl();dDraw()}
   function dVal(sh,row,h,col){const k=JSON.stringify([sh.tag,U(row[0]),U(h)]);return Object.prototype.hasOwnProperty.call(DE.edits,k)?{v:DE.edits[k],ed:true}:{v:row[col],ed:false}}
   function dDraw(){const el=document.getElementById('r461Ed');if(!el||!DE)return;const sh=DE.sheets[DE.tab];const sc=el.querySelector('.gw');const top=sc?sc.scrollTop:0,left=sc?sc.scrollLeft:0;
@@ -35210,10 +35220,11 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     const k=JSON.stringify([sh.tag,U(row[0]),U(h)]);const orig=row[c];
     const same=(v===''&&(orig===''||orig==null))||(typeof v==='number'&&typeof orig==='number'&&Math.abs(v-orig)<1e-9)||String(v)===String(orig);
     if(same)delete DE.edits[k];else DE.edits[k]=v;DE.dirty=true;t.parentElement.classList.toggle('st',!same);
-    const s=document.querySelector('#r461Ed .ed-h small');if(s)s.textContent=fmtD(DE.from)+' – '+fmtD(DE.to)+', '+DE.to.slice(0,4)+' • '+Object.keys(DE.edits).length+' correction(s)'}
+    let ok=false;try{localStorage.setItem(dDraftKey(),JSON.stringify({at:Date.now(),edits:DE.edits}));DE.dirty=false;ok=true}catch(err){}   /* R552: every change is AUTO-SAVED on this phone — a logout / reload loses nothing */
+    const s=document.querySelector('#r461Ed .ed-h small');if(s)s.textContent=fmtD(DE.from)+' – '+fmtD(DE.to)+', '+DE.to.slice(0,4)+' • '+Object.keys(DE.edits).length+' correction(s) • '+(ok?'✓ AUTO-SAVED '+new Date().toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit'}):'⚠ NOT SAVED — phone storage full, press 📤 SUBMIT')}
   async function dClick(e){const t=e.target;if(!DE||!t.closest)return;const tb=t.closest('[data-tab]');if(tb){DE.tab=+tb.dataset.tab;dDraw();return}
     const a=t.closest('[data-d]');if(!a)return;const act=a.dataset.d;
-    if(act==='close'){if(DE.dirty&&!confirm('Close? Press 💾 SAVE DRAFT first if you want to continue later.'))return;document.getElementById('r461Ed').remove();DE=null;return}
+    if(act==='close'){if(DE.dirty&&!confirm('Close?'))return;document.getElementById('r461Ed').remove();DE=null;return}
     if(act==='xls'){try{r521Download(DE.b,DE.from,DE.to,DE.edits,DE.sheets.map(s=>DTAG[s.tag]))}catch(err){alert('Could not make the Excel: '+err.message)}return}   /* R521 */
     if(act==='draft'){try{localStorage.setItem(dDraftKey(),JSON.stringify({at:Date.now(),edits:DE.edits}));DE.dirty=false;alert('💾 Draft saved on this phone.')}catch(err){alert('Could not save the draft: '+err.message)}return}
     if(act==='approve'){if(!confirm('✅ APPROVE the DTR Summary Log of '+bName(DE.b)+' with '+Object.keys(DE.edits).length+' correction(s)?'))return;a.disabled=true;
@@ -37350,6 +37361,36 @@ function add(){var e=document.getElementById('rcadsR167Css');if(e&&e.textContent
     for(const k in cur)if(/^_r\d+$/.test(k))w[k]=cur[k];w._r547=true;window.rusticaManagerLoadBranchEmployeeMaster=w}
   wrap();setInterval(wrap,1500);
   window.rcadsR547={hidden:()=>[...hidden().entries()]};
+})();
+</script>
+<script id="rcadsR550Script">
+/* R550 — RESTAURANT RULE: employees may TIME IN / TIME OUT at ANY hour (early prep, events, catering) and at ANY Rustica branch.
+   No LATE, no UNDERTIME and no OVER-BREAK is counted for a day until the ACS of that week (branch + department) is UPLOADED.
+   Once the ACS is uploaded, RCADS follows it (approved by the Head who made it), and the numbers appear by themselves. */
+(function(){'use strict';
+  const U=v=>String(v||'').trim().toUpperCase();
+  const PRE={SRF:'SAN_RAFAEL',CAB:'CABANATUAN',ANG:'ANGELES',SF:'SAN_FERNANDO',SJ:'SAN_JUAN'};
+  const brOf=emp=>{const c=U(emp&&emp.code);const p=c.split('-')[0];return PRE[p]||U(emp&&emp.branch).replace(/\s+/g,'_')};
+  const deptOf=emp=>{const d=U(emp&&(emp.dept||emp.department));return /KITCHEN/.test(d)?'KITCHEN':/DINING/.test(d)?'DINING':''};
+  let IDX=null,SIG='';
+  function index(){let raw='';try{raw=localStorage.getItem('rcads_persistent_schedule_library_v1')||''}catch(e){}const sig=raw.length+'|'+raw.slice(-60);if(IDX&&sig===SIG)return IDX;
+    SIG=sig;IDX=new Map();let lib=[];try{lib=rcadsGetScheduleLibrary()||[]}catch(e){}
+    lib.forEach(x=>{const name=U(x.category)+' '+U(x.fileName);if(!/ACS|CHANGE OF SCHEDULE/.test(name))return;const b=U(x.branch);const d=/KITCHEN/.test(name)?'KITCHEN':/DINING/.test(name)?'DINING':'';
+      (x.weeklyBlocks||[]).forEach(w=>(w.dateCols||[]).forEach(c=>{if(!c||!c.date)return;[b+'|'+d+'|'+c.date,b+'||'+c.date].forEach(k=>IDX.set(k,true))}));
+      (x.rowData||[]).forEach(r=>{let dk='';try{dk=excelDateToISO(r.DATE)}catch(e){}if(dk){IDX.set(b+'|'+d+'|'+dk,true);IDX.set(b+'||'+dk,true)}})});
+    return IDX}
+  /* R551: the ACS of a day is DUE on the Saturday of that week, or on the CUT-OFF day (10th / 25th) if that comes first.
+     After the due day ends with NO ACS, LATE / UNDERTIME are counted from the ORIGINAL schedule (the schedule maker missed the ACS). */
+  function dueEnd(dk){const [y,m,d]=dk.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,d));const sat=new Date(dt);sat.setUTCDate(d+((6-dt.getUTCDay()+7)%7));
+    let cut;if(d<=10)cut=new Date(Date.UTC(y,m-1,10));else if(d<=25)cut=new Date(Date.UTC(y,m-1,25));else cut=new Date(Date.UTC(y,m,10));
+    const due=sat<cut?sat:cut;return due.getTime()+24*3600000-8*3600000}   /* end of that day, Asia/Manila */
+  function hasAcs(emp,dk){const ix=index();const b=brOf(emp),d=deptOf(emp);if(!b)return true;
+    return d?(ix.has(b+'|'+d+'|'+dk)||ix.has(b+'||'+dk)&&!ix.has(b+'|KITCHEN|'+dk)&&!ix.has(b+'|DINING|'+dk)):ix.has(b+'||'+dk)}
+  function acsReady(emp,dk){if(!emp||!dk)return true;if(hasAcs(emp,dk))return true;try{return Date.now()>=dueEnd(dk)}catch(e){return true}}
+  function install(){const cur=window.rcadsR515Free;if(typeof cur!=='function'||cur._r550)return;
+    const w=function(emp,dk){try{if(!acsReady(emp,dk))return true}catch(e){}return cur.apply(this,arguments)};w._r550=true;window.rcadsR515Free=w}
+  install();setInterval(install,2000);
+  window.rcadsR550={acsReady,hasAcs,dueEnd};
 })();
 </script>
 </body></html>
