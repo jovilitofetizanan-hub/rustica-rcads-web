@@ -320,7 +320,7 @@ var LZString=function(){var r=String.fromCharCode,o="ABCDEFGHIJKLMNOPQRSTUVWXYZa
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rustica RCADS App — R553 HR ⬇ SCHEDULE / ⬇ ACS FORMS ARE BACK • AUTO-SAVE DTR SUMMARY</title>
+<title>Rustica RCADS App — R555 MY DTR SHOWS 2 MIN WHEN THE PUNCH ARRIVES • WEEK DROPDOWN • AUTO-SAVE</title>
 <!-- RCADS PATCH: R28 INSTALLABLE PWA APP SHELL 2026-10-04 -->
 <!-- RCADS PATCH: R29 APPROVED RCADS APP ICON 2026-10-04 -->
 <!-- RCADS PATCH: R30 MOBILE PWA ROOT START + LEGACY ROUTE FIX 2026-10-05 -->
@@ -30591,19 +30591,26 @@ setInterval(()=>{try{let e=null;try{e=currentEmployee}catch(_){}if(!e)return;con
   const M=iso=>{const d=new Date(iso+'T00:00');return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})};
   function wk(mon){const d=new Date(mon+'T00:00');d.setDate(d.getDate()+6);return M(mon)+' – '+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})}
   function hasAdmin(c){try{let l=(window.rusticaManagerLoadBranchEmployeeMaster&&window.rusticaManagerLoadBranchEmployeeMaster(c)||[]);if(c==='SAN_RAFAEL'){try{l=l.concat(Object.values(employees||{}))}catch(e){}}return l.some(e=>e&&window.rcadsFormDept&&window.rcadsFormDept(e)==='ADMIN')}catch(e){return false}}
+  let WK='';
   function html(){
     const R=window.rcadsR215;if(!R)return '';
     let s0=null;try{s0=R.status(branches()[0].code,'KITCHEN')}catch(e){}
     const head='<div class="r259-h">📄 SCHEDULE FORMS FOR THE BRANCHES</div><div class="r259-n">Download and send to the <b>Kitchen Head 1</b> / <b>Dining Head 1</b> of each branch. <b>ADMIN</b> (Office Clerk / Admin) = HR uploads it below (category ADMIN). Names = staff with TIME IN in the branch DTR + Management (new staff in, people who left out). '
       +(s0?'<b>SCHEDULE</b> = next week ('+esc(wk(s0.nextMon))+') — send every <b>Saturday</b>, they upload it on Sunday. <b>ACS</b> = this week ('+esc(wk(s0.mon))+').':'')+'</div>';
-    return head+'<div class="r259-t">'+branches().map(b=>'<div class="r259-r"><b>'+esc(b.name)+'</b>'+['KITCHEN','DINING'].concat(hasAdmin(b.code)?['ADMIN']:[]).map(d=>'<span><i>'+d+'</i><button type="button" data-r259="'+b.code+'|'+d+'|ORIG">⬇ SCHEDULE</button><button type="button" class="l" data-r259="'+b.code+'|'+d+'|ACS">⬇ ACS</button></span>').join('')+'</div>').join('')+'</div>';
+    /* R554: WEEK dropdown — any week from 6 weeks back to 3 weeks ahead (both SCHEDULE and ACS use the chosen week) */
+    let sel='';if(s0){const o=['<option value=""'+(WK?'':' selected')+'>AUTO — Schedule '+esc(wk(s0.nextMon))+' • ACS '+esc(wk(s0.mon))+'</option>'];
+      for(let i=3;i>=-6;i--){const d=new Date(s0.mon+'T00:00');d.setDate(d.getDate()+7*i);const m=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        o.push('<option value="'+m+'"'+(WK===m?' selected':'')+'>'+esc(wk(m))+', '+m.slice(0,4)+(i===0?' (this week)':i===1?' (next week)':'')+'</option>')}
+      sel='<div class="r259-n" style="margin-top:6px"><b>WEEK:</b> <select id="r554Wk" style="font-weight:800;padding:5px 8px;border-radius:8px;border:1.5px solid #c9a46a">'+o.join('')+'</select></div>'}
+    return head+sel+'<div class="r259-t">'+branches().map(b=>'<div class="r259-r"><b>'+esc(b.name)+'</b>'+['KITCHEN','DINING'].concat(hasAdmin(b.code)?['ADMIN']:[]).map(d=>'<span><i>'+d+'</i><button type="button" data-r259="'+b.code+'|'+d+'|ORIG">⬇ SCHEDULE</button><button type="button" class="l" data-r259="'+b.code+'|'+d+'|ACS">⬇ ACS</button></span>').join('')+'</div>').join('')+'</div>';
   }
   function tick(){
     const p=document.getElementById('hrScheduleUploadPanel');if(!p||!window.rcadsR215)return;
     let el=document.getElementById('r259Forms');
     if(!el){el=document.createElement('div');el.id='r259Forms';el.className='r259-card';p.insertBefore(el,p.firstChild);
       el.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-r259]');if(!t)return;const [b,d,k]=t.getAttribute('data-r259').split('|');
-        try{const s=window.rcadsR215.status(b,d);window.rcadsR215.template(b,d,k==='ACS'?s.mon:s.nextMon,k)}catch(err){alert('Could not make the form: '+err.message)}})}
+        try{const s=window.rcadsR215.status(b,d);window.rcadsR215.template(b,d,WK||(k==='ACS'?s.mon:s.nextMon),k)}catch(err){alert('Could not make the form: '+err.message)}});
+      el.addEventListener('change',e=>{if(e.target.id==='r554Wk'){WK=e.target.value;el.dataset.h=''}})}
     const h=html();if(el.dataset.h!==h){el.dataset.h=h;el.innerHTML=h}
   }
   setInterval(()=>{try{tick()}catch(e){console.warn('R259',e)}},2000);
@@ -35527,7 +35534,12 @@ body.r353-navoff #simpleHrAdminModal .rcads-hr-main{width:100%!important;max-wid
     if(!box)return;
     if(!on||exempt(e)){box.classList.remove('r405-dtr','r405-on','r405-off','r405-reveal');box.querySelectorAll(':scope > #r405DtrLock,:scope > .r405-wm,:scope > .r405-bar').forEach(x=>x.remove());return}
     box.classList.add('r405-dtr');
-    const last=lastInOut(e.code),left=last?last+SHOW_MS-now():-1;
+    const last0=lastInOut(e.code);let last=last0;
+    /* R555: the 2 minutes start when THIS PHONE RECEIVES the punch (guard scan arrives by sync, sometimes late) — not only at the punch time */
+    try{const K='rcads_r555_seen_'+U(e.code);const sv=JSON.parse(localStorage.getItem(K)||'{}');
+      if(last0&&last0!==sv.p){const arr=(sv.p===undefined&&now()-last0>864e5)?last0:now();localStorage.setItem(K,JSON.stringify({p:last0,a:arr}));if(now()-last0<864e5)last=Math.max(last0,arr)}
+      else if(last0&&sv.a&&now()-last0<864e5)last=Math.max(last0,sv.a)}catch(x){}
+    const left=last?last+SHOW_MS-now():-1;
     if(left>0){box.classList.remove('r405-off');box.classList.add('r405-on');const L=box.querySelector(':scope > #r405DtrLock');if(L)L.remove();
       let bar=box.querySelector(':scope > .r405-bar');if(!bar){bar=document.createElement('div');bar.className='r405-bar';box.insertBefore(bar,box.firstChild)}
       const s=Math.ceil(left/1000),t='📋 MY DTR • closes in '+Math.floor(s/60)+':'+pad(s%60);if(bar.textContent!==t)bar.textContent=t;
